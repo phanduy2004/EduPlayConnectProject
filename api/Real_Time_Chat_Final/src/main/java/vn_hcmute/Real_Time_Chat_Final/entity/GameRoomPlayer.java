@@ -20,12 +20,12 @@
         @GeneratedValue(strategy = GenerationType.IDENTITY) // ✅ Thêm dòng này
         private Long id;
 
-        @ManyToOne(fetch = FetchType.LAZY)
+        @ManyToOne(fetch = FetchType.EAGER)
         @JoinColumn(name = "game_room_id")
         @JsonBackReference
         private GameRoom gameRoom;
 
-        @ManyToOne(fetch = FetchType.LAZY)
+        @ManyToOne(fetch = FetchType.EAGER)
         @JoinColumn(name = "user_id")
         private User user;
 

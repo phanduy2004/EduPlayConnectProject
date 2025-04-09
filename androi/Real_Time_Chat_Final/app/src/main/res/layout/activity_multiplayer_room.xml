@@ -42,29 +42,33 @@
         app:layout_constraintTop_toBottomOf="@+id/tvPlayerCount" />
 
     <!-- Ready Button -->
+
+    <!-- Start Game Button -->
+
+    <!-- Leave Room Button -->
     <Button
         android:id="@+id/btnToggleReady"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="60dp"
         android:text="Sẵn sàng"
         app:layout_constraintBottom_toTopOf="@+id/btnStartGame"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.49"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- Start Game Button -->
     <Button
         android:id="@+id/btnStartGame"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:text="Bắt đầu"
+        android:layout_marginBottom="60dp"
         android:enabled="false"
+        android:text="Bắt đầu"
         app:layout_constraintBottom_toTopOf="@+id/btnLeaveRoom"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.479"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- Leave Room Button -->
     <Button
         android:id="@+id/btnLeaveRoom"
         android:layout_width="wrap_content"

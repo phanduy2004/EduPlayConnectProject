@@ -98,20 +98,22 @@ public class GameRoomService {
     }
 
     @Transactional
-    public GameRoomDTO leaveRoom(Long roomId, Long userId) {
+    public GameRoom leaveRoom(Long roomId, Long userId) {
         GameRoom room = gameRoomRepository.findById(roomId)
                 .orElseThrow(() -> new RuntimeException("Room not found"));
 
-        // Logic xóa người chơi
         GameRoomPlayer player = gameRoomPlayerRepository.findByGameRoom_RoomIdAndUser_Id(roomId, userId);
         if (player != null) {
-            gameRoomPlayerRepository.delete(player);
+            gameRoomPlayerRepository.delete(player); // Chỉ cần gọi delete là đủ
+            room.getPlayers().remove(player); // <- nên thêm dòng này để Hibernate sync bộ nhớ
         }
 
-        // Tải danh sách players trước khi session đóng
-        Hibernate.initialize(room.getPlayers());
+        // Khởi tạo User nếu cần gửi lên client
+        for (GameRoomPlayer p : room.getPlayers()) {
+            Hibernate.initialize(p.getUser());
+        }
 
-        return convertToDTO(room);
+        return room;
     }
 
     private GameRoomDTO convertToDTO(GameRoom room) {

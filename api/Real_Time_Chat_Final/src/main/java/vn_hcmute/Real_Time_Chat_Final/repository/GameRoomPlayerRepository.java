@@ -13,6 +13,6 @@ public interface GameRoomPlayerRepository extends JpaRepository<GameRoomPlayer, 
     void deleteByGameRoomAndUser(GameRoom gameRoom, User user);
     List<GameRoomPlayer> findByGameRoom(GameRoom gameRoom);
     GameRoomPlayer findByGameRoom_RoomIdAndUser_Id(Long gameRoomId, Long userId);
-
+    List<GameRoomPlayer> findByGameRoom_RoomId(Long roomId);
     GameRoomPlayer findByUserId(long userId);
 }

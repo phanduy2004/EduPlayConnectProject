@@ -94,9 +94,11 @@ public class GameWebSocketService {
 
     public void leaveRoom(String roomId) {
         try {
+            subscribeToRoomUpdates(roomId);
             LeaveRoomRequest request = new LeaveRoomRequest(userId, roomId);
             String jsonMessage = gson.toJson(request);
             webSocketManager.sendRequest(jsonMessage, LEAVE_ROOM_URL);
+
         } catch (Exception e) {
             Log.e(TAG, "Error leaving room", e);
             notifyError("Error leaving room: " + e.getMessage());

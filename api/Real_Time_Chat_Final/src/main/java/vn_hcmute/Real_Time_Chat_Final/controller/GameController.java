@@ -57,11 +57,9 @@ public class GameController {
 
     @MessageMapping("/game.leaveRoom")
     public void leaveRoom(LeaveRoomRequest request) {
-        GameRoomDTO room = gameRoomService.leaveRoom(Long.parseLong(request.getRoomId()),
+        GameRoom room = gameRoomService.leaveRoom(Long.parseLong(request.getRoomId()),
                 Long.parseLong(request.getUserId()));
-
         if (room != null) {
-            // Gửi cập nhật phòng cho tất cả người dùng trong phòng
             messagingTemplate.convertAndSend("/topic/game.room." + room.getRoomId(), room);
         }
     }
