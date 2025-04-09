@@ -1,0 +1,10 @@
+<resources>
+    <style name="QuizOptionButton">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">12dp</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:background">@drawable/answer_button_bg</item>
+    </style>
+</resources>

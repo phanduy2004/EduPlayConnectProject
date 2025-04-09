@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="primary">#6200EE</color> <!-- Màu chính, có thể thay bằng màu bạn muốn -->
+    <color name="gray">#808080</color>
+    <color name="cream_white">#FFF5E1</color> <!-- Màu trắng kem -->
+    <color name="purple_light">#E1BEE7</color>
+    <color name="purple_medium">#BA68C8</color>
+    <color name="purple_dark">#8E24AA</color>
+    <color name="purple_deep">#4A148C</color>
+
+    <!-- Thêm màu đỏ và xanh -->
+    <color name="red">#FF0000</color> <!-- Màu đỏ -->
+    <color name="green">#008000</color> <!-- Màu xanh -->
+</resources>

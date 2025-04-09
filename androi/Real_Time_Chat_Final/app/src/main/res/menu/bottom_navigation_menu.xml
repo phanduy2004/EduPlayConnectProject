@@ -1,0 +1,18 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/ic_home"
+        android:title="" />
+    <item
+        android:id="@+id/nav_addFriend"
+        android:icon="@drawable/ic_addfriend"
+        android:title="" />
+    <item
+        android:id="@+id/nav_findRoom"
+        android:icon="@drawable/ic_findroom"
+        android:title="" />
+    <item
+        android:id="@+id/nav_chatmessage"
+        android:icon="@drawable/ic_chat"
+        android:title="" />
+</menu>
