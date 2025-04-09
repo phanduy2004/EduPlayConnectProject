@@ -1,11 +1,14 @@
 package com.myjob.real_time_chat_final.model;
 
+import com.google.gson.annotations.SerializedName;
+
 import java.io.Serializable;
 
 public class GameRoomPlayer implements Serializable {
     private Long id;
     private GameRoom gameRoom;
     private User user;
+    @SerializedName("ready") // Tên trường trong JSON từ server
     private boolean isReady;  // Thêm thuộc tính isReady
 
     public GameRoomPlayer(Long id, GameRoom gameRoom, User user, boolean isReady) {

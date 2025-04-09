@@ -38,9 +38,6 @@ public class User implements Serializable {
     @Column(nullable = false)
     private boolean isActive;
 
-    @Column(nullable = false)
-    private boolean isReady;
-
     @Column(name = "created_at", updatable = false)
     private Timestamp createdAt;
 
@@ -57,7 +54,6 @@ public class User implements Serializable {
                 ", email='" + email + '\'' +
                 ", otp='" + otp + '\'' +
                 ", isActive=" + isActive +
-                ", isReady=" + isReady +
                 ", status=" + status +
                 '}';
     }

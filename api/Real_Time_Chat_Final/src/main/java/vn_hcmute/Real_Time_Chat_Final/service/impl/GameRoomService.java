@@ -149,21 +149,24 @@ public class GameRoomService {
     @Transactional
     public GameRoom toggleReady(Long roomId, Long userId, boolean ready) {
         GameRoom room = gameRoomRepository.findById(roomId)
-                .orElseThrow(() -> new RuntimeException("Room not found"));
-
-        if (room.getHost().getId() == userId) {
-            return room;
-        }
+                .orElseThrow(() -> new RuntimeException("Phòng không tồn tại"));
 
         GameRoomPlayer player = gameRoomPlayerRepository.findByGameRoom_RoomIdAndUser_Id(roomId, userId);
-
-        if (player != null) {
-            User user = player.getUser();
-            user.setReady(ready);
-            // Giả sử bạn có UserRepository thì cần save lại user nếu cần
+        if (player == null) {
+            throw new RuntimeException("Người chơi không có trong phòng");
         }
 
-        return gameRoomRepository.save(room);
+        player.setReady(ready);
+        gameRoomPlayerRepository.save(player);
+
+        // Khởi tạo players trước khi session đóng
+        Hibernate.initialize(room.getPlayers());
+        // Đảm bảo dữ liệu User trong mỗi GameRoomPlayer cũng được khởi tạo
+        for (GameRoomPlayer p : room.getPlayers()) {
+            Hibernate.initialize(p.getUser());
+        }
+
+        return room;
     }
 
     public String generateGameData(GameRoom room) {

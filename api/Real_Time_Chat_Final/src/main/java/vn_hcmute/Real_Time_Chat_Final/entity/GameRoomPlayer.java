@@ -29,12 +29,16 @@
         @JoinColumn(name = "user_id")
         private User user;
 
+        @Column
+        private boolean isReady;
+
         @Override
         public String toString() {
             return "GameRoomPlayer{" +
                     "gameRoom=" + gameRoom +
                     ", id=" + id +
                     ", user=" + user +
+                    ", isReady=" + isReady +
                     '}';
         }
     }

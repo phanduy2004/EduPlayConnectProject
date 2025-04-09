@@ -138,11 +138,12 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
     private void updateUI() {
         Log.d(TAG, "Updating UI - isHost: " + isHost + ", isReady: " + isReady);
         btnStartGame.setVisibility(isHost ? View.VISIBLE : View.GONE);
+        btnStartGame.setEnabled(isHost); // Chỉ bật nút khi là host
         btnShareRoom.setVisibility(isHost ? View.VISIBLE : View.GONE);
         btnToggleReady.setVisibility(isHost ? View.GONE : View.VISIBLE);
         btnToggleReady.setText(isReady ? "Cancel Ready" : "Ready");
+        Log.d(TAG, "btnStartGame enabled: " + btnStartGame.isEnabled());
     }
-
     private void processRoomJoining() {
         if (roomId != null) {
             if (isHost) {
@@ -268,6 +269,11 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
             Log.d(TAG, "Updating players: " + players.size());
             for (GameRoomPlayer player : players) {
                 Log.d(TAG, "Player: " + player.getUser().getUsername() + ", Ready: " + player.isReady());
+                // Đồng bộ trạng thái isReady của người chơi hiện tại
+                if (String.valueOf(player.getUser().getId()).equals(userId)) { // Chuyển int thành String
+                    isReady = player.isReady();
+                    Log.d(TAG, "Synced isReady for user " + userId + " to: " + isReady);
+                }
             }
             playerAdapter.updatePlayers(players, hostId);
             recyclerViewPlayers.getAdapter().notifyDataSetChanged();

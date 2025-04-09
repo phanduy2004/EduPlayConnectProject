@@ -118,6 +118,7 @@ public class GameWebSocketService {
 
     public void toggleReady(String roomId, boolean ready) {
         try {
+            subscribeToRoomUpdates(roomId);
             ToggleReadyRequest request = new ToggleReadyRequest(userId, roomId, ready);
             String jsonMessage = gson.toJson(request);
             webSocketManager.sendRequest(jsonMessage, TOGGLE_READY_URL);
@@ -127,22 +128,22 @@ public class GameWebSocketService {
         }
     }
 
-    public void subscribeToRoomUpdates(String roomId) {
-        webSocketManager.subscribeToTopic(ROOM_UPDATES_TOPIC + roomId, new WebSocketManager.MessageListener() {
-            @Override
-            public void onNewMessage(String message) {
-                Log.d(TAG, "Received room update for room " + roomId + ": " + message);
-                try {
-                    GameRoom gameRoom = gson.fromJson(message, GameRoom.class);
-                    Log.d(TAG, "Parsed GameRoom: " + gson.toJson(gameRoom));
-                    notifyRoomUpdate(gameRoom);
-                } catch (Exception e) {
-                    Log.e(TAG, "Error parsing room update", e);
-                    notifyError("Error parsing room update: " + e.getMessage());
+        public void subscribeToRoomUpdates(String roomId) {
+            webSocketManager.subscribeToTopic(ROOM_UPDATES_TOPIC + roomId, new WebSocketManager.MessageListener() {
+                @Override
+                public void onNewMessage(String message) {
+                    Log.d(TAG, "Received room update for room " + roomId + ": " + message);
+                    try {
+                        GameRoom gameRoom = gson.fromJson(message, GameRoom.class);
+                        Log.d(TAG, "Parsed GameRoom: " + gson.toJson(gameRoom));
+                        notifyRoomUpdate(gameRoom);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error parsing room update", e);
+                        notifyError("Error parsing room update: " + e.getMessage());
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
 
     private void subscribeToGameStart(String roomId) {
         webSocketManager.subscribeToTopic(GAME_START_TOPIC + roomId, new WebSocketManager.MessageListener() {
