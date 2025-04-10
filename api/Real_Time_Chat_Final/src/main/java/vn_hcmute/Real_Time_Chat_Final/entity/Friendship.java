@@ -1,5 +1,6 @@
 package vn_hcmute.Real_Time_Chat_Final.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,6 +17,7 @@ public class Friendship {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", foreignKey = @ForeignKey(name = "FK_sender_id"))
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User senderId;  //
 
     @ManyToOne(fetch = FetchType.LAZY)
