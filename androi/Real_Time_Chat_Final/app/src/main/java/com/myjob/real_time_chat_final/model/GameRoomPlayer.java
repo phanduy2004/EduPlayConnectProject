@@ -10,12 +10,22 @@ public class GameRoomPlayer implements Serializable {
     private User user;
     @SerializedName("ready") // Tên trường trong JSON từ server
     private boolean isReady;  // Thêm thuộc tính isReady
+    private long score;
 
-    public GameRoomPlayer(Long id, GameRoom gameRoom, User user, boolean isReady) {
+    public long getScore() {
+        return score;
+    }
+
+    public void setScore(long score) {
+        this.score = score;
+    }
+
+    public GameRoomPlayer(Long id, GameRoom gameRoom, User user, boolean isReady, long score) {
         this.id = id;
         this.gameRoom = gameRoom;
         this.user = user;
         this.isReady = isReady;
+        this.score = score;
     }
 
     public GameRoomPlayer() {

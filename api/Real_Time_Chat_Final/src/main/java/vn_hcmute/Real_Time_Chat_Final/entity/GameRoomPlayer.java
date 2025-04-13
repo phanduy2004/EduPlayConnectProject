@@ -32,6 +32,9 @@
         @Column
         private boolean isReady;
 
+        @Column
+        private long score;
+
         @Override
         public String toString() {
             return "GameRoomPlayer{" +

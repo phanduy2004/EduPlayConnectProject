@@ -1,7 +1,6 @@
 package vn_hcmute.Real_Time_Chat_Final.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import vn_hcmute.Real_Time_Chat_Final.config.Status;
 import vn_hcmute.Real_Time_Chat_Final.entity.User;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,20 +43,20 @@ public class UserServiceImpl implements IUserService {
     }
     @Override
     public void saveUser(User user) {
-        user.setStatus(Status.ONLINE);
+        user.setStatus(true);
         repository.save(user);
     }
     @Override
     public void disconnect(User user) {
         var storedUser = repository.findById((long) user.getId()).orElse(null);
         if (storedUser != null) {
-            storedUser.setStatus(Status.OFFLINE);
+            storedUser.setStatus(false);
             repository.save(storedUser);
         }
     }
     @Override
     public List<User> findConnectedUsers() {
-        return repository.findAllByStatus(Status.ONLINE);
+        return repository.findAllByStatus(false);
     }
 
     @Override

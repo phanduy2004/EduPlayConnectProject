@@ -9,8 +9,16 @@ public class User implements Serializable {
     private String password;
     private boolean isActive;
     private String createdAt;
-    private String status;
+    private boolean status;
+    private String avatarUrl;
 
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
+    }
 
     // Constructors
     public User() {}
@@ -38,6 +46,15 @@ public class User implements Serializable {
     public void setUsername(String username) { this.username = username; }
 
     public String getEmail() { return email; }
+
+    public boolean isStatus() {
+        return status;
+    }
+
+    public void setStatus(boolean status) {
+        this.status = status;
+    }
+
     public void setEmail(String email) { this.email = email; }
 
     public boolean isActive() { return isActive; }
@@ -45,8 +62,5 @@ public class User implements Serializable {
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
 }
 

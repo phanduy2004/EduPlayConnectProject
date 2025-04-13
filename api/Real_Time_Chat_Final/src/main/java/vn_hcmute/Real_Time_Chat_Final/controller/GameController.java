@@ -66,19 +66,12 @@ public class GameController {
 
     @MessageMapping("/game.startGame")
     public void startGame(StartGameRequest request) {
-        GameRoom room = gameRoomService.getRoom(Long.parseLong(request.getRoomId()));
-
-        // Kiểm tra xem người dùng có phải là chủ phòng không
-        if (room != null && room.getHost().getId() == Long.parseLong(request.getUserId())) {
-            // Tạo dữ liệu trò chơi (có thể là danh sách câu hỏi, v.v.)
-            String gameData = gameRoomService.generateGameData(room);
-
-            // Gửi thông báo bắt đầu trò chơi cho tất cả người chơi
-            messagingTemplate.convertAndSend("/topic/game.start." + room.getRoomId(), gameData);
-
-            // Cập nhật trạng thái phòng
-            room.setGameStarted(true);
-            messagingTemplate.convertAndSend("/topic/game.room." + room.getRoomId(), room);
+        GameRoom room = gameRoomService.startGame(request.getRoomId());
+        if (room != null) {
+            // Gửi cập nhật trạng thái phòng
+            messagingTemplate.convertAndSend("/topic/game.room." + request.getRoomId(), room);
+            // Gửi tín hiệu bắt đầu game kèm danh sách câu hỏi
+            messagingTemplate.convertAndSend("/topic/game.start." + request.getRoomId(), gameRoomService.getQuestions(request.getRoomId()));
         }
     }
 
@@ -91,6 +84,46 @@ public class GameController {
         if (room != null) {
             // Gửi cập nhật phòng cho tất cả người dùng trong phòng
             messagingTemplate.convertAndSend("/topic/game.room." + room.getRoomId(), room);
+        }
+    }
+    @MessageMapping("/game.submitAnswer")
+    public void submitAnswer(@Payload AnswerRequest request) {
+        log.info("submitAnswer called with request: {}", request);
+        try {
+            if (request.getUserId() == null || request.getRoomId() == null || request.getQuestionId() == null) {
+                log.error("Invalid request: userId={}, roomId={}, questionId={}",
+                        request.getUserId(), request.getRoomId(), request.getQuestionId());
+                messagingTemplate.convertAndSendToUser(
+                        request.getUserId() != null ? request.getUserId() : "unknown",
+                        "/queue/errors",
+                        "Invalid submission data"
+                );
+                return;
+            }
+            GameRoom room = gameRoomService.submitAnswer(
+                    Long.parseLong(request.getRoomId()),
+                    request.getUserId(),
+                    Long.parseLong(request.getQuestionId()),
+                    request.getAnswer()
+            );
+            if (room != null) {
+                messagingTemplate.convertAndSend("/topic/game.ranking." + request.getRoomId(), room.getPlayers());
+                log.info("Ranking updated for room {}: {}", request.getRoomId(), room.getPlayers());
+            } else {
+                log.warn("No ranking update sent for room {}: player not found", request.getRoomId());
+                messagingTemplate.convertAndSendToUser(
+                        request.getUserId(),
+                        "/queue/errors",
+                        "Cannot submit answer: Player not found"
+                );
+            }
+        } catch (Exception e) {
+            log.error("Error in submitAnswer: {}", e.getMessage());
+            messagingTemplate.convertAndSendToUser(
+                    request.getUserId(),
+                    "/queue/errors",
+                    "Error submitting answer: " + e.getMessage()
+            );
         }
     }
 }

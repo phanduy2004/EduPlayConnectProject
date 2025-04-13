@@ -14,8 +14,9 @@
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:background="@drawable/ic_back"
-        app:layout_constraintTop_toTopOf="parent"
+        android:contentDescription="Back"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         android:layout_margin="16dp" />
 
     <!-- Số câu hỏi -->
@@ -24,22 +25,34 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Q1/10"
-        android:textColor="@android:color/white"
+        android:textColor="@color/white"
         android:textSize="16sp"
+        app:layout_constraintEnd_toStartOf="@id/tv_timer"
         app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="16dp" />
+
+    <!-- Bộ đếm thời gian -->
+    <TextView
+        android:id="@+id/tv_timer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="5"
+        android:textColor="@color/red"
+        android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_margin="16dp" />
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="16dp" />
 
     <!-- Progress bar -->
-
-    <!-- Tiêu đề câu hỏi -->
     <ProgressBar
         android:id="@+id/progress_bar"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="0dp"
         android:layout_height="8dp"
         android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="48dp"
+        android:layout_marginTop="8dp"
         android:max="100"
         android:progress="10"
         android:progressDrawable="@drawable/progress_bar_drawable"
@@ -47,44 +60,46 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_question_count" />
 
+    <!-- Tiêu đề câu hỏi -->
     <TextView
         android:id="@+id/tv_question_title"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:gravity="center"
         android:text="Identify the animal"
         android:textColor="@android:color/white"
         android:textSize="20sp"
         android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/progress_bar"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/progress_bar"
+        android:layout_marginHorizontal="16dp"
         android:layout_marginTop="24dp" />
 
     <!-- Ảnh minh họa -->
-
-    <!-- Danh sách đáp án -->
-
     <ImageView
         android:id="@+id/img_question"
         android:layout_width="0dp"
-        android:layout_height="200dp"
-        android:layout_margin="16dp"
-        android:layout_marginTop="32dp"
+        android:layout_height="156dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="16dp"
         android:scaleType="centerCrop"
+        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_question_title" />
 
+    <!-- Danh sách đáp án -->
     <LinearLayout
         android:id="@+id/answer_container"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:layout_marginHorizontal="16dp"
         android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@id/img_question"
-        app:layout_constraintStart_toStartOf="parent"
+        android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginHorizontal="32dp">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/img_question">
 
         <Button
             android:id="@+id/btn_option1"
@@ -106,5 +121,22 @@
             style="@style/QuizOptionButton"
             android:text="Goat" />
     </LinearLayout>
+
+    <!-- Bảng xếp hạng -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_ranking"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:clipToPadding="false"
+        android:paddingVertical="8dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/answer_container"
+        tools:listitem="@layout/item_leaderboard" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

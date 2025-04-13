@@ -69,8 +69,8 @@ public class FriendListAdapter extends RecyclerView.Adapter<FriendListAdapter.Vi
             }
 
             nameTextView.setText(friend.getUsername());
-            statusTextView.setText(friend.getStatus() != null ? friend.getStatus() : "Online");
-
+            statusTextView.setText(friend.isStatus() ? "Online" : "Offline");
+            statusTextView.setTextColor(friend.isStatus() ? 0xFF00FFAA : 0xFFFF0000); // Xanh cho Online, đỏ cho Offline
             itemView.setOnClickListener(v -> {
                 if (listener != null) {
                     listener.onFriendClick(friend);

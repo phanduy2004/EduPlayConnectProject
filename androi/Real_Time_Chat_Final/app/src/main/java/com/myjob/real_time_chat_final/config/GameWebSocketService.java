@@ -107,6 +107,7 @@ public class GameWebSocketService {
 
     public void startGame(String roomId) {
         try {
+            subscribeToGameStart(roomId);
             StartGameRequest request = new StartGameRequest(roomId, userId);
             String jsonMessage = gson.toJson(request);
             webSocketManager.sendRequest(jsonMessage, START_GAME_URL);

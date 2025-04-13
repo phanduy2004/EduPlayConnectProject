@@ -12,6 +12,7 @@ import java.util.List;
 public class QuestionService {
     @Autowired
     private QuestionRepository questionRepository;
+
     public List<Question> findQuestionsByCategoryId(long categoryId) {
         return questionRepository.findQuestionsByCategoryId(categoryId);
     }

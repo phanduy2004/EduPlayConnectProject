@@ -3,7 +3,6 @@ package vn_hcmute.Real_Time_Chat_Final.repository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import vn_hcmute.Real_Time_Chat_Final.config.Status;
 import vn_hcmute.Real_Time_Chat_Final.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -27,6 +26,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     """, nativeQuery = true)
     List<Map<String, Object>> findChatContacts(@Param("userId") int userId);
 
-    List<User> findAllByStatus(Status status);
+    List<User> findAllByStatus(boolean status);
 
 }

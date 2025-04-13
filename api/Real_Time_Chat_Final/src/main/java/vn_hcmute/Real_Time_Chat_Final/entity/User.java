@@ -1,14 +1,11 @@
 package vn_hcmute.Real_Time_Chat_Final.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore; // Thêm import này
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
-import vn_hcmute.Real_Time_Chat_Final.config.Status;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
-import java.util.List;
 
 @Entity
 @Table(name = "user")
@@ -41,7 +38,11 @@ public class User implements Serializable {
     @Column(name = "created_at", updatable = false)
     private Timestamp createdAt;
 
-    private Status status;
+    @Column
+    private boolean status;
+
+    @Column
+    private String avatarUrl;
 
  ;
     @Override

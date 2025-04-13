@@ -295,10 +295,12 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
         runOnUiThread(() -> {
             Log.d(TAG, "Game is starting with data: " + gameData);
             Intent intent = new Intent(MultiplayerRoomActivity.this, QuizActivity.class);
-            intent.putExtra("ROOM_ID", roomId);
-            intent.putExtra("CATEGORY_ID", categoryId);
-            intent.putExtra("CATEGORY_NAME", categoryName);
-            intent.putExtra("GAME_DATA", gameData);
+            intent.putExtra("ROOM_ID", roomId); // String
+            intent.putExtra("USER_ID", userId); // String
+            intent.putExtra("CATEGORY_ID", categoryId); // String
+            intent.putExtra("CATEGORY_NAME", categoryName); // String
+            intent.putExtra("QUESTIONS", gameData); // String (JSON danh sách câu hỏi)
+            Log.d(TAG, "Starting QuizActivity with ROOM_ID: " + roomId + ", QUESTIONS: " + gameData);
             startActivity(intent);
             finish();
         });
