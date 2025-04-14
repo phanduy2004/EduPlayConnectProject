@@ -146,7 +146,7 @@ public class GameWebSocketService {
             });
         }
 
-    private void subscribeToGameStart(String roomId) {
+    public void subscribeToGameStart(String roomId) {
         webSocketManager.subscribeToTopic(GAME_START_TOPIC + roomId, new WebSocketManager.MessageListener() {
             @Override
             public void onNewMessage(String message) {

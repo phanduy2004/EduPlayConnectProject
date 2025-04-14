@@ -15,6 +15,7 @@ import vn_hcmute.Real_Time_Chat_Final.repository.UserRepository;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -141,32 +142,21 @@ public class GameRoomService {
 
         return room;
     }
-
-    private GameRoomDTO convertToDTO(GameRoom room) {
-        GameRoomDTO dto = new GameRoomDTO();
-        dto.setRoomId(room.getRoomId());
-        dto.setCategoryId(room.getCategory().getId());
-        dto.setHostId(room.getHost().getId());
-        dto.setGameStarted(room.isGameStarted());
-        dto.setMaxPlayers(room.getMaxPlayers());
-
-        // Chuyển đổi danh sách players sang DTO
-        List<GameRoomPlayerDTO> playerDTOs = room.getPlayers().stream()
-                .map(this::convertPlayerToDTO)
-                .collect(Collectors.toList());
-        dto.setGameRoomPlayers(playerDTOs);
-
-        return dto;
+    @Transactional
+    public GameRoom endGame(Long roomId) {
+        Optional<GameRoom> roomOpt = gameRoomRepository.findById(roomId);
+        if (roomOpt.isPresent()) {
+            GameRoom room = roomOpt.get();
+            room.setGameStarted(false);
+            // Tải players để tránh LazyInitializationException
+            Hibernate.initialize(room.getPlayers());
+            gameRoomRepository.save(room);
+            log.info("Game ended for room {}, players: {}", roomId, room.getPlayers());
+            return room;
+        }
+        log.warn("Room {} not found for endGame", roomId);
+        return null;
     }
-
-    private GameRoomPlayerDTO convertPlayerToDTO(GameRoomPlayer player) {
-        GameRoomPlayerDTO dto = new GameRoomPlayerDTO();
-        dto.setUserId(player.getId());
-        dto.setUserId(player.getUser().getId());
-        dto.setUsername(player.getUser().getUsername());
-        return dto;
-    }
-
     public GameRoom getRoom(Long roomId) {
         return gameRoomRepository.findById(roomId)
                 .orElseThrow(() -> new RuntimeException("Room not found"));
