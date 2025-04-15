@@ -9,8 +9,9 @@
     <color name="purple_medium">#BA68C8</color>
     <color name="purple_dark">#8E24AA</color>
     <color name="purple_deep">#4A148C</color>
-
+    <color name="grey_600">#757575</color>
     <!-- Thêm màu đỏ và xanh -->
     <color name="red">#FF0000</color> <!-- Màu đỏ -->
+    <color name="red_500">#F44336</color> <!-- Màu đỏ -->
     <color name="green">#008000</color> <!-- Màu xanh -->
 </resources>

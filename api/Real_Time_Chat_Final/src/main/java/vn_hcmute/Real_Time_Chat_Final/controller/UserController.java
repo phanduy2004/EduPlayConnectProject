@@ -11,6 +11,7 @@ import vn_hcmute.Real_Time_Chat_Final.entity.ConversationMember;
 import vn_hcmute.Real_Time_Chat_Final.entity.User;
 import vn_hcmute.Real_Time_Chat_Final.service.IConversationService;
 import vn_hcmute.Real_Time_Chat_Final.service.IUserService;
+import vn_hcmute.Real_Time_Chat_Final.service.impl.UserServiceImpl;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,8 +26,28 @@ public class UserController {
     @Autowired
     private IUserService userService;
     @Autowired
+    private UserServiceImpl userServiceImpl;
+
+    @Autowired
     private IConversationService conversationService;
 
+    @PostMapping("/update/{id}")
+    public ResponseEntity<?> updateUser(@PathVariable("id") int id, @RequestBody User user) {
+        try {
+            User updatedUser = userServiceImpl.updateUser(id, user);
+            return ResponseEntity.ok(updatedUser);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", "Lỗi server: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
     @GetMapping("/all")
     public ResponseEntity<?> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());

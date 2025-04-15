@@ -67,4 +67,48 @@ public class UserServiceImpl implements IUserService {
     public User findByUserId1(long userId) {
         return repository.findById(userId).orElse(null);
     }
+    @Transactional
+    public User updateUser(int id, User updatedUser) {
+        // Lấy user hiện tại từ database
+        User existingUser = findByUserId1(id);
+
+        // Kiểm tra dữ liệu đầu vào
+        if (updatedUser.getUsername() == null || updatedUser.getUsername().trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be empty");
+        }
+
+        if (updatedUser.getEmail() == null || updatedUser.getEmail().trim().isEmpty()) {
+            throw new IllegalArgumentException("Email cannot be empty");
+        }
+
+        // Kiểm tra định dạng email
+
+        // Kiểm tra username và email có trùng với user khác không
+        Optional<User> userWithSameUsername = repository.findByUsername(updatedUser.getUsername());
+        if (userWithSameUsername.isPresent() && userWithSameUsername.get().getId() != id) {
+            throw new IllegalArgumentException("Username already exists");
+        }
+
+        Optional<User> userWithSameEmail = repository.findByEmail(updatedUser.getEmail());
+        if (userWithSameEmail.isPresent() && userWithSameEmail.get().getId() != id) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+
+        // Cập nhật các trường cho phép
+        existingUser.setUsername(updatedUser.getUsername());
+        existingUser.setEmail(updatedUser.getEmail());
+
+        // Chỉ cập nhật avatarUrl nếu không null
+        if (updatedUser.getAvatarUrl() != null) {
+            existingUser.setAvatarUrl(updatedUser.getAvatarUrl());
+        }
+
+        // Không cho phép cập nhật các trường sau qua API này
+        // - password: Nên có endpoint riêng để đổi mật khẩu
+        // - isActive: Chỉ admin nên được phép thay đổi
+        // - createdAt: Không nên thay đổi
+
+        // Lưu user vào database
+        return repository.save(existingUser);
+    }
 }
