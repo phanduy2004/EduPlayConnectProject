@@ -13,15 +13,36 @@
         android:textSize="18sp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/friend_status"
+        app:layout_constraintHorizontal_weight="1" />
 
     <TextView
         android:id="@+id/friend_status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Pending"
+        android:text=""
         android:textSize="14sp"
-        android:textColor="@android:color/holo_blue_dark"
+        app:layout_constraintEnd_toStartOf="@id/btn_message"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageButton
+        android:id="@+id/btn_message"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:src="@android:drawable/ic_menu_send"
+        android:contentDescription="Nhắn tin"
+        android:background="?android:attr/selectableItemBackground"
+        app:layout_constraintEnd_toStartOf="@id/btn_delete"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageButton
+        android:id="@+id/btn_delete"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:src="@android:drawable/ic_menu_delete"
+        android:contentDescription="Xóa bạn"
+        android:background="?android:attr/selectableItemBackground"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 

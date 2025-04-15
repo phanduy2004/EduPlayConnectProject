@@ -7,6 +7,7 @@ import lombok.*;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -17,9 +18,11 @@ import java.util.Set;
 @AllArgsConstructor
 public class Conversation implements Serializable {
     private static final long serialVersionUID = 1L;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
+
     @JsonProperty("group")
     @Column(name = "is_group", nullable = false)
     private boolean group;
@@ -31,9 +34,9 @@ public class Conversation implements Serializable {
 
     @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
-    private Set<ConversationMember> members;
+    private Set<ConversationMember> members = new HashSet<>();
 
     @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
-    private Set<Message> messages;
+    private Set<Message> messages = new HashSet<>();
 }

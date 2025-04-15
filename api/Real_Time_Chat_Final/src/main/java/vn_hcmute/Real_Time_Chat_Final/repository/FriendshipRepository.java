@@ -16,8 +16,8 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
     List<Friendship> findByReceiverIdIdAndStatus(int receiverId, String status);
 
     // Kiểm tra tồn tại friendship giữa hai người dùng (user1 gửi cho user2)
-    boolean existsBySenderIdIdAndReceiverIdIdAndStatus(int senderId, int receiverId, String status);
+    boolean existsBySenderIdIdAndReceiverIdIdAndStatus(int senderId_id, int receiverId_id, String status);
 
-    // Tìm friendship giữa hai người dùng (cả hai chiều)
+    void deleteBySenderIdIdAndReceiverIdIdAndStatus(int senderId_id, int receiverId_id, String status);
 
 }

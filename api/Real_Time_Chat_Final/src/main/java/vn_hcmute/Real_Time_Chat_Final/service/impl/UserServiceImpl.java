@@ -63,4 +63,8 @@ public class UserServiceImpl implements IUserService {
     public Optional<User> findByUserId(long userId) {
         return repository.findById(userId);
     }
+
+    public User findByUserId1(long userId) {
+        return repository.findById(userId).orElse(null);
+    }
 }

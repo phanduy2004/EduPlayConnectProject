@@ -1,6 +1,7 @@
 package com.myjob.real_time_chat_final.retrofit;
 
 import com.myjob.real_time_chat_final.api.CategoryService;
+import com.myjob.real_time_chat_final.api.ConversationService;
 import com.myjob.real_time_chat_final.api.FriendshipService;
 import com.myjob.real_time_chat_final.api.GameRoomService;
 import com.myjob.real_time_chat_final.api.MessageService;
@@ -38,5 +39,8 @@ public class RetrofitClient {
     }
     public static GameRoomService getApiGameRoomService(){
         return getInstance().create(GameRoomService.class);
+    }
+    public static ConversationService getApiConversationService(){
+        return getInstance().create(ConversationService.class);
     }
 }
