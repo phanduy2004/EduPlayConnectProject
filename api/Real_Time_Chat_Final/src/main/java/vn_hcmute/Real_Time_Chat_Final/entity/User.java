@@ -44,7 +44,8 @@ public class User implements Serializable {
     @Column
     private String avatarUrl;
 
- ;
+    private boolean isReady;
+
     @Override
     public String toString() {
         return "User{" +
