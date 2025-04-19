@@ -27,11 +27,11 @@ public class HomeActivity extends AppCompatActivity {
             return;
         }
         // Tìm BottomNavigationView
-        BottomNavigationView bottomNavigationView = findViewById(R.id.navBar);
+
         alphabet = findViewById(R.id.alphabetBtn);
         math = findViewById(R.id.mathBtn);
         qizz = findViewById(R.id.quizzBtn);
-
+        BottomNavigationView bottomNavigationView = findViewById(R.id.navBar);
         // Xử lý sự kiện click vào item trên BottomNavigationView
         bottomNavigationView.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
             @Override
@@ -51,6 +51,12 @@ public class HomeActivity extends AppCompatActivity {
                 }
                 else if(item.getItemId()== R.id.nav_findRoom){
                     Intent intent = new Intent(HomeActivity.this, JoinRoomActivity.class);
+                    intent.putExtra("USER_ID", userid); // Gửi userId sang MessListActivity
+                    startActivity(intent);
+                    return true;
+                }
+                else if(item.getItemId()== R.id.nav_userhome){
+                    Intent intent = new Intent(HomeActivity.this, UserActivity.class);
                     intent.putExtra("USER_ID", userid); // Gửi userId sang MessListActivity
                     startActivity(intent);
                     return true;

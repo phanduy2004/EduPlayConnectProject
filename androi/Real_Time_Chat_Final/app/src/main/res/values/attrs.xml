@@ -1,0 +1,6 @@
+<resources>
+    <declare-styleable name="ItemSettingView">
+        <attr name="title" format="string" />
+        <attr name="icon" format="reference" />
+    </declare-styleable>
+</resources>

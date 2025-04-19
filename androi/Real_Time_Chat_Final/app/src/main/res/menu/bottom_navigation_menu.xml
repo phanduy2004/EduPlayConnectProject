@@ -15,4 +15,8 @@
         android:id="@+id/nav_chatmessage"
         android:icon="@drawable/ic_chat"
         android:title="" />
+    <item
+        android:id="@+id/nav_userhome"
+        android:icon="@drawable/ic_userhome"
+        android:title="" />
 </menu>

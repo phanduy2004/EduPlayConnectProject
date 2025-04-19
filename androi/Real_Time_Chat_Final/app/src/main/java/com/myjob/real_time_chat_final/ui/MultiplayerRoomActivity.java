@@ -50,7 +50,8 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
     private boolean isHost = false;
     private boolean isReady = false;
     private PlayerAdapter playerAdapter;
-    private boolean isRoomCreated = false; // Biến kiểm tra xem phòng đã được tạo chưa
+    private boolean isRoomCreated = false;
+    private boolean isGameStarting = false; // Cờ để ngăn leaveRoom khi game bắt đầu
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,7 +74,6 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
         btnShareRoom = findViewById(R.id.btnShareRoom);
 
         recyclerViewPlayers.setLayoutManager(new LinearLayoutManager(this));
-        Log.d(TAG, "RecyclerView initialized");
     }
 
     private void initData() {
@@ -85,7 +85,6 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
         userId = intent.getStringExtra("USER_ID");
         isHost = intent.getBooleanExtra("IS_HOST", false);
 
-        // Log toàn bộ intent extras để kiểm tra
         Log.d(TAG, "Intent extras: " + (intent.getExtras() != null ? intent.getExtras().toString() : "null"));
         Log.d(TAG, "CATEGORY_ID: " + categoryId);
         Log.d(TAG, "CATEGORY_NAME: " + categoryName);
@@ -94,12 +93,9 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
         Log.d(TAG, "USER_ID: " + userId);
         Log.d(TAG, "IS_HOST: " + isHost);
 
-        // Kiểm tra userId
         if (userId == null || userId.trim().isEmpty()) {
-            userId = String.valueOf(LoginActivity.userid); // Fallback từ LoginActivity
+            userId = String.valueOf(LoginActivity.userid);
             if (userId == null || userId.equals("null") || userId.trim().isEmpty()) {
-                Log.e(TAG, "User ID is null or invalid, cannot proceed");
-                Toast.makeText(this, "Error: User ID not provided", Toast.LENGTH_SHORT).show();
                 finish();
                 return;
             }
@@ -108,11 +104,8 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
         gameWebSocketService = GameWebSocketService.getInstance();
         gameWebSocketService.initialize(userId);
         gameWebSocketService.addListener(this);
-        Log.d(TAG, "WebSocket initialized");
-
         playerAdapter = new PlayerAdapter(new ArrayList<>(), userId, hostId);
         recyclerViewPlayers.setAdapter(playerAdapter);
-        Log.d(TAG, "PlayerAdapter set to RecyclerView");
 
         getUserById(Long.parseLong(userId));
 
@@ -122,14 +115,12 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
             tvRoomInfo.setText("Creating new room...");
             tvRoomCode.setVisibility(View.GONE);
             gameWebSocketService.createRoom(userId, categoryId, categoryName);
-            Log.d(TAG, "Creating room with userId: " + userId + ", categoryId: " + categoryId);
         } else if (roomId != null) {
             tvRoomCode.setText("Room Code: " + roomId);
             tvRoomCode.setVisibility(View.VISIBLE);
             tvRoomInfo.setText(isHost ? "Hosting room: " + categoryName : "Connecting to room: " + roomId);
             processRoomJoining();
         } else {
-            Log.e(TAG, "Invalid state: not host and no roomId");
             Toast.makeText(this, "Error: Invalid room state", Toast.LENGTH_SHORT).show();
             finish();
         }
@@ -138,12 +129,12 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
     private void updateUI() {
         Log.d(TAG, "Updating UI - isHost: " + isHost + ", isReady: " + isReady);
         btnStartGame.setVisibility(isHost ? View.VISIBLE : View.GONE);
-        btnStartGame.setEnabled(isHost); // Chỉ bật nút khi là host
+        btnStartGame.setEnabled(isHost);
         btnShareRoom.setVisibility(isHost ? View.VISIBLE : View.GONE);
         btnToggleReady.setVisibility(isHost ? View.GONE : View.VISIBLE);
         btnToggleReady.setText(isReady ? "Cancel Ready" : "Ready");
-        Log.d(TAG, "btnStartGame enabled: " + btnStartGame.isEnabled());
     }
+
     private void processRoomJoining() {
         if (roomId != null) {
             if (isHost) {
@@ -154,8 +145,9 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
                 gameWebSocketService.joinRoom(roomId);
                 tvRoomInfo.setText("Joining room: " + roomId);
             }
+            gameWebSocketService.subscribeToRoomUpdates(roomId);
+            gameWebSocketService.subscribeToGameStart(roomId);
         } else {
-            Log.e(TAG, "Cannot join room: no room ID provided");
             Toast.makeText(this, "Error: Cannot join room", Toast.LENGTH_SHORT).show();
             finish();
         }
@@ -177,7 +169,7 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
                 user = response.body();
                 if (user != null) {
                     Log.d(TAG, "User fetched successfully: " + user.getUsername());
-                    if (!isHost || isRoomCreated) { // Chỉ join nếu không phải host hoặc phòng đã tạo
+                    if (!isHost || isRoomCreated) {
                         processRoomJoining();
                     }
                 } else {
@@ -200,6 +192,7 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
         if (roomId != null) {
             gameWebSocketService.leaveRoom(roomId);
             Toast.makeText(this, "Left room", Toast.LENGTH_SHORT).show();
+            Log.d(TAG, "User " + userId + " leaving room " + roomId);
             finish();
         } else {
             Toast.makeText(this, "Cannot leave room as you are not connected", Toast.LENGTH_SHORT).show();
@@ -214,6 +207,7 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
         }
         if (roomId != null) {
             gameWebSocketService.startGame(roomId);
+            Log.d(TAG, "Starting game for room " + roomId);
         } else {
             Toast.makeText(this, "Cannot start game: no room created", Toast.LENGTH_SHORT).show();
         }
@@ -224,6 +218,7 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
             isReady = !isReady;
             gameWebSocketService.toggleReady(roomId, isReady);
             btnToggleReady.setText(isReady ? "Cancel Ready" : "Ready");
+            Log.d(TAG, "Toggled ready for user " + userId + ": " + isReady);
         }
     }
 
@@ -242,11 +237,7 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
     @Override
     public void onRoomUpdate(GameRoom room) {
         runOnUiThread(() -> {
-            Log.d(TAG, "Room update received - Room ID: " + room.getRoomId() + ", Players: " +
-                    (room.getPlayers() != null ? room.getPlayers().size() : "null"));
-
             if (room.getPlayers() == null || room.getPlayers().isEmpty()) {
-                Log.w(TAG, "Player list is empty or null");
                 if (isHost && user != null) {
                     List<GameRoomPlayer> players = new ArrayList<>();
                     GameRoomPlayer hostPlayer = new GameRoomPlayer();
@@ -268,11 +259,9 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
             List<GameRoomPlayer> players = room.getPlayers();
             Log.d(TAG, "Updating players: " + players.size());
             for (GameRoomPlayer player : players) {
-                Log.d(TAG, "Player: " + player.getUser().getUsername() + ", Ready: " + player.isReady());
-                // Đồng bộ trạng thái isReady của người chơi hiện tại
-                if (String.valueOf(player.getUser().getId()).equals(userId)) { // Chuyển int thành String
+                if (String.valueOf(player.getUser().getId()).equals(userId)) {
                     isReady = player.isReady();
-                    Log.d(TAG, "Synced isReady for user " + userId + " to: " + isReady);
+                    Log.d(TAG, "Synced isReady for user " + userId + ": " + isReady);
                 }
             }
             playerAdapter.updatePlayers(players, hostId);
@@ -283,7 +272,7 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
 
             if (!isRoomCreated && isHost) {
                 Toast.makeText(this, "Room created: " + room.getRoomId(), Toast.LENGTH_SHORT).show();
-                isRoomCreated = true; // Đánh dấu phòng đã được tạo
+                isRoomCreated = true;
             } else {
                 Toast.makeText(this, "Room updated: " + players.size() + " players", Toast.LENGTH_SHORT).show();
             }
@@ -294,13 +283,14 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
     public void onGameStart(String gameData) {
         runOnUiThread(() -> {
             Log.d(TAG, "Game is starting with data: " + gameData);
+            isGameStarting = true; // Đặt cờ để ngăn leaveRoom trong onDestroy
             Intent intent = new Intent(MultiplayerRoomActivity.this, QuizActivity.class);
-            intent.putExtra("ROOM_ID", roomId); // String
-            intent.putExtra("USER_ID", userId); // String
-            intent.putExtra("CATEGORY_ID", categoryId); // String
-            intent.putExtra("CATEGORY_NAME", categoryName); // String
-            intent.putExtra("QUESTIONS", gameData); // String (JSON danh sách câu hỏi)
-            Log.d(TAG, "Starting QuizActivity with ROOM_ID: " + roomId + ", QUESTIONS: " + gameData);
+            intent.putExtra("ROOM_ID", roomId);
+            intent.putExtra("USER_ID", userId);
+            intent.putExtra("CATEGORY_ID", categoryId);
+            intent.putExtra("CATEGORY_NAME", categoryName);
+            intent.putExtra("HOST_ID", hostId);
+            intent.putExtra("QUESTIONS", gameData);
             startActivity(intent);
             finish();
         });
@@ -317,8 +307,11 @@ public class MultiplayerRoomActivity extends AppCompatActivity implements GameWe
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (roomId != null) {
+        if (roomId != null && !isGameStarting) {
             gameWebSocketService.leaveRoom(roomId);
+            Log.d(TAG, "Leaving room " + roomId + " in onDestroy for user " + userId);
+        } else {
+            Log.d(TAG, "Not leaving room " + roomId + " because game is starting or roomId is null");
         }
         gameWebSocketService.removeListener(this);
         Log.d(TAG, "Activity destroyed, WebSocket listener removed");

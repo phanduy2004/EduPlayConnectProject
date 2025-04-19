@@ -10,6 +10,7 @@ import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
+import retrofit2.http.PUT;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
@@ -26,9 +27,7 @@ public interface UserService {
     Call<Map<String, String>> signUpPostForm(@Body User user);
     @POST("auth/verify-code")
     Call<Map<String, String>> verifyCode(@Body Map<String, String> requestBody);
-
-
-
-
+    @POST("api/users/update/{id}")
+    Call<User> updateUser(@Path("id") int userId, @Body User user);
 
 }

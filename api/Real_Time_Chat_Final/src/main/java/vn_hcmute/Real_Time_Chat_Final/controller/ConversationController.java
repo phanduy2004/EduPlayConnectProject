@@ -1,20 +1,23 @@
 package vn_hcmute.Real_Time_Chat_Final.controller;
 
+import org.springframework.beans.PropertyValue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn_hcmute.Real_Time_Chat_Final.entity.Conversation;
 import vn_hcmute.Real_Time_Chat_Final.service.IConversationService;
+import vn_hcmute.Real_Time_Chat_Final.service.impl.ConversationService;
 
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/conversations")
 public class ConversationController {
-
-    private final IConversationService conversationService;
-
     @Autowired
+    private final IConversationService conversationService;
+    @Autowired
+    private ConversationService conversationRepoService;
+
     public ConversationController(IConversationService conversationService) {
         this.conversationService = conversationService;
     }
@@ -23,14 +26,20 @@ public class ConversationController {
      * ✅ API: Tạo cuộc trò chuyện mới
      * URL: POST /api/conversations
      */
-    @PostMapping
+    @PostMapping("/{userId}/{friendId}")
     public ResponseEntity<Conversation> createConversation(
-            @RequestParam boolean isGroup,
-            @RequestParam String name) {
-        Conversation conversation = conversationService.createConversation(isGroup, name);
-        return ResponseEntity.ok(conversation);
+            @PathVariable("userId") int userId,
+            @PathVariable("friendId") int friendId) {
+        System.out.println("Tạo cuộc trò chuyện: userId=" + userId + ", friendId=" + friendId);
+        try {
+            Conversation conversation = conversationRepoService.createOrGetConversation(userId, friendId);
+            System.out.println("Conversation response: id=" + conversation.getId());
+            return ResponseEntity.ok(conversation);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Lỗi: " + e.getMessage());
+            return ResponseEntity.badRequest().body(null);
+        }
     }
-
     /**
      * ✅ API: Lấy thông tin cuộc trò chuyện theo ID
      * URL: GET /api/conversations/{conversationId}

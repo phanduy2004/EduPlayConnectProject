@@ -31,6 +31,11 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
             "   SELECT cm2.conversation.id FROM ConversationMember cm2 WHERE cm2.user.id = :userId" +
             ") AND (c.group = true OR cm.user.id <> :userId)")
     List<ConversationMember> findListChat(@Param("userId") int userId);
+    @Query("SELECT c FROM Conversation c " +
+            "WHERE c.group = false " +
+            "AND EXISTS (SELECT m1 FROM ConversationMember m1 WHERE m1.conversation = c AND m1.user.id = :userId) " +
+            "AND EXISTS (SELECT m2 FROM ConversationMember m2 WHERE m2.conversation = c AND m2.user.id = :friendId)")
+    List<Conversation> findIndividualConversationBetweenUsers(long userId, long friendId);
 
 
 

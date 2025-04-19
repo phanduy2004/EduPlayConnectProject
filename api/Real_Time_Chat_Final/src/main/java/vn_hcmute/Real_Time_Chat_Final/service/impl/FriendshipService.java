@@ -2,6 +2,7 @@ package vn_hcmute.Real_Time_Chat_Final.service.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import vn_hcmute.Real_Time_Chat_Final.entity.Friendship;
 import vn_hcmute.Real_Time_Chat_Final.entity.User;
 import vn_hcmute.Real_Time_Chat_Final.repository.FriendshipRepository;
@@ -18,10 +19,32 @@ public class FriendshipService {
     public void addFriend(Friendship friendship) {
         friendshipRepository.save(friendship);
     }
+
     public Optional<Friendship> findById(Long id) {
         return friendshipRepository.findById(id);
     }
 
+    @Transactional
+    public boolean deleteFriend(int userId, int friendId) {
+        System.out.println("Kiểm tra quan hệ: userId=" + userId + ", friendId=" + friendId);
+        boolean existsForward = friendshipRepository.existsBySenderIdIdAndReceiverIdIdAndStatus(userId, friendId, "Accepted");
+        boolean existsBackward = friendshipRepository.existsBySenderIdIdAndReceiverIdIdAndStatus(friendId, userId, "Accepted");
+        System.out.println("Forward exists: " + existsForward + ", Backward exists: " + existsBackward);
+
+        if (!existsForward && !existsBackward) {
+            return false;
+        }
+
+        if (existsForward) {
+            friendshipRepository.deleteBySenderIdIdAndReceiverIdIdAndStatus(userId, friendId, "Accepted");
+            System.out.println("Xóa forward: userId=" + userId + ", friendId=" + friendId);
+        }
+        if (existsBackward) {
+            friendshipRepository.deleteBySenderIdIdAndReceiverIdIdAndStatus(friendId, userId, "Accepted");
+            System.out.println("Xóa backward: userId=" + friendId + ", friendId=" + userId);
+        }
+        return true;
+    }
     public Friendship updateFriendship(Friendship friendship) {
         return friendshipRepository.save(friendship);
     }

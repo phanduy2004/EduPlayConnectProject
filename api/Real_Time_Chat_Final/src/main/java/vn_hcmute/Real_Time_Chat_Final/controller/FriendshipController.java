@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,6 +42,18 @@ public class FriendshipController {
     public ResponseEntity<List<Friendship>> getFriendRequestsReceived(@PathVariable("userId") int userId) {
         List<Friendship> friendRequests = friendshipRepository.findByReceiverIdIdAndStatus(userId, "Pending");
         return ResponseEntity.ok(friendRequests);
+    }
+    @DeleteMapping("api/friendship/{userId}/{friendId}")
+    public ResponseEntity<Void> deleteFriendship(@PathVariable("userId") int userId, @PathVariable("friendId") int friendId) {
+        System.out.println("Gọi xóa bạn: userId=" + userId + ", friendId=" + friendId);
+        boolean deleted = friendshipService.deleteFriend(userId, friendId);
+        if (deleted) {
+            System.out.println("Xóa thành công: userId=" + userId + ", friendId=" + friendId);
+            return ResponseEntity.ok().build();
+        } else {
+            System.out.println("Không tìm thấy quan hệ: userId=" + userId + ", friendId=" + friendId);
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @MessageMapping("/sendFriendRequest")

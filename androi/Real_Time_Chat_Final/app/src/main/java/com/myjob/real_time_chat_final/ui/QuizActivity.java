@@ -1,8 +1,13 @@
 package com.myjob.real_time_chat_final.ui;
 
+import android.app.AlertDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -41,11 +46,15 @@ public class QuizActivity extends AppCompatActivity implements QuizWebSocketServ
     private List<Question> questionList;
     private int currentQuestionIndex = 0;
     private int totalQuestions;
-    private String roomId, userId, categoryId, categoryName;
+    private String roomId, userId, categoryId, categoryName, hostId;
     private QuizWebSocketService webSocketService;
     private CountDownTimer countDownTimer;
     private boolean isAnswerSubmitted = false;
     private static final long QUESTION_TIME_MS = 5000;
+    private List<GameRoomPlayer> finalRankings = new ArrayList<>();
+    private boolean isGameEnded = false;
+    private int localScore = 0;
+    private boolean isBackPressed = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,28 +79,28 @@ public class QuizActivity extends AppCompatActivity implements QuizWebSocketServ
         rvRanking.setLayoutManager(new LinearLayoutManager(this));
         rvRanking.setAdapter(rankingAdapter);
 
-        // Khởi tạo bảng xếp hạng mặc định
-        List<GameRoomPlayer> initialRankings = new ArrayList<>();
-        GameRoomPlayer player = new GameRoomPlayer();
-        User user = new User();
-        user.setId((int) (userId != null ? Long.parseLong(userId) : 0L));
-        user.setUsername("You");
-        user.setStatus(true);
-        player.setUser(user);
-        player.setScore(0);
-        initialRankings.add(player);
-        rankingAdapter.updateRankings(initialRankings);
-        Log.d(TAG, "Initial rankings set: " + initialRankings);
-
         // Nhận dữ liệu từ Intent
         roomId = getIntent().getStringExtra("ROOM_ID");
         userId = getIntent().getStringExtra("USER_ID");
         categoryId = getIntent().getStringExtra("CATEGORY_ID");
         categoryName = getIntent().getStringExtra("CATEGORY_NAME");
+        hostId = getIntent().getStringExtra("HOST_ID");
         String questionsJson = getIntent().getStringExtra("QUESTIONS");
 
-        Log.d(TAG, "Received Intent - ROOM_ID: " + roomId + ", USER_ID: " + userId +
+        Log.d(TAG, "Nhận Intent - ROOM_ID: " + roomId + ", USER_ID: " + userId +
                 ", CATEGORY_ID: " + categoryId + ", QUESTIONS: " + questionsJson);
+
+        // Khởi tạo bảng xếp hạng mặc định
+        GameRoomPlayer player = new GameRoomPlayer();
+        User user = new User();
+        user.setId(userId != null ? Integer.parseInt(userId) : 0);
+        user.setUsername("Bạn");
+        user.setStatus(true);
+        player.setUser(user);
+        player.setScore(0L);
+        finalRankings.add(player);
+        rankingAdapter.updateRankings(finalRankings);
+        Log.d(TAG, "Khởi tạo bảng xếp hạng: " + new Gson().toJson(finalRankings));
 
         // Parse danh sách câu hỏi
         if (questionsJson != null && !questionsJson.isEmpty()) {
@@ -114,19 +123,42 @@ public class QuizActivity extends AppCompatActivity implements QuizWebSocketServ
         webSocketService.addListener(this);
         if (roomId != null) {
             webSocketService.subscribeToRanking(roomId);
-            Log.d(TAG, "Subscribed to ranking topic: /topic/game.ranking." + roomId);
+            webSocketService.subscribeToGameEnd(roomId);
+            Log.d(TAG, "Đã đăng ký topic xếp hạng: /topic/game.ranking." + roomId);
+            Log.d(TAG, "Đã đăng ký topic kết thúc: /topic/game.end." + roomId);
         }
 
-        btnBack.setOnClickListener(v -> finish());
+        btnBack.setOnClickListener(v -> {
+            isBackPressed = true;
+            if (!isGameEnded) {
+                webSocketService.endGame(roomId, userId);
+                Log.d(TAG, "Nhấn back, gửi yêu cầu kết thúc trò chơi");
+            }
+            Toast.makeText(this, "Đang thoát trò chơi...", Toast.LENGTH_SHORT).show();
+            showRankingDialog();
+        });
+    }
+
+    private void navigateToRoomActivity() {
+        if (isFinishing() || isDestroyed()) {
+            Log.d(TAG, "Bỏ qua navigateToRoomActivity vì Activity đã kết thúc");
+            return;
+        }
+        Intent intent = new Intent(this, QuizListActivity.class);
+        intent.putExtra("USER_ID", userId);
+        intent.putExtra("CATEGORY_ID", categoryId);
+        intent.putExtra("CATEGORY_NAME", categoryName);
+        startActivity(intent);
+        Log.d(TAG, "Chuyển đến QuizListActivity");
     }
 
     private void loadQuestion() {
-        if (currentQuestionIndex < totalQuestions) {
+        if (currentQuestionIndex < totalQuestions && !isGameEnded) {
             Question question = questionList.get(currentQuestionIndex);
             isAnswerSubmitted = false;
 
             // Cập nhật UI
-            tvQuestionCount.setText("Q" + (currentQuestionIndex + 1) + "/" + totalQuestions);
+            tvQuestionCount.setText("Câu " + (currentQuestionIndex + 1) + "/" + totalQuestions);
             tvQuestionTitle.setText(question.getQuestion());
             progressBar.setProgress((currentQuestionIndex + 1) * 100 / totalQuestions);
 
@@ -144,11 +176,16 @@ public class QuizActivity extends AppCompatActivity implements QuizWebSocketServ
             btnOption3.setText(question.getOptionC());
             btnOption4.setText(question.getOptionD());
 
-            // Đặt lại trạng thái nút
+            // Kích hoạt nút
             btnOption1.setEnabled(true);
+            btnOption1.setVisibility(View.VISIBLE);
             btnOption2.setEnabled(true);
+            btnOption2.setVisibility(View.VISIBLE);
             btnOption3.setEnabled(true);
+            btnOption3.setVisibility(View.VISIBLE);
             btnOption4.setEnabled(true);
+            btnOption4.setVisibility(View.VISIBLE);
+            Log.d(TAG, "Kích hoạt nút đáp án cho câu " + (currentQuestionIndex + 1));
 
             // Xử lý sự kiện chọn đáp án
             btnOption1.setOnClickListener(v -> submitAnswer(question, question.getOptionA()));
@@ -171,86 +208,243 @@ public class QuizActivity extends AppCompatActivity implements QuizWebSocketServ
         countDownTimer = new CountDownTimer(QUESTION_TIME_MS, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
-                tvTimer.setText(String.valueOf(millisUntilFinished / 1000));
+                if (!isFinishing()) {
+                    tvTimer.setText(String.valueOf(millisUntilFinished / 1000));
+                }
             }
 
             @Override
             public void onFinish() {
-                if (!isAnswerSubmitted) {
+                if (!isAnswerSubmitted && !isFinishing() && !isGameEnded) {
                     Question question = questionList.get(currentQuestionIndex);
                     webSocketService.submitAnswer(roomId, String.valueOf(question.getId()), "");
                     Toast.makeText(QuizActivity.this, "Hết thời gian!", Toast.LENGTH_SHORT).show();
+                    currentQuestionIndex++;
+                    loadQuestion();
                 }
-                currentQuestionIndex++;
-                loadQuestion();
             }
         }.start();
     }
 
     private void submitAnswer(Question question, String selectedAnswer) {
-        if (isAnswerSubmitted) {
+        if (isAnswerSubmitted || isGameEnded) {
             return;
         }
 
         isAnswerSubmitted = true;
         if (roomId != null && userId != null) {
             webSocketService.submitAnswer(roomId, String.valueOf(question.getId()), selectedAnswer);
-            Log.d(TAG, "Submitted answer for question " + question.getId() + ": " + selectedAnswer);
-            // Hiển thị kết quả tạm thời
+            Log.d(TAG, "Gửi đáp án cho câu " + question.getId() + ": " + selectedAnswer);
             if (selectedAnswer.equals(question.getCorrectAnswer())) {
+                localScore++;
                 Toast.makeText(this, "Chính xác!", Toast.LENGTH_SHORT).show();
+                updateLocalRanking();
             } else {
                 Toast.makeText(this, "Sai rồi!", Toast.LENGTH_SHORT).show();
             }
         } else {
-            Log.e(TAG, "Room ID or User ID is null, cannot submit answer");
-            Toast.makeText(this, "Error: Cannot submit answer", Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Room ID hoặc User ID rỗng, không gửi được đáp án");
+            Toast.makeText(this, "Lỗi: Không gửi được đáp án", Toast.LENGTH_SHORT).show();
         }
 
-        // Vô hiệu hóa nút
         btnOption1.setEnabled(false);
         btnOption2.setEnabled(false);
         btnOption3.setEnabled(false);
         btnOption4.setEnabled(false);
+        Log.d(TAG, "Tắt nút đáp án sau khi trả lời câu " + question.getId());
+
+        currentQuestionIndex++;
+        loadQuestion();
+    }
+
+    private void updateLocalRanking() {
+        for (GameRoomPlayer player : finalRankings) {
+            if (player.getUser().getId() == Integer.parseInt(userId)) {
+                player.setScore((long) localScore);
+                break;
+            }
+        }
+        finalRankings.sort((p1, p2) -> Long.compare(p2.getScore(), p1.getScore()));
+        rankingAdapter.updateRankings(finalRankings);
+        Log.d(TAG, "Cập nhật bảng xếp hạng cục bộ: " + new Gson().toJson(finalRankings));
+    }
+
+    private void hideAnswerButtons() {
+        btnOption1.setVisibility(View.GONE);
+        btnOption1.setEnabled(false);
+        btnOption2.setVisibility(View.GONE);
+        btnOption2.setEnabled(false);
+        btnOption3.setVisibility(View.GONE);
+        btnOption3.setEnabled(false);
+        btnOption4.setVisibility(View.GONE);
+        btnOption4.setEnabled(false);
+        Log.d(TAG, "Ẩn và tắt nút đáp án");
     }
 
     private void finishQuiz() {
         if (countDownTimer != null) {
             countDownTimer.cancel();
         }
-        Toast.makeText(this, "Hoàn thành! Điểm số sẽ được cập nhật từ server", Toast.LENGTH_LONG).show();
-        finish();
+        isGameEnded = true;
+        hideAnswerButtons();
+        if (roomId != null && userId != null) {
+            webSocketService.endGame(roomId, userId);
+            Log.d(TAG, "Gửi yêu cầu kết thúc trò chơi cho phòng: " + roomId);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                if (!isFinishing() && !isDestroyed()) {
+                    Log.d(TAG, "Hiển thị bảng xếp hạng qua fallback");
+                    showRankingDialog();
+                } else {
+                    Log.d(TAG, "Bỏ qua fallback vì Activity đang kết thúc");
+                    navigateToRoomActivity();
+                    finish();
+                }
+            }, 5000);
+        } else {
+            showRankingDialog();
+        }
+    }
+
+    private void showRankingDialog() {
+        if (isFinishing() || isDestroyed()) {
+            Log.d(TAG, "Activity đã kết thúc, không hiển thị dialog, isFinishing: " + isFinishing());
+            if (!isBackPressed) {
+                navigateToRoomActivity();
+                finish();
+            }
+            return;
+        }
+        Log.d(TAG, "showRankingDialog gọi, isFinishing: " + isFinishing() + ", isBackPressed: " + isBackPressed);
+        Toast.makeText(this, "Trò chơi kết thúc!", Toast.LENGTH_SHORT).show();
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Kết thúc trò chơi - Bảng xếp hạng");
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_ranking, null);
+        RecyclerView rvDialogRanking = dialogView.findViewById(R.id.rv_dialog_ranking);
+        Button btnOk = dialogView.findViewById(R.id.btn_ok);
+
+        rvDialogRanking.setLayoutManager(new LinearLayoutManager(this));
+        RankingAdapter dialogRankingAdapter = new RankingAdapter();
+        rvDialogRanking.setAdapter(dialogRankingAdapter);
+
+        // Đảm bảo có ít nhất người chơi hiện tại
+        if (finalRankings.isEmpty()) {
+            GameRoomPlayer player = new GameRoomPlayer();
+            User user = new User();
+            user.setId(userId != null ? Integer.parseInt(userId) : 0);
+            user.setUsername("Bạn");
+            user.setStatus(true);
+            player.setUser(user);
+            player.setScore((long) localScore);
+            finalRankings.add(player);
+        }
+        finalRankings.sort((p1, p2) -> Long.compare(p2.getScore(), p1.getScore()));
+        dialogRankingAdapter.updateRankings(finalRankings);
+        Log.d(TAG, "Cập nhật dialog xếp hạng với " + finalRankings.size() + " người chơi: " + new Gson().toJson(finalRankings));
+
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
+
+        btnOk.setOnClickListener(v -> {
+            dialog.dismiss();
+            navigateToRoomActivity();
+            finish();
+            Log.d(TAG, "Nhấn OK, chuyển hướng và finish QuizActivity");
+        });
+
+        dialog.setCancelable(false);
+        try {
+            if (!isFinishing() && !isDestroyed()) {
+                dialog.show();
+                Log.d(TAG, "Hiển thị dialog xếp hạng thành công");
+            } else {
+                Log.d(TAG, "Không hiển thị dialog vì Activity đã kết thúc");
+                if (!isBackPressed) {
+                    navigateToRoomActivity();
+                    finish();
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Lỗi hiển thị dialog: " + e.getMessage());
+            Toast.makeText(this, "Lỗi hiển thị bảng xếp hạng", Toast.LENGTH_SHORT).show();
+            if (!isBackPressed) {
+                navigateToRoomActivity();
+                finish();
+            }
+        }
     }
 
     @Override
     public void onRankingUpdate(String rankingData) {
         runOnUiThread(() -> {
-            Log.d(TAG, "Received ranking data: " + rankingData);
+            Log.d(TAG, "Nhận dữ liệu xếp hạng: " + rankingData);
             try {
                 List<GameRoomPlayer> rankings = new Gson().fromJson(rankingData, new TypeToken<List<GameRoomPlayer>>(){}.getType());
-                rankings.sort((p1, p2) -> Long.compare(p2.getScore(), p1.getScore()));
-                for (GameRoomPlayer player : rankings) {
-                    if (player.getUser() != null && player.getUser().getId() == Long.parseLong(userId)) {
-                        Toast.makeText(this, "Your score: " + player.getScore(), Toast.LENGTH_SHORT).show();
-                        break;
+                if (rankings != null) {
+                    finalRankings = new ArrayList<>(rankings);
+                    finalRankings.sort((p1, p2) -> Long.compare(p2.getScore(), p1.getScore()));
+                    for (GameRoomPlayer player : finalRankings) {
+                        if (player.getUser() != null && player.getUser().getId() == Integer.parseInt(userId)) {
+                            localScore = (int) player.getScore();
+                            Toast.makeText(this, "Điểm của bạn: " + player.getScore(), Toast.LENGTH_SHORT).show();
+                            break;
+                        }
                     }
+                    rankingAdapter.updateRankings(finalRankings);
+                    Log.d(TAG, "Cập nhật bảng xếp hạng với " + finalRankings.size() + " người chơi: " + new Gson().toJson(finalRankings));
+                    rvRanking.setVisibility(View.VISIBLE);
+                } else {
+                    Log.w(TAG, "Dữ liệu xếp hạng rỗng");
                 }
-                rankingAdapter.updateRankings(rankings);
-                Log.d(TAG, "Ranking adapter updated with " + rankings.size() + " players");
-                rvRanking.setVisibility(View.VISIBLE);
             } catch (Exception e) {
-                Log.e(TAG, "Error parsing ranking data: " + e.getMessage());
-                Toast.makeText(this, "Error updating ranking", Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Lỗi parse dữ liệu xếp hạng: " + e.getMessage());
+                Toast.makeText(this, "Lỗi cập nhật bảng xếp hạng", Toast.LENGTH_SHORT).show();
             }
+        });
+    }
+
+    @Override
+    public void onGameEnd(String roomId) {
+        runOnUiThread(() -> {
+            Log.d(TAG, "Nhận tín hiệu kết thúc cho phòng: " + roomId + ", isFinishing: " + isFinishing());
+            if (isFinishing() || isDestroyed()) {
+                Log.d(TAG, "Bỏ qua onGameEnd vì Activity đã kết thúc");
+                if (!isBackPressed) {
+                    navigateToRoomActivity();
+                    finish();
+                }
+                return;
+            }
+            if (isBackPressed) {
+                Log.d(TAG, "Bỏ qua onGameEnd vì đã nhấn back");
+                return;
+            }
+            isGameEnded = true;
+            if (countDownTimer != null) {
+                countDownTimer.cancel();
+            }
+            hideAnswerButtons();
+            showRankingDialog();
         });
     }
 
     @Override
     public void onError(String error) {
         runOnUiThread(() -> {
-            Log.e(TAG, "WebSocket error: " + error);
-            Toast.makeText(this, "Error: " + error, Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Lỗi WebSocket: " + error);
+            Toast.makeText(this, "Lỗi: " + error, Toast.LENGTH_LONG).show();
         });
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (roomId != null) {
+            webSocketService.unsubscribeFromRanking(roomId);
+            webSocketService.unsubscribeFromGameEnd(roomId);
+        }
+        webSocketService.removeListener(this);
+        Log.d(TAG, "onStop gọi, hủy đăng ký WebSocket");
     }
 
     @Override
@@ -259,10 +453,6 @@ public class QuizActivity extends AppCompatActivity implements QuizWebSocketServ
         if (countDownTimer != null) {
             countDownTimer.cancel();
         }
-        if (roomId != null) {
-            webSocketService.unsubscribeFromRanking(roomId);
-        }
-        webSocketService.removeListener(this);
-        Log.d(TAG, "QuizActivity destroyed, WebSocket listener removed");
+        Log.d(TAG, "onDestroy gọi, isFinishing: " + isFinishing());
     }
 }

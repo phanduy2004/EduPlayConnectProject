@@ -55,8 +55,6 @@ public class QuizListActivity extends AppCompatActivity implements GameWebSocket
             public void onResponse(Call<List<Category>> call, Response<List<Category>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     List<Category> categories = response.body();
-                    Log.d(TAG, "Categories loaded: " + categories.size());
-
                     categoryAdapter = new CategoryAdapter(categories, new CategoryAdapter.OnGameModeClickListener() {
                         @Override
                         public void onSinglePlayerSelected(Category category) {
@@ -64,7 +62,6 @@ public class QuizListActivity extends AppCompatActivity implements GameWebSocket
                             intent.putExtra("CATEGORY_ID", String.valueOf(category.getId()));
                             intent.putExtra("CATEGORY_NAME", category.getName());
                             startActivity(intent);
-                            Toast.makeText(QuizListActivity.this, "Starting single player mode: " + category.getName(), Toast.LENGTH_SHORT).show();
                         }
 
                         @Override
@@ -75,9 +72,7 @@ public class QuizListActivity extends AppCompatActivity implements GameWebSocket
                             intent.putExtra("CATEGORY_NAME", category.getName());
                             intent.putExtra("IS_HOST", true); // Đánh dấu đây là host
                             intent.putExtra("USER_ID", String.valueOf(userId));
-                            startActivity(intent);
-                            Toast.makeText(QuizListActivity.this, "Preparing multiplayer room...", Toast.LENGTH_SHORT).show();
-                        }
+                            startActivity(intent);}
                     });
 
                     recyclerView.setAdapter(categoryAdapter);

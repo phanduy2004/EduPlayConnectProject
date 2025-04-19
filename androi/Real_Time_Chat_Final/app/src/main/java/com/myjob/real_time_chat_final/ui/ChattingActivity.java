@@ -5,6 +5,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -38,8 +40,8 @@ public class ChattingActivity extends AppCompatActivity {
     private List<Message> messageList = new ArrayList<>();
     private MessageService messageService;
     private WebSocketManager webSocketManager;
-    private final Conversation conversation = new Conversation();;
-    private final User user = new User();
+    private Conversation conversation;
+    private User user;
     private Toolbar chatToolbar;
     private EditText edtMessage;
     private ImageButton btnSend;
@@ -48,17 +50,23 @@ public class ChattingActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chatting);
+
         int senderId = getIntent().getIntExtra("chat_sender_id", -1);
         int conversationId = getIntent().getIntExtra("conversation_id", -1);
         String userName = getIntent().getStringExtra("chat_user_name");
 
         if (senderId == -1 || conversationId == -1 || userName == null) {
-            Log.e("ChattingActivity", "Lỗi: Thiếu dữ liệu truyền vào Intent!");
-            finish(); // Kết thúc Activity nếu dữ liệu bị lỗi
+            Log.e("ChattingActivity", "Thiếu dữ liệu Intent: senderId=" + senderId + ", conversationId=" + conversationId + ", userName=" + userName);
+            Toast.makeText(this, "Lỗi: Không thể mở trò chuyện", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
         }
 
-        user.setId(getIntent().getIntExtra("chat_sender_id", -1));
-        conversation.setId(getIntent().getIntExtra("conversation_id", -1));
+        user = new User();
+        user.setId(senderId);
+        conversation = new Conversation();
+        conversation.setId(conversationId);
+
         recyclerView = findViewById(R.id.recyclerView);
         edtMessage = findViewById(R.id.edtMessage);
         btnSend = findViewById(R.id.btnSend);
@@ -70,34 +78,23 @@ public class ChattingActivity extends AppCompatActivity {
         messageService = RetrofitClient.getApiMessageService();
         webSocketManager = WebSocketManager.getInstance();
         webSocketManager.connect();
+
         setupTaskbarName(userName);
         loadMessages();
         setupWebSocketListener();
         setupSendMessageListener();
     }
-    private void setupTaskbarName(String user){
-        // Ánh xạ view
-        chatToolbar = findViewById(R.id.chatToolbar);
-        recyclerView = findViewById(R.id.recyclerView);
-        edtMessage = findViewById(R.id.edtMessage);
-        btnSend = findViewById(R.id.btnSend);
 
-        // Thiết lập Toolbar
+    private void setupTaskbarName(String userName) {
+        chatToolbar = findViewById(R.id.chatToolbar);
         setSupportActionBar(chatToolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
-        // Lấy dữ liệu từ Intent (truyền từ danh sách chat)
-
-        if (user != null) {
-            getSupportActionBar().setTitle(user);
-        }
-
-        // Bắt sự kiện click nút back trên Toolbar
+        getSupportActionBar().setTitle(userName);
         chatToolbar.setNavigationOnClickListener(v -> finish());
     }
 
     private void setupWebSocketListener() {
-        webSocketManager.subscribeToMessages(conversation.getId(), message -> { // ✅ Truyền conversationId vào
+        webSocketManager.subscribeToMessages((int) conversation.getId(), message -> {
             Gson gson = new Gson();
             Message chatMessage = gson.fromJson(message, Message.class);
             runOnUiThread(() -> {
@@ -108,28 +105,21 @@ public class ChattingActivity extends AppCompatActivity {
     }
 
     private void setupSendMessageListener() {
-        btnSend.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String text = edtMessage.getText().toString().trim();
-                if (!text.isEmpty()) {
-                    Timestamp timestamp = convertToTimestamp(getCurrentTime());
-                    Log.d("ChattingActivity", "📤 conversationId: " + conversation.getId());
-
-                    Message newMessage = new Message(conversation,user, text, timestamp);
-
-                    // Kiểm tra xem conversationId có đúng không
-                    Log.d("ChattingActivity", "📤 Sending message: " + new Gson().toJson(newMessage));
-
-                    webSocketManager.sendMessage(new Gson().toJson(newMessage));
-                    edtMessage.setText("");
-                }
+        btnSend.setOnClickListener(v -> {
+            String text = edtMessage.getText().toString().trim();
+            if (!text.isEmpty()) {
+                Timestamp timestamp = convertToTimestamp(getCurrentTime());
+                Log.d("ChattingActivity", "Gửi tin nhắn, conversationId: " + conversation.getId());
+                Message newMessage = new Message(conversation, user, text, timestamp);
+                Log.d("ChattingActivity", "Tin nhắn: " + new Gson().toJson(newMessage));
+                webSocketManager.sendMessage(new Gson().toJson(newMessage));
+                edtMessage.setText("");
             }
         });
     }
 
     private void loadMessages() {
-        messageService.getMessagesByConversationId(conversation.getId()).enqueue(new Callback<List<Message>>() {
+        messageService.getMessagesByConversationId((int) conversation.getId()).enqueue(new Callback<List<Message>>() {
             @Override
             public void onResponse(Call<List<Message>> call, Response<List<Message>> response) {
                 if (response.isSuccessful() && response.body() != null) {
@@ -149,16 +139,18 @@ public class ChattingActivity extends AppCompatActivity {
             }
         });
     }
+
     private String getCurrentTime() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
     }
+
     private Timestamp convertToTimestamp(String timeString) {
         try {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
             Date parsedDate = dateFormat.parse(timeString);
             return new Timestamp(parsedDate.getTime());
         } catch (ParseException e) {
-            e.printStackTrace();
+            Log.e("ChattingActivity", "Lỗi parse timestamp: " + e.getMessage());
             return null;
         }
     }

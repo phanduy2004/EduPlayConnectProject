@@ -45,13 +45,28 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Icon thêm bạn -->
-    <ImageView
+    <ImageButton
         android:id="@+id/btn_add_friend"
         android:layout_width="56dp"
         android:layout_height="56dp"
-        android:src="@drawable/ic_add"
+        android:src="@drawable/ic_adduser"
+        android:contentDescription="Thêm bạn"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:background="@color/purple_light" />
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/navBar"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:background="@drawable/bg_bottom_nav"
+        app:labelVisibilityMode="labeled"
+        app:itemIconSize="32dp"
+        app:itemPaddingTop="4dp"
+        app:itemPaddingBottom="0dp"
+        app:itemHorizontalTranslationEnabled="false"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:menu="@menu/bottom_navigation_menu"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
