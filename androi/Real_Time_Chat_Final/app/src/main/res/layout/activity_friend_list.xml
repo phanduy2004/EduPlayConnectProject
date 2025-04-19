@@ -45,15 +45,13 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Icon thêm bạn -->
-    <ImageButton
+    <ImageView
         android:id="@+id/btn_add_friend"
         android:layout_width="56dp"
         android:layout_height="56dp"
-        android:src="@drawable/ic_adduser"
-        android:contentDescription="Thêm bạn"
+        android:src="@drawable/ic_add"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:background="@color/purple_light" />
+        app:layout_constraintBottom_toBottomOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

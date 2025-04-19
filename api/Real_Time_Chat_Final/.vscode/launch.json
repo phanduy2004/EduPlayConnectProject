@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-RealTimeChatFinalApplication<Real_Time_Chat_Final>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "vn_hcmute.Real_Time_Chat_Final.RealTimeChatFinalApplication",
+            "projectName": "Real_Time_Chat_Final",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
