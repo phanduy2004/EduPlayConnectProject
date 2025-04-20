@@ -75,6 +75,18 @@
             android:contentDescription="@string/math"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_quizz" />
+        <ImageButton
+            android:id="@+id/dictionaryBtn"
+            android:layout_width="0dp"
+            android:layout_height="181dp"
+            android:layout_row="1"
+            android:layout_column="1"
+            android:layout_columnWeight="1"
+            android:layout_margin="8dp"
+            android:background="@drawable/rounded_button_ripple"
+            android:contentDescription="@string/math"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_quizz" />
 
         <!-- Bạn có thể thêm các nút khác vào đây nếu cần -->
     </GridLayout>
