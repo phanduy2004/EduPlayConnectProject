@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="@drawable/bg_dialog_iphone"
+    android:elevation="8dp">
+
+    <!-- Tiêu đề -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Tạo nhóm mới"
+        android:textSize="17sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"
+        android:layout_gravity="center"
+        android:layout_marginBottom="20dp"
+        android:fontFamily="sans-serif-medium" />
+
+    <!-- Tên nhóm -->
+    <EditText
+        android:id="@+id/group_name_edit_text"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:hint="Tên nhóm"
+        android:inputType="text"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="@drawable/bg_iphone_text_field"
+        android:textSize="16sp"
+        android:textColor="@android:color/black"
+        android:textColorHint="#A0A0A0"
+        android:layout_marginBottom="20dp"
+        android:fontFamily="sans-serif" />
+
+    <!-- Tiêu đề "Chọn thành viên" -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Chọn thành viên"
+        android:textSize="15sp"
+        android:textColor="#606060"
+        android:layout_marginBottom="8dp"
+        android:fontFamily="sans-serif" />
+
+    <!-- Thanh tìm kiếm -->
+    <androidx.appcompat.widget.SearchView
+        android:id="@+id/search_view"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_iphone_search_view"
+        android:queryHint="Tìm kiếm người dùng..."
+        app:iconifiedByDefault="false"
+        app:queryBackground="@android:color/transparent"
+        app:searchIcon="@android:drawable/ic_menu_search"
+        android:textSize="16sp"
+        android:fontFamily="sans-serif" />
+
+    <!-- Danh sách thành viên -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/members_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginBottom="20dp"
+        android:background="@android:color/white"
+        android:clipToPadding="false"
+        android:padding="4dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+    <!-- Nút "Tạo nhóm" -->
+    <Button
+        android:id="@+id/create_group_button"
+        android:layout_width="wrap_content"
+        android:layout_height="44dp"
+        android:text="Tạo nhóm"
+        android:layout_gravity="end"
+        android:background="@drawable/bg_iphone_button"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:fontFamily="sans-serif-medium" />
+
+</LinearLayout>

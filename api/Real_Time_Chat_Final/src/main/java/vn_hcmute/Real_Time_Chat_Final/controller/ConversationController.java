@@ -1,30 +1,29 @@
 package vn_hcmute.Real_Time_Chat_Final.controller;
 
-import org.springframework.beans.PropertyValue;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn_hcmute.Real_Time_Chat_Final.entity.Conversation;
+import vn_hcmute.Real_Time_Chat_Final.entity.ConversationMember;
 import vn_hcmute.Real_Time_Chat_Final.service.IConversationService;
 import vn_hcmute.Real_Time_Chat_Final.service.impl.ConversationService;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/conversations")
 public class ConversationController {
-    @Autowired
     private final IConversationService conversationService;
-    @Autowired
-    private ConversationService conversationRepoService;
+    private final ConversationService conversationRepoService;
 
-    public ConversationController(IConversationService conversationService) {
+    public ConversationController(IConversationService conversationService, ConversationService conversationRepoService) {
         this.conversationService = conversationService;
+        this.conversationRepoService = conversationRepoService;
     }
 
     /**
-     * ✅ API: Tạo cuộc trò chuyện mới
-     * URL: POST /api/conversations
+     * API: Tạo cuộc trò chuyện mới (1-1)
+     * URL: POST /api/conversations/{userId}/{friendId}
      */
     @PostMapping("/{userId}/{friendId}")
     public ResponseEntity<Conversation> createConversation(
@@ -40,8 +39,53 @@ public class ConversationController {
             return ResponseEntity.badRequest().body(null);
         }
     }
+
     /**
-     * ✅ API: Lấy thông tin cuộc trò chuyện theo ID
+     * API: Tạo cuộc trò chuyện nhóm
+     * URL: POST /api/conversations
+     */
+    @PostMapping
+    public ResponseEntity<Conversation> createGroupConversation(@RequestBody Conversation conversation) {
+        if (conversation == null || conversation.getName() == null || conversation.getName().isEmpty()) {
+            System.err.println("Lỗi tạo nhóm: Dữ liệu không hợp lệ");
+            return ResponseEntity.badRequest().body(null);
+        }
+        try {
+            // Đảm bảo is_group = true
+            conversation.setGroup(true);
+            Conversation createdConversation = conversationService.createConversation(conversation.isGroup(), conversation.getName());
+            System.out.println("Tạo nhóm thành công: " + createdConversation.getId() + ", is_group: " + createdConversation.isGroup());
+            return ResponseEntity.ok(createdConversation);
+        } catch (Exception e) {
+            System.err.println("Lỗi tạo nhóm: " + e.getMessage());
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    /**
+     * API: Thêm thành viên vào cuộc trò chuyện nhóm
+     * URL: POST /api/conversations/{conversationId}/members
+     */
+    @PostMapping("/{conversationId}/members")
+    public ResponseEntity<Void> addMembersToConversation(
+            @PathVariable("conversationId") Long conversationId,
+            @RequestBody List<ConversationMember> members) {
+        if (members == null || members.isEmpty()) {
+            System.err.println("Lỗi thêm thành viên: Danh sách thành viên rỗng");
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            conversationRepoService.addMembersToConversation(conversationId, members);
+            System.out.println("Thêm thành viên thành công: conversationId=" + conversationId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            System.err.println("Lỗi thêm thành viên: " + e.getMessage());
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    /**
+     * API: Lấy thông tin cuộc trò chuyện theo ID
      * URL: GET /api/conversations/{conversationId}
      */
     @GetMapping("/{conversationId}")
@@ -52,7 +96,7 @@ public class ConversationController {
     }
 
     /**
-     * ✅ API: Lấy ID của cuộc trò chuyện, tạo mới nếu chưa tồn tại
+     * API: Lấy ID của cuộc trò chuyện, tạo mới nếu chưa tồn tại
      * URL: GET /api/conversations/getChatRoomId
      */
     @GetMapping("/getChatRoomId")
@@ -62,5 +106,20 @@ public class ConversationController {
         Optional<Long> chatRoomId = conversationService.getChatRoomId(conversationId, createNewRoomIfNotExists);
         return chatRoomId.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * API: Lấy danh sách cuộc trò chuyện của người dùng
+     * URL: GET /api/conversations/list/{userId}
+     */
+    @GetMapping("/list/{userId}")
+    public ResponseEntity<List<ConversationMember>> getListChat(@PathVariable(" phenotypesuserId") int userId) {
+        try {
+            List<ConversationMember> listChat = conversationService.findListChat(userId);
+            return ResponseEntity.ok(listChat);
+        } catch (Exception e) {
+            System.err.println("Lỗi lấy danh sách cuộc trò chuyện: " + e.getMessage());
+            return ResponseEntity.status(500).build();
+        }
     }
 }

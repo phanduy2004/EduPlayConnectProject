@@ -1,7 +1,10 @@
 package com.myjob.real_time_chat_final.ui;
 
+import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -9,36 +12,33 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.gson.Gson;
 import com.myjob.real_time_chat_final.R;
-import com.myjob.real_time_chat_final.adapter.FriendListAdapter;
-import com.myjob.real_time_chat_final.adapter.FriendRequestAdapter;
 import com.myjob.real_time_chat_final.config.WebSocketManager;
 import com.myjob.real_time_chat_final.model.Friendship;
 import com.myjob.real_time_chat_final.model.User;
 
-import java.util.ArrayList;
-import java.util.List;
-public class FriendListActivity extends AppCompatActivity {
+public class FriendListActivity extends AppCompatActivity implements FriendRequestListener {
 
     private WebSocketManager webSocketManager;
     private User user;
-    private int userID;
+    private final int userID = LoginActivity.userid;
+    private SearchView searchView;
+    private ViewPager2 viewPager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_friend_list);
-
-        userID = getIntent().getIntExtra("USER_ID", -1);
 
         // Khởi tạo WebSocketManager và kết nối
         webSocketManager = WebSocketManager.getInstance();
@@ -49,33 +49,91 @@ public class FriendListActivity extends AppCompatActivity {
         webSocketManager.subscribeToRequest(response -> runOnUiThread(() -> {
             Log.d("FriendRequest", "Nhận phản hồi: " + response);
 
-            // Chuyển đổi response thành đối tượng Friendship
             Friendship newFriendRequest = new Gson().fromJson(response, Friendship.class);
 
-            // Kiểm tra xem ID người gửi có phải là ID của người dùng hiện tại không
             if (newFriendRequest.getSenderId() != null &&
                     newFriendRequest.getSenderId().getId() != userID) {
 
                 Toast.makeText(this, "Có yêu cầu kết bạn mới!", Toast.LENGTH_SHORT).show();
 
-                // Thêm yêu cầu kết bạn vào FriendRequestFragment
                 FriendRequestFragment fragment = (FriendRequestFragment) getSupportFragmentManager().findFragmentByTag("f1");
                 if (fragment != null) {
                     fragment.addFriendRequest(newFriendRequest);
                 }
             }
         }));
-        // Khởi tạo TabLayout và ViewPager2
-        TabLayout tabLayout = findViewById(R.id.tabLayout);
-        ViewPager2 viewPager = findViewById(R.id.viewPager);
 
-        // Cài đặt adapter cho ViewPager2
+        // Thiết lập Toolbar
+        setupToolbar();
+
+        // Thiết lập SearchView
+        setupSearchView();
+
+        // Thiết lập TabLayout và ViewPager2
+        setupViewPager();
+
+        // Thiết lập BottomNavigationView
+        setupBottomNavigation();
+    }
+
+    private void setupToolbar() {
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle("Bạn bè");
+            getSupportActionBar().setDisplayShowTitleEnabled(true);
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
+
+        toolbar.setNavigationIcon(R.drawable.ic_back_ios);
+        toolbar.setNavigationOnClickListener(v -> onBackPressed());
+    }
+
+    private void setupSearchView() {
+        searchView = findViewById(R.id.search_friends);
+        int searchPlateId = searchView.getContext().getResources().getIdentifier("android:id/search_plate", null, null);
+        View searchPlate = searchView.findViewById(searchPlateId);
+        if (searchPlate != null) {
+            searchPlate.setBackgroundResource(android.R.color.transparent);
+        }
+        int searchTextId = searchView.getContext().getResources().getIdentifier("android:id/search_src_text", null, null);
+        EditText searchText = searchView.findViewById(searchTextId);
+        if (searchText != null) {
+            searchText.setTextSize(16);
+            searchText.setTextColor(Color.BLACK);
+            searchText.setHintTextColor(Color.parseColor("#A0A0A0"));
+            searchText.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL));
+        }
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                Fragment fragment = getSupportFragmentManager().findFragmentByTag("f" + viewPager.getCurrentItem());
+                if (fragment instanceof FriendListFragment) {
+                    ((FriendListFragment) fragment).filterFriends(newText);
+                } else if (fragment instanceof FriendRequestFragment) {
+                    ((FriendRequestFragment) fragment).filterRequests(newText);
+                }
+                return true;
+            }
+        });
+    }
+
+    private void setupViewPager() {
+        TabLayout tabLayout = findViewById(R.id.tabLayout);
+        viewPager = findViewById(R.id.viewPager);
+
         FragmentStateAdapter adapter = new FragmentStateAdapter(getSupportFragmentManager(), getLifecycle()) {
             @NonNull
             @Override
             public Fragment createFragment(int position) {
                 Bundle args = new Bundle();
-                args.putInt("USER_ID", userID); // Truyền userID vào Fragment
+                args.putInt("USER_ID", userID);
 
                 switch (position) {
                     case 0:
@@ -86,20 +144,20 @@ public class FriendListActivity extends AppCompatActivity {
                     default:
                         FriendRequestFragment friendRequestFragment = new FriendRequestFragment();
                         friendRequestFragment.setArguments(args);
+                        // Gán listener cho FriendRequestFragment
+                        friendRequestFragment.setFriendRequestListener(FriendListActivity.this);
                         return friendRequestFragment;
                 }
             }
 
-
             @Override
             public int getItemCount() {
-                return 2; // Tổng số tab
+                return 2;
             }
         };
 
         viewPager.setAdapter(adapter);
 
-        // Kết nối TabLayout với ViewPager2
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             switch (position) {
                 case 0:
@@ -110,34 +168,90 @@ public class FriendListActivity extends AppCompatActivity {
                     break;
             }
         }).attach();
+    }
 
-        // Thiết lập sự kiện click cho nút thêm bạn
-        findViewById(R.id.btn_add_friend).setOnClickListener(v -> showAddFriendDialog());
+    private void setupBottomNavigation() {
+        BottomNavigationView navBar = findViewById(R.id.navBar);
+        navBar.setOnNavigationItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+            if (itemId == R.id.nav_addFriend) {
+                return true;
+            } else if (itemId == R.id.nav_home) {
+                Intent intent = new Intent(FriendListActivity.this, HomeActivity.class);
+                startActivity(intent);
+                return true;
+            } else if (itemId == R.id.nav_userhome) {
+                Intent intent = new Intent(FriendListActivity.this, UserActivity.class);
+                startActivity(intent);
+                return true;
+            } else if (itemId == R.id.nav_findRoom) {
+                Intent intent = new Intent(FriendListActivity.this, JoinRoomActivity.class);
+                startActivity(intent);
+                return true;
+            } else if (itemId == R.id.nav_chatmessage) {
+                Intent intent = new Intent(FriendListActivity.this, MessageListActivity.class);
+                intent.putExtra("USER_ID", userID);
+                startActivity(intent);
+                return true;
+            }
+            return false;
+        });
+
+        navBar.setSelectedItemId(R.id.nav_addFriend);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(android.view.Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_friend_list, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(android.view.MenuItem item) {
+        if (item.getItemId() == R.id.action_add_friend) {
+            showAddFriendDialog();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     private void showAddFriendDialog() {
-        final EditText input = new EditText(this);
-        input.setHint("Nhập tên bạn");
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_friend, null);
+        EditText input = dialogView.findViewById(R.id.edt_friend_name);
 
-        new AlertDialog.Builder(this)
-                .setTitle("Thêm bạn mới")
-                .setMessage("Nhập tên bạn để kết bạn")
-                .setView(input)
-                .setPositiveButton("Thêm", (dialog, which) -> {
-                    String name = input.getText().toString().trim();
-                    if (!name.isEmpty()) {
-                        sendFriendRequest(name);
-                    } else {
-                        Toast.makeText(FriendListActivity.this, "Vui lòng nhập tên bạn", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("Hủy", null)
-                .show();
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create();
+
+        dialogView.findViewById(R.id.btn_submit).setOnClickListener(v -> {
+            String name = input.getText().toString().trim();
+            if (!name.isEmpty()) {
+                sendFriendRequest(name);
+                dialog.dismiss();
+            } else {
+                Toast.makeText(FriendListActivity.this, "Vui lòng nhập tên bạn", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        dialogView.findViewById(R.id.btn_cancel).setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
     }
 
     private void sendFriendRequest(String friendName) {
         Friendship friendship = new Friendship(user, friendName, "Pending");
         webSocketManager.sendRequest(new Gson().toJson(friendship), "/app/sendFriendRequest");
         Toast.makeText(this, "Đã gửi yêu cầu kết bạn cho " + friendName, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onFriendRequestAccepted(int userId) {
+        // Tìm FriendListFragment và gọi loadFriendList
+        Fragment fragment = getSupportFragmentManager().findFragmentByTag("f0");
+        if (fragment instanceof FriendListFragment) {
+            ((FriendListFragment) fragment).loadFriendList(userId);
+        } else {
+            Log.e("FriendListActivity", "FriendListFragment not found or not attached");
+        }
     }
 }

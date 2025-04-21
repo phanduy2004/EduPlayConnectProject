@@ -14,14 +14,13 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.myjob.real_time_chat_final.R;
 
 public class HomeActivity extends AppCompatActivity {
-    ImageButton alphabet, math, qizz, dictionary;
-    private int userid;
+    ImageButton alphabet, math, qizz;
+    private final int userid = LoginActivity.userid;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_home);
-        userid = getIntent().getIntExtra("USER_ID", -1);
         if (userid == -1) {
             Toast.makeText(this, "Lỗi: Không tìm thấy userID", Toast.LENGTH_SHORT).show();
             return;
@@ -31,7 +30,6 @@ public class HomeActivity extends AppCompatActivity {
         alphabet = findViewById(R.id.alphabetBtn);
         math = findViewById(R.id.mathBtn);
         qizz = findViewById(R.id.quizzBtn);
-        dictionary = findViewById(R.id.dictionaryBtn);
         BottomNavigationView bottomNavigationView = findViewById(R.id.navBar);
         // Xử lý sự kiện click vào item trên BottomNavigationView
         bottomNavigationView.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
@@ -77,10 +75,6 @@ public class HomeActivity extends AppCompatActivity {
         });
         math.setOnClickListener(v->{
             Intent intent = new Intent(HomeActivity.this, MathActivity.class);
-            startActivity(intent);
-        });
-        dictionary.setOnClickListener(v->{
-            Intent intent = new Intent(HomeActivity.this, DictionaryActivity.class);
             startActivity(intent);
         });
     }

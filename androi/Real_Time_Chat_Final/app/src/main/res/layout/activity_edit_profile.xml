@@ -62,8 +62,6 @@
         android:hint="Nhập email"
         android:inputType="textEmailAddress"/>
 
-    <!-- Status -->
-
     <!-- Save Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSave"

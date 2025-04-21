@@ -3,9 +3,9 @@ package vn_hcmute.Real_Time_Chat_Final.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-import lombok.*;
+        import lombok.*;
 
-import java.io.Serializable;
+        import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.HashSet;
 import java.util.Set;
