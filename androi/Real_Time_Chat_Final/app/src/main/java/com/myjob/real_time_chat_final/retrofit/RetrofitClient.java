@@ -2,6 +2,7 @@ package com.myjob.real_time_chat_final.retrofit;
 
 import com.myjob.real_time_chat_final.api.CategoryService;
 import com.myjob.real_time_chat_final.api.ConversationService;
+import com.myjob.real_time_chat_final.api.DictionaryApi;
 import com.myjob.real_time_chat_final.api.FriendshipService;
 import com.myjob.real_time_chat_final.api.GameRoomService;
 import com.myjob.real_time_chat_final.api.MessageService;
@@ -45,5 +46,8 @@ public class RetrofitClient {
     }
     public static String getBaseUrl() {
         return BASE_URL;
+    }
+    public static DictionaryApi getApiDictionaryService(){
+        return getInstance().create(DictionaryApi.class);
     }
 }
