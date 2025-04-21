@@ -6,12 +6,13 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.myjob.real_time_chat_final.R;
 import com.myjob.real_time_chat_final.api.GameRoomService;
 import com.myjob.real_time_chat_final.model.GameRoom;
@@ -25,8 +26,8 @@ public class JoinRoomActivity extends AppCompatActivity {
 
     private EditText etRoomCode;
     private Button btnJoinRoom;
-    private Button btnBack;
     private ProgressBar progressBar;
+    private BottomNavigationView navBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,35 +35,76 @@ public class JoinRoomActivity extends AppCompatActivity {
         setContentView(R.layout.activity_join_room);
 
         initViews();
+        setupToolbar();
+        setupBottomNavigation();
         setupListeners();
     }
 
     private void initViews() {
         etRoomCode = findViewById(R.id.etRoomCode);
         btnJoinRoom = findViewById(R.id.btnJoinRoom);
-        btnBack = findViewById(R.id.btnBack);
         progressBar = findViewById(R.id.progressBar);
+        navBar = findViewById(R.id.navBar);
 
         progressBar.setVisibility(View.GONE);
     }
 
+    private void setupToolbar() {
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle("Tham gia phòng");
+            getSupportActionBar().setDisplayShowTitleEnabled(true);
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
+
+        toolbar.setNavigationOnClickListener(v -> onBackPressed());
+    }
+
+    private void setupBottomNavigation() {
+        navBar.setOnNavigationItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+            if (itemId == R.id.nav_findRoom) {
+                return true;
+            } else if (itemId == R.id.nav_home) {
+                Intent intent = new Intent(JoinRoomActivity.this, HomeActivity.class);
+                startActivity(intent);
+                return true;
+            } else if (itemId == R.id.nav_userhome) {
+                Intent intent = new Intent(JoinRoomActivity.this, UserActivity.class);
+                startActivity(intent);
+                return true;
+            } else if (itemId == R.id.nav_addFriend) {
+                Intent intent = new Intent(JoinRoomActivity.this, FriendListActivity.class);
+                startActivity(intent);
+                return true;
+            } else if (itemId == R.id.nav_chatmessage) {
+                Intent intent = new Intent(JoinRoomActivity.this, MessageListActivity.class);
+                intent.putExtra("USER_ID", getIntent().getIntExtra("USER_ID", -1));
+                startActivity(intent);
+                return true;
+            }
+            return false;
+        });
+
+        navBar.setSelectedItemId(R.id.nav_findRoom);
+    }
+
     private void setupListeners() {
         btnJoinRoom.setOnClickListener(v -> attemptToJoinRoom());
-        btnBack.setOnClickListener(v -> finish());
     }
 
     private void attemptToJoinRoom() {
         String roomCode = etRoomCode.getText().toString().trim();
 
         if (TextUtils.isEmpty(roomCode)) {
-            etRoomCode.setError("Please enter a room code");
+            etRoomCode.setError("Vui lòng nhập mã phòng");
             return;
         }
 
         progressBar.setVisibility(View.VISIBLE);
         btnJoinRoom.setEnabled(false);
 
-        // First check if room exists
         checkRoomExists(roomCode);
     }
 
@@ -80,19 +122,18 @@ public class JoinRoomActivity extends AppCompatActivity {
                     GameRoom room = response.body();
 
                     if (room.isGameStarted()) {
-                        Toast.makeText(JoinRoomActivity.this, "This game has already started", Toast.LENGTH_LONG).show();
+                        Toast.makeText(JoinRoomActivity.this, "Trò chơi đã bắt đầu", Toast.LENGTH_LONG).show();
                         return;
                     }
 
                     if (room.getPlayers().size() >= room.getMaxPlayers()) {
-                        Toast.makeText(JoinRoomActivity.this, "This room is full", Toast.LENGTH_LONG).show();
+                        Toast.makeText(JoinRoomActivity.this, "Phòng đã đầy", Toast.LENGTH_LONG).show();
                         return;
                     }
 
-                    // Room exists and has space - join it
                     joinRoom(roomCode, room);
                 } else {
-                    Toast.makeText(JoinRoomActivity.this, "Room not found", Toast.LENGTH_LONG).show();
+                    Toast.makeText(JoinRoomActivity.this, "Không tìm thấy phòng", Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -100,7 +141,7 @@ public class JoinRoomActivity extends AppCompatActivity {
             public void onFailure(Call<GameRoom> call, Throwable t) {
                 progressBar.setVisibility(View.GONE);
                 btnJoinRoom.setEnabled(true);
-                Toast.makeText(JoinRoomActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(JoinRoomActivity.this, "Lỗi: " + t.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -112,6 +153,6 @@ public class JoinRoomActivity extends AppCompatActivity {
         intent.putExtra("CATEGORY_ID", String.valueOf(room.getCategory().getId()));
         intent.putExtra("CATEGORY_NAME", room.getCategory().getName());
         startActivity(intent);
-        finish(); // Close this screen
+        finish();
     }
 }

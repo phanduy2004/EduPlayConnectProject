@@ -3,6 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@android:color/white"
+    android:layout_marginBottom="8dp"
     android:padding="12dp">
 
     <TextView
@@ -10,27 +12,31 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Tên bạn bè"
-        android:textSize="18sp"
+        android:textSize="16sp"
         android:textStyle="bold"
+        android:textColor="@android:color/black"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/friend_status"
+        app:layout_constraintEnd_toStartOf="@id/btn_message"
         app:layout_constraintHorizontal_weight="1" />
 
     <TextView
         android:id="@+id/friend_status"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text=""
-        android:textSize="14sp"
-        app:layout_constraintEnd_toStartOf="@id/btn_message"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:text="Đang hoạt động"
+        android:textSize="12sp"
+        android:textColor="#757575"
+        android:layout_marginTop="4dp"
+        app:layout_constraintStart_toStartOf="@id/friend_name"
+        app:layout_constraintTop_toBottomOf="@id/friend_name"
+        app:layout_constraintEnd_toStartOf="@id/btn_message" />
 
     <ImageButton
         android:id="@+id/btn_message"
         android:layout_width="36dp"
         android:layout_height="36dp"
-        android:src="@android:drawable/ic_menu_send"
+        android:src="@drawable/ic_message_ios"
         android:contentDescription="Nhắn tin"
         android:background="?android:attr/selectableItemBackground"
         app:layout_constraintEnd_toStartOf="@id/btn_delete"
@@ -40,7 +46,7 @@
         android:id="@+id/btn_delete"
         android:layout_width="36dp"
         android:layout_height="36dp"
-        android:src="@android:drawable/ic_menu_delete"
+        android:src="@drawable/ic_delete_ios"
         android:contentDescription="Xóa bạn"
         android:background="?android:attr/selectableItemBackground"
         app:layout_constraintEnd_toEndOf="parent"

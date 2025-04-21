@@ -19,17 +19,12 @@ public class ConversationMember {
     public long getId() { return id; }
     public void setId(long id) { this.id = id; }
 
-    public ConversationMember(Conversation conversationId, User user) {
-        this.conversation = conversationId;
-        this.user = user;
-    }
-
     public Conversation getConversation() {
         return conversation;
     }
 
-    public void setConversationId(Conversation conversationId) {
-        this.conversation = conversationId;
+    public void setConversation(Conversation conversation) {
+        this.conversation = conversation;
     }
 
     public User getUser() { return user; }

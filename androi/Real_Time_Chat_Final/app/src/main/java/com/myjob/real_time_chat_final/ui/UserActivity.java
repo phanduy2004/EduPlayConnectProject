@@ -91,13 +91,21 @@ public class UserActivity extends AppCompatActivity {
                     tvName.setText(user.getUsername());
                     // Tải ảnh đại diện từ avatarUrl bằng Glide
                     if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
+                        // Thêm base URL vào avatarUrl
+                        String baseUrl ="http://10.0.2.2:8686"; // Hoặc lấy từ RetrofitClient
+                        String fullAvatarUrl = baseUrl + user.getAvatarUrl();
+                        Log.d("EditProfile", "Loading avatar URL: " + fullAvatarUrl);
                         Glide.with(UserActivity.this)
-                                .load(user.getAvatarUrl())
-                                .placeholder(R.drawable.ic_userhome) // Hình mặc định nếu tải thất bại
-                                .error(R.drawable.ic_userhome) // Hình mặc định nếu có lỗi
+                                .load(fullAvatarUrl)
+                                .circleCrop()
+                                .error(R.drawable.ic_user) // Hình ảnh mặc định nếu tải thất bại
                                 .into(avatar);
                     } else {
-                        avatar.setImageResource(R.drawable.ic_userhome); // Hình mặc định nếu avatarUrl rỗng
+                        // Hiển thị ảnh mặc định nếu không có avatarUrl
+                        Glide.with(UserActivity.this)
+                                .load(R.drawable.ic_user)
+                                .circleCrop()
+                                .into(avatar);
                     }
                 } else {
                     Toast.makeText(UserActivity.this, "Không thể tải thông tin user", Toast.LENGTH_SHORT).show();

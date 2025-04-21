@@ -6,6 +6,7 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import vn_hcmute.Real_Time_Chat_Final.entity.Conversation;
 import vn_hcmute.Real_Time_Chat_Final.entity.ConversationMember;
 import vn_hcmute.Real_Time_Chat_Final.entity.User;
@@ -30,7 +31,15 @@ public class UserController {
 
     @Autowired
     private IConversationService conversationService;
-
+    @PostMapping("/{userId}/avatar")
+    public ResponseEntity<User> uploadAvatar(@PathVariable Long userId, @RequestParam("avatar") MultipartFile file) {
+        try {
+            User updatedUser = userServiceImpl.updateAvatar(userId, file);
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
     @PostMapping("/update/{id}")
     public ResponseEntity<?> updateUser(@PathVariable("id") int id, @RequestBody User user) {
         try {
@@ -128,5 +137,6 @@ public class UserController {
     public ResponseEntity<List<User>> findConnectedUsers() {
         return ResponseEntity.ok(userService.findConnectedUsers());
     }
+
 }
 

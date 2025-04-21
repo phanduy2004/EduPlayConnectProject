@@ -3,9 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="4dp">
+    android:layout_marginBottom="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="@android:color/white">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -18,7 +19,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="16sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:textColor="@android:color/black" />
 
         <TextView
             android:id="@+id/request_time"
@@ -37,20 +39,24 @@
             <Button
                 android:id="@+id/btn_accept"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="36dp"
                 android:layout_weight="1"
                 android:text="Chấp nhận"
-                android:layout_marginEnd="4dp"
-                android:backgroundTint="#4CAF50" />
+                android:textSize="14sp"
+                android:textColor="@android:color/white"
+                android:backgroundTint="#007AFF"
+                android:layout_marginEnd="8dp" />
 
             <Button
                 android:id="@+id/btn_reject"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="36dp"
                 android:layout_weight="1"
                 android:text="Từ chối"
-                android:layout_marginStart="4dp"
-                android:backgroundTint="#F44336" />
+                android:textSize="14sp"
+                android:textColor="#FF3B30"
+                android:backgroundTint="@android:color/transparent"
+                android:layout_marginStart="8dp" />
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

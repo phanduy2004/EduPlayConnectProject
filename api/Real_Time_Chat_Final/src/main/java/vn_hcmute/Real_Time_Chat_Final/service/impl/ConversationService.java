@@ -101,6 +101,7 @@ public class ConversationService implements IConversationService {
         return conversation;
     }
 
+    @Transactional
     @Override
     public Conversation createConversation(boolean isGroup, String name) {
         Conversation conversation = new Conversation();
@@ -108,6 +109,36 @@ public class ConversationService implements IConversationService {
         conversation.setName(name);
         conversation.setCreatedAt(new Timestamp(System.currentTimeMillis()));
         return conversationRepository.save(conversation);
+    }
+
+    @Transactional
+    public void addMembersToConversation(Long conversationId, List<ConversationMember> members) {
+        Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
+        if (conversationOpt.isEmpty()) {
+            throw new IllegalArgumentException("Không tìm thấy cuộc trò chuyện với ID: " + conversationId);
+        }
+
+        Conversation conversation = conversationOpt.get();
+        if (!conversation.isGroup()) {
+            throw new IllegalArgumentException("Cuộc trò chuyện không phải là nhóm");
+        }
+
+        if (conversation.getMembers() == null) {
+            conversation.setMembers(new HashSet<>());
+        }
+
+        for (ConversationMember member : members) {
+            member.setConversation(conversation);
+            conversation.getMembers().add(member);
+        }
+
+        try {
+            conversationRepository.save(conversation);
+            System.out.println("Thêm " + members.size() + " thành viên vào nhóm: conversationId=" + conversationId);
+        } catch (Exception e) {
+            System.err.println("Lỗi lưu thành viên: " + e.getMessage());
+            throw e;
+        }
     }
 
     @Override

@@ -20,13 +20,11 @@
             android:layout_width="50dp"
             android:layout_height="50dp">
 
-            <ImageView
-                android:id="@+id/user_avatar"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_user"
-                android:clipToOutline="true"/>
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/avatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:shapeAppearanceOverlay="@style/CircleImageView" />
 
             <!-- Chấm trạng thái online -->
             <View

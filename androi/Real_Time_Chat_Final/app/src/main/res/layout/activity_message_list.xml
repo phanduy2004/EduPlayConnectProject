@@ -11,13 +11,21 @@
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="0dp"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary"
-        android:title="Tin nhắn"
-        android:titleTextColor="@android:color/white"
+        android:layout_height="88dp"
+        android:background="@drawable/toolbar_background"
+        android:elevation="0dp"
+        app:title="Tin nhắn"
+        app:titleTextAppearance="@style/ToolbarTitleTextAppearance"
+        app:titleTextColor="@android:color/black"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintEnd_toEndOf="parent"
+        app:menu="@menu/menu_top_bar"
+        app:titleMarginStart="0dp"
+        app:titleMarginEnd="0dp"
+        app:contentInsetStart="16dp"
+        app:contentInsetEnd="16dp"
+        app:navigationIcon="@drawable/ic_back_ios" />
 
     <!-- RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView
@@ -25,35 +33,27 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:clipToPadding="false"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintTop_toBottomOf="@id/toolbar"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/navBar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- Floating Action Button -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_new_chat"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:contentDescription="Tạo cuộc trò chuyện mới"
-        android:backgroundTint="@color/primary"
-        app:elevation="6dp"
-        android:layout_marginBottom="16dp"
-        android:layout_marginEnd="16dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+    <!-- Bottom Navigation -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/navBar"
         android:layout_width="match_parent"
         android:layout_height="64dp"
-        android:background="@drawable/bg_bottom_nav"
+        android:background="@android:color/white"
         app:labelVisibilityMode="labeled"
         app:itemIconSize="32dp"
         app:itemPaddingTop="4dp"
         app:itemPaddingBottom="0dp"
         app:itemHorizontalTranslationEnabled="false"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:menu="@menu/bottom_navigation_menu"/>
+        app:menu="@menu/bottom_navigation_menu"
+        android:elevation="8dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

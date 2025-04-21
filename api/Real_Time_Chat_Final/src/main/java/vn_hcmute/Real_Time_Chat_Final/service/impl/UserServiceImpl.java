@@ -1,24 +1,30 @@
 package vn_hcmute.Real_Time_Chat_Final.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 import vn_hcmute.Real_Time_Chat_Final.entity.User;
-
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn_hcmute.Real_Time_Chat_Final.repository.UserRepository;
 import vn_hcmute.Real_Time_Chat_Final.service.IUserService;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements IUserService {
     @Autowired
     private UserRepository repository;
-
+    @Value("${file.upload-dir}")
+    private String uploadDir;
     @Override
     public List<User> getAllUsers() {
         return repository.findAll();
@@ -110,5 +116,23 @@ public class UserServiceImpl implements IUserService {
 
         // Lưu user vào database
         return repository.save(existingUser);
+    }
+
+    @Transactional
+    public User updateAvatar(long userId, MultipartFile file) throws Exception {
+        User user = findByUserId1(userId);
+        if (user == null) {
+            throw new IllegalArgumentException("Không tìm thấy user");
+        }
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File ảnh không được để trống");
+        }
+        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+        Path filePath = Paths.get(uploadDir, fileName);
+        Files.createDirectories(filePath.getParent());
+        Files.write(filePath, file.getBytes());
+        String avatarUrl = "/uploads/" + fileName;
+        user.setAvatarUrl(avatarUrl);
+        return repository.save(user);
     }
 }

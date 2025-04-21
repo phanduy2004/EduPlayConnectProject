@@ -1,72 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#F5F5F5"
     tools:context=".ui.FriendListActivity">
+
+    <!-- Thanh tiêu đề -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="0dp"
+        android:layout_height="88dp"
+        android:background="@drawable/toolbar_background"
+        android:elevation="0dp"
+        app:title="Bạn bè"
+        app:titleTextAppearance="@style/ToolbarTitleTextAppearance"
+        app:titleTextColor="@android:color/black"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:menu="@menu/menu_friend_list"
+        app:titleMarginStart="0dp"
+        app:titleMarginEnd="0dp"
+        app:contentInsetStart="16dp"
+        app:contentInsetEnd="16dp"
+        app:navigationIcon="@drawable/ic_back_ios" />
 
     <!-- Thanh tìm kiếm -->
     <androidx.appcompat.widget.SearchView
         android:id="@+id/search_friends"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:queryHint="Tìm kiếm"
+        android:layout_height="48dp"
+        android:queryHint="Tìm kiếm bạn bè"
         android:iconifiedByDefault="false"
-        android:background="@android:color/white"
-        android:padding="8dp"
+        android:background="@drawable/edit_text_background"
+        android:paddingHorizontal="16dp"
         android:layout_marginTop="16dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginHorizontal="16dp"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- TabLayout để chọn giữa "Bạn bè" và "Nhóm" -->
+    <!-- TabLayout -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        app:tabIndicatorColor="#007AFF"
+        app:tabSelectedTextColor="#007AFF"
+        app:tabTextColor="#757575"
+        app:tabTextAppearance="@style/TabTextAppearance"
+        app:tabIndicatorHeight="2dp"
         app:layout_constraintTop_toBottomOf="@id/search_friends"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:tabIndicatorColor="@color/purple_light"
-        app:tabSelectedTextColor="@color/purple_medium"
-        app:tabTextColor="@android:color/black"
-        android:padding="8dp" />
+        android:paddingHorizontal="16dp"
+        android:layout_marginTop="8dp" />
 
-    <!-- ViewPager2 để hiển thị danh sách bạn bè trong các tab -->
+    <!-- ViewPager2 -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintTop_toBottomOf="@id/tabLayout"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/navBar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Icon thêm bạn -->
-    <ImageButton
-        android:id="@+id/btn_add_friend"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:src="@drawable/ic_adduser"
-        android:contentDescription="Thêm bạn"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:background="@color/purple_light" />
+    <!-- Bottom Navigation -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/navBar"
         android:layout_width="match_parent"
         android:layout_height="64dp"
-        android:background="@drawable/bg_bottom_nav"
+        android:background="@android:color/white"
         app:labelVisibilityMode="labeled"
         app:itemIconSize="32dp"
         app:itemPaddingTop="4dp"
         app:itemPaddingBottom="0dp"
         app:itemHorizontalTranslationEnabled="false"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:menu="@menu/bottom_navigation_menu"/>
+        app:menu="@menu/bottom_navigation_menu"
+        android:elevation="8dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

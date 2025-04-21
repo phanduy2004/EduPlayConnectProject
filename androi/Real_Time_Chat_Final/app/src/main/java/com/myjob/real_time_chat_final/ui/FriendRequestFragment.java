@@ -5,6 +5,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -31,7 +32,14 @@ public class FriendRequestFragment extends Fragment {
     private RecyclerView recyclerView;
     private FriendRequestAdapter adapter;
     private List<Friendship> friendRequests = new ArrayList<>();
+    private List<Friendship> filteredRequests = new ArrayList<>();
     private WebSocketManager webSocketManager;
+    private TextView emptyView;
+    private FriendRequestListener listener; // Thêm listener
+    private FriendListFragment FriendListFragment;
+    public void setFriendRequestListener(FriendRequestListener listener) {
+        this.listener = listener;
+    }
 
     @Nullable
     @Override
@@ -45,56 +53,57 @@ public class FriendRequestFragment extends Fragment {
 
         // Khởi tạo RecyclerView
         recyclerView = view.findViewById(R.id.recyclerView);
+        if (recyclerView == null) {
+            Log.e("FriendRequestFragment", "RecyclerView is null - check layout file");
+            Toast.makeText(requireContext(), "Lỗi: Không tìm thấy RecyclerView", Toast.LENGTH_LONG).show();
+            return;
+        }
+        emptyView = view.findViewById(R.id.empty_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         // Khởi tạo adapter
-        adapter = new FriendRequestAdapter(friendRequests, this::handleFriendRequestAction);
+        adapter = new FriendRequestAdapter(filteredRequests, this::handleFriendRequestAction);
         recyclerView.setAdapter(adapter);
 
         // Khởi tạo WebSocketManager
         webSocketManager = WebSocketManager.getInstance();
 
-        // Lấy danh sách yêu cầu kết bạn từ server (thực hiện trong ứng dụng thực tế)
+        // Lấy danh sách yêu cầu kết bạn từ server
         if (getArguments() != null) {
             int userId = getArguments().getInt("USER_ID", -1);
             if (userId != -1) {
                 loadFriendRequests(userId);
             } else {
-                Log.e("FriendListFragment", "Invalid User ID");
-                // For testing, you can use a default ID
-                loadFriendRequests(userId);
+                Log.e("FriendRequestFragment", "Invalid User ID");
+                Toast.makeText(requireContext(), "Lỗi: Không có ID người dùng", Toast.LENGTH_SHORT).show();
             }
         } else {
-            Log.e("FriendListFragment", "No User ID received");
-            // For testing, you can use a default ID
+            Log.e("FriendRequestFragment", "No User ID received");
+            Toast.makeText(requireContext(), "Lỗi: Không nhận được ID người dùng", Toast.LENGTH_SHORT).show();
         }
     }
 
     private void loadFriendRequests(int userId) {
-          // Bạn cần thay thế bằng ID thực tế của người dùng đang đăng nhập
-
-        // Gọi API thông qua Retrofit
         FriendshipService friendshipService = RetrofitClient.getInstance().create(FriendshipService.class);
         Call<List<Friendship>> call = friendshipService.getFriendRequestsReceived(userId);
 
-        // Thực hiện call và xử lý kết quả trả về
         call.enqueue(new retrofit2.Callback<List<Friendship>>() {
             @Override
             public void onResponse(Call<List<Friendship>> call, retrofit2.Response<List<Friendship>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    // Cập nhật danh sách yêu cầu kết bạn vào RecyclerView
                     friendRequests.clear();
+                    filteredRequests.clear();
                     friendRequests.addAll(response.body());
+                    filteredRequests.addAll(friendRequests);
+                    updateEmptyView();
                     adapter.notifyDataSetChanged();
                 } else {
-                    // Xử lý khi không nhận được phản hồi đúng
                     Toast.makeText(requireContext(), "Không thể lấy yêu cầu kết bạn", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<List<Friendship>> call, Throwable t) {
-                // Xử lý lỗi nếu có
                 Log.e("FriendRequestFragment", "Error loading friend requests: " + t.getMessage());
                 Toast.makeText(requireContext(), "Lỗi kết nối với server", Toast.LENGTH_SHORT).show();
             }
@@ -104,40 +113,61 @@ public class FriendRequestFragment extends Fragment {
     public void addFriendRequest(Friendship friendship) {
         if (friendship != null) {
             friendRequests.add(friendship);
-            if (adapter != null) {
-                adapter.notifyDataSetChanged();
+            filteredRequests.add(friendship);
+            updateEmptyView();
+            adapter.notifyDataSetChanged();
+        }
+    }
+
+    public void filterRequests(String query) {
+        filteredRequests.clear();
+        if (query.isEmpty()) {
+            filteredRequests.addAll(friendRequests);
+        } else {
+            for (Friendship request : friendRequests) {
+                if (request.getSenderId() != null &&
+                        request.getSenderId().getUsername().toLowerCase().contains(query.toLowerCase())) {
+                    filteredRequests.add(request);
+                }
             }
+        }
+        updateEmptyView();
+        adapter.notifyDataSetChanged();
+    }
+
+    private void updateEmptyView() {
+        if (filteredRequests.isEmpty()) {
+            emptyView.setVisibility(View.VISIBLE);
+            recyclerView.setVisibility(View.GONE);
+        } else {
+            emptyView.setVisibility(View.GONE);
+            recyclerView.setVisibility(View.VISIBLE);
         }
     }
 
     private void handleFriendRequestAction(Friendship friendship, boolean isAccepted) {
-        // Xử lý hành động chấp nhận hoặc từ chối yêu cầu kết bạn
-        if (isAccepted) {
-            // Chấp nhận yêu cầu kết bạn
-            friendship.setStatus("Accepted");
-            sendFriendRequestResponse(friendship, true);
-        } else {
-            // Từ chối yêu cầu kết bạn
-            friendship.setStatus("Rejected");
-            sendFriendRequestResponse(friendship, false);
-        }
+        friendship.setStatus(isAccepted ? "Accepted" : "Rejected");
+        sendFriendRequestResponse(friendship, isAccepted);
 
-        // Cập nhật UI
-        int position = friendRequests.indexOf(friendship);
+        int position = filteredRequests.indexOf(friendship);
         if (position != -1) {
-            friendRequests.remove(position);
+            friendRequests.remove(friendship);
+            filteredRequests.remove(position);
+            updateEmptyView();
             adapter.notifyItemRemoved(position);
 
-            // Hiển thị thông báo
             String message = isAccepted
                     ? "Đã chấp nhận yêu cầu kết bạn từ " + friendship.getSenderId().getUsername()
                     : "Đã từ chối yêu cầu kết bạn từ " + friendship.getSenderId().getUsername();
+
             Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+            if (isAccepted && listener != null) {
+                listener.onFriendRequestAccepted(getArguments().getInt("USER_ID", -1));
+            }
         }
     }
 
     private void sendFriendRequestResponse(Friendship friendship, boolean isAccepted) {
-        // Gửi phản hồi về server thông qua WebSocket
         String endpoint = isAccepted ? "/app/acceptFriendRequest" : "/app/rejectFriendRequest";
         webSocketManager.sendRequest(new Gson().toJson(friendship), endpoint);
     }

@@ -1,9 +1,12 @@
 package com.myjob.real_time_chat_final.model;
 
+import com.google.gson.annotations.SerializedName;
+
 import java.util.List;
 
 public class Conversation {
     private long id;
+    @SerializedName("group")
     private boolean group;
     private String name;
     private String createdAt;

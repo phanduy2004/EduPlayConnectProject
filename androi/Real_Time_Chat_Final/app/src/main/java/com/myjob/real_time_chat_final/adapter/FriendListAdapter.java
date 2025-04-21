@@ -1,6 +1,5 @@
 package com.myjob.real_time_chat_final.adapter;
 
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,11 +14,11 @@ import com.myjob.real_time_chat_final.model.User;
 
 import java.util.List;
 
-public class FriendListAdapter extends RecyclerView.Adapter<FriendListAdapter.ViewHolder> {
+public class FriendListAdapter extends RecyclerView.Adapter<FriendListAdapter.FriendViewHolder> {
 
     private List<User> friends;
-    private OnFriendClickListener clickListener;
-    private OnFriendDeleteListener deleteListener;
+    private final OnFriendClickListener clickListener;
+    private final OnFriendDeleteListener deleteListener;
 
     public interface OnFriendClickListener {
         void onFriendClick(User friend);
@@ -27,10 +26,6 @@ public class FriendListAdapter extends RecyclerView.Adapter<FriendListAdapter.Vi
 
     public interface OnFriendDeleteListener {
         void onFriendDelete(User friend);
-    }
-
-    public FriendListAdapter(List<User> friends) {
-        this.friends = friends;
     }
 
     public FriendListAdapter(List<User> friends, OnFriendClickListener clickListener, OnFriendDeleteListener deleteListener) {
@@ -41,66 +36,38 @@ public class FriendListAdapter extends RecyclerView.Adapter<FriendListAdapter.Vi
 
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_friend, parent, false);
-        return new ViewHolder(view);
+    public FriendViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_friend, parent, false);
+        return new FriendViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        if (friends != null && position < friends.size()) {
-            holder.bind(friends.get(position), clickListener, deleteListener);
-        }
+    public void onBindViewHolder(@NonNull FriendViewHolder holder, int position) {
+        User friend = friends.get(position);
+        holder.friendName.setText(friend.getUsername());
+        //holder.friendStatus.setText(friend.getStatus() != null ? friend.getStatus() : "Ngoại tuyến");
+
+        holder.btnMessage.setOnClickListener(v -> clickListener.onFriendClick(friend));
+        holder.btnDelete.setOnClickListener(v -> deleteListener.onFriendDelete(friend));
     }
 
     @Override
     public int getItemCount() {
-        return friends != null ? friends.size() : 0;
+        return friends.size();
     }
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
-        private TextView nameTextView;
-        private TextView statusTextView;
-        private ImageButton btnMessage;
-        private ImageButton btnDelete;
+    static class FriendViewHolder extends RecyclerView.ViewHolder {
+        TextView friendName;
+        TextView friendStatus;
+        ImageButton btnMessage;
+        ImageButton btnDelete;
 
-        public ViewHolder(@NonNull View itemView) {
+        FriendViewHolder(@NonNull View itemView) {
             super(itemView);
-            nameTextView = itemView.findViewById(R.id.friend_name);
-            statusTextView = itemView.findViewById(R.id.friend_status);
+            friendName = itemView.findViewById(R.id.friend_name);
+            friendStatus = itemView.findViewById(R.id.friend_status);
             btnMessage = itemView.findViewById(R.id.btn_message);
             btnDelete = itemView.findViewById(R.id.btn_delete);
-        }
-
-        public void bind(User friend, OnFriendClickListener clickListener, OnFriendDeleteListener deleteListener) {
-            if (friend == null) {
-                nameTextView.setText("Unknown");
-                statusTextView.setText("No status");
-                btnMessage.setEnabled(false);
-                btnDelete.setEnabled(false);
-                return;
-            }
-
-            nameTextView.setText(friend.getUsername());
-            statusTextView.setText(friend.isStatus() ? "Online" : "Offline");
-            statusTextView.setTextColor(friend.isStatus() ? 0xFF00FFAA : 0xFFFF0000);
-
-            btnMessage.setOnClickListener(v -> {
-                Log.d("FriendListAdapter", "Nhấn nhắn tin, friendId: " + friend.getId());
-                if (clickListener != null) {
-                    clickListener.onFriendClick(friend);
-                }
-            });
-
-            btnDelete.setOnClickListener(v -> {
-                Log.d("FriendListAdapter", "Nhấn xóa, friendId: " + friend.getId());
-                if (deleteListener != null) {
-                    deleteListener.onFriendDelete(friend);
-                } else {
-                    Log.e("FriendListAdapter", "deleteListener null");
-                }
-            });
         }
     }
 }

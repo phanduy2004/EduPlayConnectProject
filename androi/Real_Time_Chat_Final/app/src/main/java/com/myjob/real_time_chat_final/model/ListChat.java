@@ -6,8 +6,21 @@ public class ListChat {
     private String email;
     private boolean isActive;
     private String createdAt;
-    private String status;
+    private boolean status;
     private int conversationId;
+    private String avatarUrl;
+
+    public boolean isStatus() {
+        return status;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
+    }
 
     public int getId() {
         return id;
@@ -49,11 +62,11 @@ public class ListChat {
         this.createdAt = createdAt;
     }
 
-    public String getStatus() {
+    public boolean getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(boolean status) {
         this.status = status;
     }
 

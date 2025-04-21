@@ -43,4 +43,7 @@ public class RetrofitClient {
     public static ConversationService getApiConversationService(){
         return getInstance().create(ConversationService.class);
     }
+    public static String getBaseUrl() {
+        return BASE_URL;
+    }
 }

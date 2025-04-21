@@ -15,13 +15,12 @@ import com.myjob.real_time_chat_final.R;
 
 public class HomeActivity extends AppCompatActivity {
     ImageButton alphabet, math, qizz;
-    private int userid;
+    private final int userid = LoginActivity.userid;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_home);
-        userid = getIntent().getIntExtra("USER_ID", -1);
         if (userid == -1) {
             Toast.makeText(this, "Lỗi: Không tìm thấy userID", Toast.LENGTH_SHORT).show();
             return;
