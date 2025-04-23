@@ -47,7 +47,7 @@ import retrofit2.Response;
 public class MessageListActivity extends AppCompatActivity {
     private ActivityMessageListBinding binding;
     private ListChatAdapter userAdapter;
-    private int userID;
+    private final int userID = LoginActivity.userid;
     private List<User> allUsers; // Danh sách tất cả người dùng
     private List<User> selectedUsers; // Danh sách người dùng được chọn
 
@@ -75,7 +75,6 @@ public class MessageListActivity extends AppCompatActivity {
         toolbar.setNavigationOnClickListener(v -> onBackPressed());
 
         // Nhận userID từ Intent
-        userID = getIntent().getIntExtra("USER_ID", -1);
         if (userID == -1) {
             Toast.makeText(this, "Lỗi: Không tìm thấy userID", Toast.LENGTH_SHORT).show();
             finish();

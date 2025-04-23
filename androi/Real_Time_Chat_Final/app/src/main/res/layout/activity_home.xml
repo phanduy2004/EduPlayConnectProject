@@ -5,106 +5,179 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/background_intro"
+    android:background="#F7F7F7"
+    android:fitsSystemWindows="true"
     tools:context=".ui.HomeActivity">
 
-    <!-- Các nút lựa chọn chủ đề sử dụng GridLayout -->
-
-    <!-- Thanh điều hướng dưới -->
+    <!-- Tiêu đề -->
     <TextView
         android:id="@+id/titleText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="60dp"
+        android:layout_marginTop="48dp"
         android:gravity="center"
         android:text="What is your choice?"
-        android:textSize="24sp"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        android:textColor="#000000"
+        android:fontFamily="sans-serif-medium"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.492"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- GridLayout chứa các nút chủ đề -->
     <GridLayout
         android:id="@+id/topicsGridLayout"
-        android:layout_width="405dp"
-        android:layout_height="512dp"
-        android:layout_marginTop="32dp"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="40dp"
         android:columnCount="2"
         android:orientation="horizontal"
-        app:layout_constraintBottom_toTopOf="@id/navBar"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/titleText"
-        app:layout_constraintVertical_bias="0.0">
+        app:layout_constraintTop_toBottomOf="@id/titleText">
 
-        <!-- ImageButton cho nút 'Reduce Stress' -->
-        <ImageButton
-            android:id="@+id/alphabetBtn"
+        <!-- Nút 'Alphabet' -->
+        <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="179dp"
+            android:layout_height="wrap_content"
             android:layout_columnWeight="1"
-            android:layout_margin="8dp"
-            android:background="@drawable/rounded_button_ripple"
-            android:contentDescription="@string/alphabet"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_alphabet" />
+            android:layout_margin="10dp"
+            android:orientation="vertical"
+            android:gravity="center">
 
-        <!-- ImageButton cho nút 'Improve Performance' -->
-        <ImageButton
-            android:id="@+id/mathBtn"
+            <ImageButton
+                android:id="@+id/alphabetBtn"
+                android:layout_width="match_parent"
+                android:layout_height="150dp"
+                android:background="@drawable/rounded_button_ripple"
+                android:contentDescription="@string/alphabet"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_alphabet"
+                android:elevation="6dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/alphabet"
+                android:textSize="16sp"
+                android:textColor="#333333"
+                android:fontFamily="sans-serif-medium" />
+        </LinearLayout>
+
+        <!-- Nút 'Math' -->
+        <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="181dp"
+            android:layout_height="wrap_content"
             android:layout_row="0"
             android:layout_column="1"
             android:layout_columnWeight="1"
-            android:layout_margin="8dp"
-            android:background="@drawable/rounded_button_ripple"
-            android:contentDescription="@string/math"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_math" />
-        <ImageButton
-            android:id="@+id/quizzBtn"
+            android:layout_margin="10dp"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ImageButton
+                android:id="@+id/mathBtn"
+                android:layout_width="match_parent"
+                android:layout_height="150dp"
+                android:background="@drawable/rounded_button_ripple"
+                android:contentDescription="@string/math"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_math"
+                android:elevation="6dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/math"
+                android:textSize="16sp"
+                android:textColor="#333333"
+                android:fontFamily="sans-serif-medium" />
+        </LinearLayout>
+
+        <!-- Nút 'Quizz' -->
+        <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="181dp"
+            android:layout_height="wrap_content"
             android:layout_row="1"
             android:layout_column="0"
             android:layout_columnWeight="1"
-            android:layout_margin="8dp"
-            android:background="@drawable/rounded_button_ripple"
-            android:contentDescription="@string/math"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_quizz" />
-        <ImageButton
-            android:id="@+id/dictionaryBtn"
+            android:layout_margin="10dp"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ImageButton
+                android:id="@+id/quizzBtn"
+                android:layout_width="match_parent"
+                android:layout_height="150dp"
+                android:background="@drawable/rounded_button_ripple"
+                android:contentDescription="@string/quiz"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_quiz"
+                android:elevation="6dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/quiz"
+                android:textSize="16sp"
+                android:textColor="#333333"
+                android:fontFamily="sans-serif-medium" />
+        </LinearLayout>
+
+        <!-- Nút 'Dictionary' -->
+        <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="181dp"
+            android:layout_height="wrap_content"
             android:layout_row="1"
             android:layout_column="1"
             android:layout_columnWeight="1"
-            android:layout_margin="8dp"
-            android:background="@drawable/rounded_button_ripple"
-            android:contentDescription="@string/math"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_quizz" />
+            android:layout_margin="10dp"
+            android:orientation="vertical"
+            android:gravity="center">
 
-        <!-- Bạn có thể thêm các nút khác vào đây nếu cần -->
+            <ImageButton
+                android:id="@+id/dictionaryBtn"
+                android:layout_width="match_parent"
+                android:layout_height="150dp"
+                android:background="@drawable/rounded_button_ripple"
+                android:contentDescription="@string/dictionary"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_dictionary"
+                android:elevation="6dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/dictionary"
+                android:textSize="16sp"
+                android:textColor="#333333"
+                android:fontFamily="sans-serif-medium" />
+        </LinearLayout>
     </GridLayout>
 
+    <!-- Thanh điều hướng dưới (BottomNavigationView) -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/navBar"
-        android:layout_width="match_parent"
-        android:layout_height="64dp"
+        android:layout_width="0dp"
+        android:layout_height="80dp"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginBottom="20dp"
         android:background="@drawable/bg_bottom_nav"
+        android:elevation="10dp"
+        app:itemIconTint="@color/bottom_nav_item_tint"
+        app:itemTextColor="@color/bottom_nav_item_tint"
         app:labelVisibilityMode="labeled"
-        app:itemIconSize="32dp"
-        app:itemPaddingTop="4dp"
-        app:itemPaddingBottom="0dp"
-        app:itemHorizontalTranslationEnabled="false"
+        app:itemIconSize="24dp"
+        app:itemPaddingTop="12dp"
+        app:itemPaddingBottom="12dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:menu="@menu/bottom_navigation_menu"/>
-
-
-
-
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:menu="@menu/bottom_navigation_menu" />
 </androidx.constraintlayout.widget.ConstraintLayout>

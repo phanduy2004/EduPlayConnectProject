@@ -5,6 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#F2F2F7"
     tools:context=".ui.AlphabetActivity">
 
     <!-- Toolbar -->
@@ -12,18 +13,42 @@
         android:id="@+id/toolbar"
         android:layout_width="0dp"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-        android:title="Alphabet"
+        android:background="#FFFFFF"
+        android:elevation="4dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Back Button -->
+        <ImageButton
+            android:id="@+id/backButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_back_ios"
+            android:background="@android:color/transparent"
+            android:padding="12dp"
+            android:layout_gravity="start"
+            app:tint="#007AFF" />
+
+        <!-- Title -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Alphabet"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#000000"
+            android:fontFamily="sans-serif-medium"
+            android:layout_gravity="center"/>
+    </androidx.appcompat.widget.Toolbar>
 
     <!-- RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewAlphabet"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:padding="16dp"
+        android:clipToPadding="false"
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
         app:spanCount="4"
         app:layout_constraintTop_toBottomOf="@id/toolbar"

@@ -3,9 +3,11 @@ package com.myjob.real_time_chat_final.ui;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -38,7 +40,18 @@ public class QuizListActivity extends AppCompatActivity implements GameWebSocket
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        // Khởi tạo WebSocket service (vẫn cần để xử lý các sự kiện khác nếu có)
+        // Cấu hình toolbar
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
+
+        // Xử lý nút back
+        ImageButton backButton = findViewById(R.id.backButton);
+        backButton.setOnClickListener(v -> finish());
+
+        // Khởi tạo WebSocket service
         gameWebSocketService = GameWebSocketService.getInstance();
         gameWebSocketService.initialize(String.valueOf(userId));
         gameWebSocketService.addListener(this);
@@ -66,13 +79,13 @@ public class QuizListActivity extends AppCompatActivity implements GameWebSocket
 
                         @Override
                         public void onMultiPlayerSelected(Category category) {
-                            // Chỉ chuyển sang MultiplayerRoomActivity, không tạo phòng ở đây
                             Intent intent = new Intent(QuizListActivity.this, MultiplayerRoomActivity.class);
                             intent.putExtra("CATEGORY_ID", String.valueOf(category.getId()));
                             intent.putExtra("CATEGORY_NAME", category.getName());
-                            intent.putExtra("IS_HOST", true); // Đánh dấu đây là host
+                            intent.putExtra("IS_HOST", true);
                             intent.putExtra("USER_ID", String.valueOf(userId));
-                            startActivity(intent);}
+                            startActivity(intent);
+                        }
                     });
 
                     recyclerView.setAdapter(categoryAdapter);
@@ -92,7 +105,7 @@ public class QuizListActivity extends AppCompatActivity implements GameWebSocket
 
     @Override
     public void onRoomUpdate(GameRoom room) {
-        // Không cần xử lý ở đây nữa vì tạo phòng đã chuyển sang MultiplayerRoomActivity
+        // Không cần xử lý ở đây
     }
 
     @Override

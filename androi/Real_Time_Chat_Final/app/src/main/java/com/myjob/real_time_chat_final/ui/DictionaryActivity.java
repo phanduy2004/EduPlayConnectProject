@@ -2,9 +2,11 @@ package com.myjob.real_time_chat_final.ui;
 
 import android.os.Bundle;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import java.util.Collections;
@@ -12,6 +14,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.myjob.real_time_chat_final.R;
 import com.myjob.real_time_chat_final.adapter.MeaningAdapter;
 import com.myjob.real_time_chat_final.databinding.ActivityDictionaryBinding;
 import com.myjob.real_time_chat_final.model.WordResult;
@@ -31,6 +34,17 @@ public class DictionaryActivity extends AppCompatActivity {
 
         binding = ActivityDictionaryBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        // Cấu hình toolbar
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
+
+        // Xử lý nút back
+        ImageButton backButton = findViewById(R.id.backButton);
+        backButton.setOnClickListener(v -> finish());
 
         adapter = new MeaningAdapter(Collections.emptyList());
         binding.meaningRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -71,7 +85,6 @@ public class DictionaryActivity extends AppCompatActivity {
         });
     }
 
-
     private void setUI(WordResult result) {
         binding.wordTextview.setText(result.getWord());
         binding.phoneticTextview.setText(result.getPhonetic());
@@ -86,5 +99,11 @@ public class DictionaryActivity extends AppCompatActivity {
             binding.searchBtn.setVisibility(View.VISIBLE);
             binding.progressBar.setVisibility(View.INVISIBLE);
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        executor.shutdown();
     }
 }

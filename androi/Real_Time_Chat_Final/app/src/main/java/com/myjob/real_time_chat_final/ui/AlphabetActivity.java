@@ -5,8 +5,10 @@ import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.view.Window;
+import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -26,13 +28,12 @@ public class AlphabetActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
     private TextToSpeech textToSpeech;
+    private boolean isTtsReady = false;
 
-    private List<String> alphabetList = Arrays.asList(
+    private final List<String> alphabetList = Arrays.asList(
             "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
             "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
     );
-
-    private boolean isTtsReady = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,32 +43,44 @@ public class AlphabetActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerViewAlphabet);
         recyclerView.setLayoutManager(new GridLayoutManager(this, 4));
 
-        textToSpeech = new TextToSpeech(this, status -> {
-            if (status == TextToSpeech.SUCCESS) {
-                int result = textToSpeech.setLanguage(Locale.US);
-
-                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    Log.e("TTS", "Ngôn ngữ không được hỗ trợ hoặc thiếu dữ liệu!");
-                    isTtsReady = false;
+        // Khởi tạo TextToSpeech
+        textToSpeech = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if (status == TextToSpeech.SUCCESS) {
+                    int result = textToSpeech.setLanguage(Locale.US);
+                    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        Log.e("TTS", "Ngôn ngữ không được hỗ trợ hoặc thiếu dữ liệu!");
+                        isTtsReady = false;
+                    } else {
+                        isTtsReady = true;
+                        Log.d("TTS", "TextToSpeech đã sẵn sàng!");
+                    }
                 } else {
-                    isTtsReady = true;
-                    Log.d("TTS", "TextToSpeech đã sẵn sàng!");
+                    Log.e("TTS", "Khởi tạo TextToSpeech thất bại!");
+                    isTtsReady = false;
                 }
-            } else {
-                Log.e("TTS", "Khởi tạo TextToSpeech thất bại!");
-                isTtsReady = false;
             }
         });
 
-        AlphabetAdapter adapter = new AlphabetAdapter(alphabetList, this::showLetterDialog);
+        AlphabetAdapter adapter = new AlphabetAdapter(alphabetList, new AlphabetAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(String letter) {
+                showLetterDialog(letter);
+            }
+        });
         recyclerView.setAdapter(adapter);
+
+        // Cấu hình toolbar
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        // Hiển thị nút quay lại
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayShowTitleEnabled(false); // Ẩn tiêu đề mặc định
         }
+
+        // Xử lý nút back trong layout
+        ImageButton backButton = findViewById(R.id.backButton);
+        backButton.setOnClickListener(v -> finish());
     }
 
     private void showLetterDialog(String letter) {
@@ -75,6 +88,16 @@ public class AlphabetActivity extends AppCompatActivity {
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setContentView(R.layout.dialog_letter_info);
         dialog.setCancelable(true);
+
+        // Thêm hiệu ứng mờ nền cho dialog
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawableResource(android.R.color.transparent);
+            WindowManager.LayoutParams windowParams = window.getAttributes();
+            windowParams.dimAmount = 0.75f; // Độ mờ của nền (0.0f - 1.0f)
+            window.setAttributes(windowParams);
+            window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+        }
 
         TextView textViewLetter = dialog.findViewById(R.id.textViewLetter);
         TextView textViewDescription = dialog.findViewById(R.id.textViewDescription);
@@ -94,7 +117,6 @@ public class AlphabetActivity extends AppCompatActivity {
 
         dialog.show();
     }
-
 
     private void speakText(String text) {
         if (isTtsReady && textToSpeech != null) {
