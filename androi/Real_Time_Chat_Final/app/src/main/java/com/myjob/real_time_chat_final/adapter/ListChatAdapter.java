@@ -55,7 +55,7 @@ public class ListChatAdapter extends RecyclerView.Adapter<ListChatAdapter.UserVi
         holder.userStatus.setVisibility(user.getStatus() ? View.VISIBLE : View.GONE);
 
         // Tải ảnh đại diện bằng Glide
-        String baseUrl ="http://10.0.2.2:8686"; // Ví dụ: http://10.0.2.2:8686/
+        String baseUrl =RetrofitClient.getBaseUrl(); // Ví dụ: http://10.0.2.2:8686/
         String avatarUrl = user.getAvatarUrl();
         if (avatarUrl != null && !avatarUrl.isEmpty()) {
             String fullAvatarUrl = baseUrl + avatarUrl; // Ghép baseUrl với avatarUrl

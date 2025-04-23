@@ -62,8 +62,11 @@ public class UserActivity extends AppCompatActivity {
             startActivityForResult(intent, 1); // Sử dụng startActivityForResult để nhận kết quả từ EditProfileActivity
         });
 
-        findViewById(R.id.change_password).setOnClickListener(v ->
-                Toast.makeText(this, "Thay đổi mật khẩu", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.change_password).setOnClickListener(v ->{
+            Intent intent = new Intent(UserActivity.this, ChangePasswordActivity.class);
+            startActivity(intent);
+            Toast.makeText(this, "Thay đổi mật khẩu", Toast.LENGTH_SHORT).show();
+        });
 
         findViewById(R.id.notification).setOnClickListener(v ->
                 Toast.makeText(this, "Bật thông báo", Toast.LENGTH_SHORT).show());
@@ -92,7 +95,7 @@ public class UserActivity extends AppCompatActivity {
                     // Tải ảnh đại diện từ avatarUrl bằng Glide
                     if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
                         // Thêm base URL vào avatarUrl
-                        String baseUrl ="http://10.0.2.2:8686"; // Hoặc lấy từ RetrofitClient
+                        String baseUrl =RetrofitClient.getBaseUrl(); // Hoặc lấy từ RetrofitClient
                         String fullAvatarUrl = baseUrl + user.getAvatarUrl();
                         Log.d("EditProfile", "Loading avatar URL: " + fullAvatarUrl);
                         Glide.with(UserActivity.this)

@@ -168,7 +168,7 @@ public class EditProfileActivity extends AppCompatActivity {
                     etEmail.setText(currentUser.getEmail());
                     if (currentUser.getAvatarUrl() != null && !currentUser.getAvatarUrl().isEmpty()) {
                         // Thêm base URL vào avatarUrl
-                        String baseUrl ="http://10.0.2.2:8686"; // Hoặc lấy từ RetrofitClient
+                        String baseUrl =RetrofitClient.getBaseUrl(); // Hoặc lấy từ RetrofitClient
                         String fullAvatarUrl = baseUrl + currentUser.getAvatarUrl();
                         Log.d("EditProfile", "Loading avatar URL: " + fullAvatarUrl);
                         Glide.with(EditProfileActivity.this)

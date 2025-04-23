@@ -137,6 +137,63 @@ public class UserController {
     public ResponseEntity<List<User>> findConnectedUsers() {
         return ResponseEntity.ok(userService.findConnectedUsers());
     }
+    @PostMapping("/{userId}/change-password")
+    public ResponseEntity<Map<String, Object>> changePassword(
+            @PathVariable Long userId,
+            @RequestBody Map<String, String> request) {
+        Map<String, Object> response = new HashMap<>();
+
+        // Lấy các tham số từ request body
+        String oldPassword = request.get("oldPassword");
+        String newPassword = request.get("newPassword");
+        String confirmPassword = request.get("confirmPassword");
+
+        // Kiểm tra các trường bắt buộc
+        if (oldPassword == null || newPassword == null || confirmPassword == null) {
+            response.put("status", "error");
+            response.put("message", "Vui lòng nhập đầy đủ thông tin");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        // Kiểm tra mật khẩu mới và xác nhận mật khẩu có khớp không
+        if (!newPassword.equals(confirmPassword)) {
+            response.put("status", "error");
+            response.put("message", "Mật khẩu mới và xác nhận mật khẩu không khớp");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        try {
+            // Tìm user theo userId
+            Optional<User> optionalUser = userService.findByUserId(userId);
+            if (!optionalUser.isPresent()) {
+                response.put("status", "error");
+                response.put("message", "Không tìm thấy người dùng");
+                return ResponseEntity.status(404).body(response);
+            }
+
+            User user = optionalUser.get();
+
+            // Kiểm tra mật khẩu cũ (trong thực tế nên mã hóa mật khẩu)
+            if (!oldPassword.equals(user.getPassword())) {
+                response.put("status", "error");
+                response.put("message", "Mật khẩu cũ không đúng");
+                return ResponseEntity.status(401).body(response);
+            }
+
+            // Cập nhật mật khẩu mới
+            user.setPassword(newPassword);
+            userServiceImpl.updateUser(Math.toIntExact(userId), user);
+
+            response.put("status", "success");
+            response.put("message", "Thay đổi mật khẩu thành công");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("status", "error");
+            response.put("message", "Lỗi server: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
 
 }
 
