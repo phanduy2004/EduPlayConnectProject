@@ -47,6 +47,7 @@ public class AuthController {
                 .isActive(false)
                 .email(userReq.getEmail())
                 .password(userReq.getPassword())
+                .isReady(false)
                 .username(userReq.getUsername())
                 .build();
 

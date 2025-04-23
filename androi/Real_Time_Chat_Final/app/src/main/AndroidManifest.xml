@@ -24,6 +24,9 @@
             android:name=".ui.ChangePasswordActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.DictionaryActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.EditProfileActivity"
             android:exported="false" />
         <activity
