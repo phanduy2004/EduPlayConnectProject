@@ -50,7 +50,7 @@ public class HomeActivity extends AppCompatActivity {
                     return true;
                 }
                 else if(item.getItemId()== R.id.nav_findRoom){
-                    Intent intent = new Intent(HomeActivity.this, JoinRoomActivity.class);
+                    Intent intent = new Intent(HomeActivity.this, NewsFeedActivity.class);
                     intent.putExtra("USER_ID", userid); // Gửi userId sang MessListActivity
                     startActivity(intent);
                     return true;

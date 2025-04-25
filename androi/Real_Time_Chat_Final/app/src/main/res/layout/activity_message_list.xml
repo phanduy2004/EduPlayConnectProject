@@ -42,6 +42,7 @@
         app:layout_constraintEnd_toEndOf="parent"/>
 
     <!-- Bottom Navigation -->
+    <!-- Thanh điều hướng dưới (BottomNavigationView) -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/navBar"
         android:layout_width="0dp"
@@ -53,9 +54,9 @@
         app:itemIconTint="@color/bottom_nav_item_tint"
         app:itemTextColor="@color/bottom_nav_item_tint"
         app:labelVisibilityMode="labeled"
-        app:itemIconSize="28dp"
-        app:itemPaddingTop="10dp"
-        app:itemPaddingBottom="10dp"
+        app:itemIconSize="24dp"
+        app:itemPaddingTop="12dp"
+        app:itemPaddingBottom="12dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

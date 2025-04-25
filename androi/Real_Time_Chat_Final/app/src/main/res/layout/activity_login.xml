@@ -6,35 +6,41 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/background_login"
     tools:context=".ui.LoginActivity">
 
-    <!-- Background Image -->
-    <ImageView
-        android:id="@+id/backgroundImage"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:contentDescription="Background"
-        android:scaleType="centerCrop"
-        android:src="@drawable/background_login"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- App Logo -->
-    <ImageView
-        android:id="@+id/appLogo"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:contentDescription="App Logo"
-        android:src="@drawable/logo"
-        app:layout_constraintWidth_percent="0.35"
-        app:layout_constraintDimensionRatio="1:1"
+    <!-- Background Rectangle for App Name -->
+    <View
+        android:id="@+id/appNameBackground"
+        android:layout_width="388dp"
+        android:layout_height="91dp"
+        android:layout_marginHorizontal="2dp"
+        android:layout_marginVertical="2dp"
+        android:background="@drawable/rounded_rectangle"
+        app:layout_constraintBottom_toTopOf="@+id/guideline_middle"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/guideline_middle"
-        app:layout_constraintVertical_bias="0.65" />
+        app:layout_constraintVertical_bias="0.5" />
+
+    <!-- App Name -->
+    <TextView
+        android:id="@+id/appName"
+        android:layout_width="382dp"
+        android:layout_height="72dp"
+        android:fontFamily="sans-serif-medium"
+        android:shadowColor="#40000000"
+        android:shadowDx="2"
+        android:shadowDy="2"
+        android:shadowRadius="4"
+        android:text="Edu Play Connect"
+        android:textColor="#D4A017"
+        android:textSize="48sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@+id/appNameBackground"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/appNameBackground" />
 
     <!-- Horizontal guideline for middle of screen -->
     <androidx.constraintlayout.widget.Guideline
@@ -50,74 +56,107 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Welcome Back"
-        android:textColor="#3d33a8"
-        android:textSize="28sp"
+        android:textColor="#000000"
+        android:textSize="26sp"
+        android:fontFamily="sans-serif"
         android:textStyle="bold"
-        android:layout_marginStart="32dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginStart="28dp"
+        android:layout_marginTop="28dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/guideline_middle" />
 
     <!-- Username Input -->
-    <EditText
-        android:id="@+id/usernameEditText"
+    <androidx.cardview.widget.CardView
+        android:id="@+id/usernameCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="32dp"
-        android:layout_marginTop="16dp"
-        android:drawableStart="@drawable/name"
-        android:drawablePadding="12dp"
-        android:hint=" Username or Email"
-        android:text="duy"
-        android:inputType="textEmailAddress"
-        android:padding="12dp"
-        android:minHeight="48dp"
+        android:layout_marginHorizontal="28dp"
+        android:layout_marginTop="20dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="3dp"
+        app:cardBackgroundColor="#FFFFFF"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/welcomeLogin" />
+        app:layout_constraintTop_toBottomOf="@+id/welcomeLogin">
+
+        <EditText
+            android:id="@+id/usernameEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@null"
+            android:drawableStart="@drawable/name"
+            android:drawablePadding="14dp"
+            android:hint="Username or Email"
+            android:text="duy"
+            android:inputType="textEmailAddress"
+            android:padding="18dp"
+            android:minHeight="60dp"
+            android:textColor="#000000"
+            android:textColorHint="#8E8E93"
+            android:fontFamily="sans-serif" />
+    </androidx.cardview.widget.CardView>
 
     <!-- Password Input -->
-    <EditText
-        android:id="@+id/passwordEditText"
+    <androidx.cardview.widget.CardView
+        android:id="@+id/passwordCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="32dp"
-        android:layout_marginTop="8dp"
-        android:drawableStart="@drawable/password"
-        android:drawablePadding="12dp"
-        android:hint=" Password"
-        android:text="123"
-        android:inputType="textPassword"
-        android:padding="12dp"
-        android:minHeight="48dp"
+        android:layout_marginHorizontal="28dp"
+        android:layout_marginTop="16dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="3dp"
+        app:cardBackgroundColor="#FFFFFF"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/usernameEditText" />
+        app:layout_constraintTop_toBottomOf="@+id/usernameCard">
+
+        <EditText
+            android:id="@+id/passwordEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@null"
+            android:drawableStart="@drawable/password"
+            android:drawablePadding="14dp"
+            android:hint="Password"
+            android:text="123"
+            android:inputType="textPassword"
+            android:padding="18dp"
+            android:minHeight="60dp"
+            android:textColor="#000000"
+            android:textColorHint="#8E8E93"
+            android:fontFamily="sans-serif" />
+    </androidx.cardview.widget.CardView>
 
     <!-- Login Button -->
-    <ImageButton
+    <Button
         android:id="@+id/loginButton"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="32dp"
-        android:background="@drawable/btn_arraw1"
-        android:contentDescription="Login"
-        app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintWidth_percent="0.12"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="28dp"
+        android:layout_marginTop="20dp"
+        android:backgroundTint="#0A84FF"
+        android:text="Log In"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:fontFamily="sans-serif-medium"
+        android:padding="18dp"
+        android:minHeight="60dp"
+        app:cornerRadius="16dp"
+        android:elevation="4dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/passwordEditText" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/passwordCard" />
 
     <!-- Forgot Password Text -->
     <TextView
         android:id="@+id/forgotPasswordTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="32dp"
+        android:fontFamily="sans-serif"
         android:text="Forgot Password?"
-        android:textColor="@color/primary"
-        android:textSize="14sp"
-        android:textStyle="bold"
+        android:textColor="#0A84FF"
+        android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/loginButton" />
@@ -127,13 +166,14 @@
         android:id="@+id/signUpTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:fontFamily="sans-serif"
         android:text="Don't have an account? Sign Up"
-        android:textColor="@color/primary"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="32dp"
+        android:textColor="#0A84FF"
+        android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/forgotPasswordTextView"
+        app:layout_constraintVertical_bias="0.3" />
 </androidx.constraintlayout.widget.ConstraintLayout>
