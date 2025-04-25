@@ -10,22 +10,40 @@
     tools:context=".ui.HomeActivity">
 
     <!-- Tiêu đề -->
+
+    <!-- Nút Settings (Thêm mới) -->
+
+    <!-- GridLayout chứa các nút chủ đề -->
+
     <TextView
         android:id="@+id/titleText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="48dp"
+        android:layout_marginTop="112dp"
+        android:fontFamily="sans-serif-medium"
         android:gravity="center"
         android:text="What is your choice?"
+        android:textColor="#000000"
         android:textSize="30sp"
         android:textStyle="bold"
-        android:textColor="#000000"
-        android:fontFamily="sans-serif-medium"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- GridLayout chứa các nút chủ đề -->
+    <ImageButton
+        android:id="@+id/findRoomBtn"
+        android:layout_width="37dp"
+        android:layout_height="24dp"
+        android:layout_marginTop="28dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/rounded_button_ripple"
+        android:contentDescription="TODO"
+        android:elevation="6dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_findroom"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <GridLayout
         android:id="@+id/topicsGridLayout"
         android:layout_width="0dp"

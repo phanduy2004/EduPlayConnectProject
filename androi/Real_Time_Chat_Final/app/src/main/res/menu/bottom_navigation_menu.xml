@@ -5,13 +5,13 @@
         android:icon="@drawable/ic_home"
         android:title="Home" />
     <item
+        android:id="@+id/nav_findRoom"
+        android:icon="@drawable/ic_newsfeed"
+        android:title="News Feed" />
+    <item
         android:id="@+id/nav_addFriend"
         android:icon="@drawable/ic_addfriend"
         android:title="Add Friend" />
-    <item
-        android:id="@+id/nav_findRoom"
-        android:icon="@drawable/ic_findroom"
-        android:title="Find Room" />
     <item
         android:id="@+id/nav_chatmessage"
         android:icon="@drawable/ic_chat"
@@ -20,4 +20,5 @@
         android:id="@+id/nav_userhome"
         android:icon="@drawable/ic_userhome"
         android:title="Profile" />
+
 </menu>
