@@ -101,7 +101,7 @@
                         android:id="@+id/dialog_user_name"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Phan Tất Duy"
+                        android:text=""
                         android:textColor="@android:color/black"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -135,6 +135,19 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
+            <!-- Selected Image Preview -->
+            <ImageView
+                android:id="@+id/selected_image_preview"
+                android:layout_width="0dp"
+                android:layout_height="200dp"
+                android:layout_marginTop="8dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                app:layout_constraintTop_toBottomOf="@id/post_input"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                tools:ignore="ContentDescription" />
+
             <!-- Options Layout (Vertical with Descriptions) -->
             <LinearLayout
                 android:id="@+id/options_layout"
@@ -143,17 +156,21 @@
                 android:layout_marginTop="16dp"
                 android:orientation="vertical"
                 android:background="@android:color/white"
-                app:layout_constraintTop_toBottomOf="@id/post_input"
+                app:layout_constraintTop_toBottomOf="@id/selected_image_preview"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent">
 
                 <!-- Photo/Video -->
                 <LinearLayout
+                    android:id="@+id/photo_option_layout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:paddingVertical="8dp"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackground">
 
                     <ImageButton
                         android:id="@+id/photo_button"
@@ -175,11 +192,15 @@
 
                 <!-- Tag People -->
                 <LinearLayout
+                    android:id="@+id/tag_option_layout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:paddingVertical="8dp"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackground">
 
                     <ImageButton
                         android:id="@+id/tag_button"
@@ -201,20 +222,24 @@
 
                 <!-- Feeling/Activity -->
                 <LinearLayout
+                    android:id="@+id/feeling_option_layout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:paddingVertical="8dp"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackground">
 
                     <ImageButton
                         android:id="@+id/feeling_button"
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@android:drawable/ic_menu_directions"
-                    android:background="@null"
-                    app:tint="#FFB300"
-                    tools:ignore="ContentDescription" />
+                        android:background="@null"
+                        app:tint="#FFB300"
+                        tools:ignore="ContentDescription" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -227,11 +252,15 @@
 
                 <!-- Check In -->
                 <LinearLayout
+                    android:id="@+id/checkin_option_layout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:paddingVertical="8dp"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackground">
 
                     <ImageButton
                         android:id="@+id/checkin_button"
@@ -253,11 +282,15 @@
 
                 <!-- Live Video -->
                 <LinearLayout
+                    android:id="@+id/live_option_layout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:paddingVertical="8dp"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackground">
 
                     <ImageButton
                         android:id="@+id/live_button"
@@ -279,11 +312,15 @@
 
                 <!-- Background Color -->
                 <LinearLayout
+                    android:id="@+id/background_option_layout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:paddingVertical="8dp"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackground">
 
                     <ImageButton
                         android:id="@+id/background_button"

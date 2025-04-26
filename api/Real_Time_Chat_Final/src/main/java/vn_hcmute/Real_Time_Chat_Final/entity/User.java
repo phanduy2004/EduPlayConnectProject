@@ -11,11 +11,19 @@ import java.sql.Timestamp;
 @Table(name = "user")
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class User implements Serializable {
+    public User(String avatarUrl, Timestamp createdAt, String email, long id, boolean isActive, boolean isReady, boolean status, String username) {
+        this.avatarUrl = avatarUrl;
+        this.createdAt = createdAt;
+        this.email = email;
+        this.id = id;
+        this.isActive = isActive;
+        this.isReady = isReady;
+        this.status = status;
+        this.username = username;
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,6 +53,10 @@ public class User implements Serializable {
     private String avatarUrl;
 
     private boolean isReady;
+
+    public User() {
+
+    }
 
     @Override
     public String toString() {

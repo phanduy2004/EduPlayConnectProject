@@ -15,7 +15,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
-        android:text="facebook"
+        android:text="eduplay"
         android:textColor="#1877F2"
         android:textSize="28sp"
         android:textStyle="bold"
@@ -39,45 +39,102 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
             android:orientation="horizontal"
-            android:padding="12dp">
+            android:padding="8dp">
 
-            <!-- Avatar người dùng -->
             <ImageView
                 android:id="@+id/user_avatar"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:src="@drawable/ic_user"
-                app:layout_constraintDimensionRatio="1:1"
-                tools:ignore="ContentDescription" />
+                android:src="@drawable/ic_user" />
 
-            <!-- Ô nhập trạng thái -->
-            <EditText
+            <Button
                 android:id="@+id/status_input"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
                 android:layout_weight="1"
-                android:background="@null"
-                android:hint="What's on your mind?"
-                android:padding="8dp"
-                android:textColorHint="#999999"
+                android:backgroundTint="@color/white"
+                android:foreground="?android:attr/selectableItemBackground"
+                android:text="What's on your mind?"
+                android:paddingStart="10dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:gravity="start|center_vertical"
+                android:textColor="#999999"
                 android:textSize="16sp" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
-    <!-- RecyclerView để hiển thị danh sách Stories -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/stories_recycler_view"
+    <!-- Wrapper cho phần Stories -->
+    <LinearLayout
+        android:id="@+id/stories_wrapper"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:minHeight="120dp"
         android:orientation="horizontal"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/status_bar"
-        tools:listitem="@layout/item_story" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/status_bar">
+
+        <!-- Khung Story mặc định (Add Story) -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/add_story_card"
+            android:layout_width="80dp"
+            android:layout_height="120dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="#E0E0E0">
+
+                <ImageView
+                    android:id="@+id/add_story_image"
+                    android:layout_width="match_parent"
+                    android:layout_height="80dp"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ic_user" />
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginTop="-12dp"
+                    android:background="@android:color/white"
+                    android:padding="4dp"
+                    android:src="@drawable/ic_add"
+                    app:tint="#1877F2" />
+
+                <TextView
+                    android:id="@+id/add_story_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Add Story"
+                    android:textColor="@android:color/black"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- RecyclerView để hiển thị danh sách Stories còn lại -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/stories_recycler_view"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:orientation="horizontal"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/item_story" />
+    </LinearLayout>
 
     <!-- RecyclerView để hiển thị danh sách bài đăng -->
     <androidx.recyclerview.widget.RecyclerView
@@ -89,7 +146,6 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/stories_recycler_view"
+        app:layout_constraintTop_toBottomOf="@id/stories_wrapper"
         tools:listitem="@layout/item_post" />
-
 </androidx.constraintlayout.widget.ConstraintLayout>

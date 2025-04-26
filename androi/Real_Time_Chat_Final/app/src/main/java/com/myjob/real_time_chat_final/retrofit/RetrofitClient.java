@@ -6,6 +6,7 @@ import com.myjob.real_time_chat_final.api.DictionaryApi;
 import com.myjob.real_time_chat_final.api.FriendshipService;
 import com.myjob.real_time_chat_final.api.GameRoomService;
 import com.myjob.real_time_chat_final.api.MessageService;
+import com.myjob.real_time_chat_final.api.PostService;
 import com.myjob.real_time_chat_final.api.UserService;
 
 import retrofit2.Retrofit;
@@ -51,4 +52,8 @@ public class RetrofitClient {
     public static DictionaryApi getApiDictionaryService(){
         return getInstance().create(DictionaryApi.class);
     }
+    public static PostService getApiPostService(){
+        return getInstance().create(PostService.class);
+    }
+
 }
