@@ -12,18 +12,9 @@ import java.sql.Timestamp;
 @Getter
 @Setter
 @Builder
+@AllArgsConstructor
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class User implements Serializable {
-    public User(String avatarUrl, Timestamp createdAt, String email, long id, boolean isActive, boolean isReady, boolean status, String username) {
-        this.avatarUrl = avatarUrl;
-        this.createdAt = createdAt;
-        this.email = email;
-        this.id = id;
-        this.isActive = isActive;
-        this.isReady = isReady;
-        this.status = status;
-        this.username = username;
-    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

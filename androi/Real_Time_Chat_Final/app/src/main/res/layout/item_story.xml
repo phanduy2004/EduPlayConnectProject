@@ -3,92 +3,70 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="80dp"
     android:layout_height="120dp"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_marginEnd="12dp"
+    android:layout_marginEnd="8dp"
     app:cardCornerRadius="12dp"
-    app:cardElevation="4dp">
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@android:color/white">
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <!-- Hình ảnh Story -->
-        <FrameLayout
-            android:id="@+id/story_image_container"
+        <!-- Story Image (for friend's story) -->
+        <ImageView
+            android:id="@+id/story_image"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:visibility="gone">
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_user"
+            android:visibility="gone" />
 
-            <ImageView
-                android:id="@+id/story_image"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_user"
-                tools:ignore="ContentDescription" />
+        <!-- Gradient Border -->
+        <ImageView
+            android:id="@+id/story_border"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitCenter"
+            android:src="@drawable/story_border"
+            android:visibility="gone" />
 
-            <!-- Viền cho hình ảnh Story -->
-            <ImageView
-                android:id="@+id/story_image_border"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="fitCenter"
-                android:src="@drawable/story_border"
-                tools:ignore="ContentDescription" />
-        </FrameLayout>
-
-        <!-- Avatar và viền cho Story của bạn bè -->
-        <FrameLayout
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_gravity="top|start"
+        <!-- Avatar (for friend's story) -->
+        <ImageView
+            android:id="@+id/story_avatar"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:layout_margin="8dp"
-            android:visibility="gone">
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_user"
+            android:visibility="gone" />
 
-            <ImageView
-                android:id="@+id/story_border"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="fitCenter"
-                android:src="@drawable/story_border"
-                tools:ignore="ContentDescription" />
-
-            <ImageView
-                android:id="@+id/story_avatar"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_gravity="center"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_user"
-                tools:ignore="ContentDescription" />
-        </FrameLayout>
-
-        <!-- Nút "Create Story" -->
+        <!-- Create Story Layout -->
         <LinearLayout
             android:id="@+id/create_story_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#FFFFFF"
+            android:orientation="vertical"
             android:gravity="center"
-            android:orientation="vertical">
+            android:background="#F5F5F5"
+            android:visibility="visible">
 
             <ImageView
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:src="@drawable/ic_add"
-                tools:ignore="ContentDescription" />
+                app:tint="#007AFF" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="4dp"
                 android:text="Create Story"
-                android:textColor="#333333"
                 android:textSize="12sp"
-                android:textStyle="bold" />
+                android:fontFamily="sans-serif-medium"
+                android:textColor="#000000" />
         </LinearLayout>
 
-        <!-- Tên người dùng (cho Story của bạn bè) -->
+        <!-- Username (for friend's story) -->
         <TextView
             android:id="@+id/story_username"
             android:layout_width="wrap_content"
@@ -97,9 +75,10 @@
             android:layout_margin="8dp"
             android:background="#80000000"
             android:padding="4dp"
-            android:text="Friend's Story"
+            android:text="Username"
             android:textColor="#FFFFFF"
             android:textSize="12sp"
+            android:fontFamily="sans-serif"
             android:visibility="gone" />
     </FrameLayout>
 </androidx.cardview.widget.CardView>

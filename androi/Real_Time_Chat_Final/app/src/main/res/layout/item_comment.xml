@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <!-- Avatar -->
+    <ImageView
+        android:id="@+id/comment_avatar"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@drawable/ic_user"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Comment Content Container -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/comment_card"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        app:cardBackgroundColor="#F5F5F5"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:layout_constraintStart_toEndOf="@id/comment_avatar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <!-- Username -->
+            <TextView
+                android:id="@+id/comment_username"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Username"
+                android:textSize="14sp"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="#000000" />
+
+            <!-- Comment Content -->
+            <TextView
+                android:id="@+id/comment_content"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Comment content goes here..."
+                android:textSize="14sp"
+                android:fontFamily="sans-serif"
+                android:textColor="#000000" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Interaction Bar -->
+    <LinearLayout
+        android:id="@+id/comment_interaction_bar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:orientation="horizontal"
+        app:layout_constraintStart_toEndOf="@id/comment_avatar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/comment_card">
+
+        <TextView
+            android:id="@+id/comment_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2h ago"
+            android:textSize="12sp"
+            android:fontFamily="sans-serif"
+            android:textColor="#8A8A8A"
+            android:paddingEnd="12dp" />
+
+        <TextView
+            android:id="@+id/comment_like"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Like"
+            android:textSize="12sp"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="#007AFF"
+            android:background="?attr/selectableItemBackground"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp" />
+
+        <TextView
+            android:id="@+id/comment_reply"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Reply"
+            android:textSize="12sp"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="#007AFF"
+            android:background="?attr/selectableItemBackground"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp" />
+
+        <TextView
+            android:id="@+id/comment_share"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Share"
+            android:textSize="12sp"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="#007AFF"
+            android:background="?attr/selectableItemBackground"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

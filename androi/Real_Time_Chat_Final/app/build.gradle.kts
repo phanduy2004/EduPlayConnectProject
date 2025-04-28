@@ -58,7 +58,7 @@ dependencies {
     annotationProcessor ("com.github.bumptech.glide:compiler:4.16.0")
     implementation ("com.google.android.material:material:1.11.0")
 
-
+    implementation ("androidx.fragment:fragment:1.6.2") // Phiên bản mới nhất tính đến tháng 04/2025
     implementation ("androidx.viewpager2:viewpager2:1.0.0")
     implementation ("de.hdodenhof:circleimageview:3.1.0") // Phiên bản mới nhất
     implementation ("androidx.activity:activity:1.8.0") // Cho Activity Result API

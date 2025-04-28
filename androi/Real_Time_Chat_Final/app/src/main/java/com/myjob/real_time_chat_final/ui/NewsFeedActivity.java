@@ -1,11 +1,13 @@
 package com.myjob.real_time_chat_final.ui;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -29,6 +31,8 @@ import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -39,16 +43,28 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.google.android.material.imageview.ShapeableImageView;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
+import com.google.gson.Gson;
+import com.myjob.real_time_chat_final.OnCommentInteractionListener;
 import com.myjob.real_time_chat_final.R;
 import com.myjob.real_time_chat_final.adapter.PostAdapter;
 import com.myjob.real_time_chat_final.adapter.StoryAdapter;
+
+import com.myjob.real_time_chat_final.api.CommentService;
 import com.myjob.real_time_chat_final.api.PostService;
 import com.myjob.real_time_chat_final.api.UserService;
 import com.myjob.real_time_chat_final.config.WebSocketManager;
 import com.myjob.real_time_chat_final.model.ImageResponse;
 import com.myjob.real_time_chat_final.model.Story;
 import com.myjob.real_time_chat_final.model.User;
+import com.myjob.real_time_chat_final.modelDTO.CommentDTO;
+import com.myjob.real_time_chat_final.modelDTO.CommentNotificationDTO;
+import com.myjob.real_time_chat_final.modelDTO.CommentRequestDTO;
+import com.myjob.real_time_chat_final.modelDTO.LikeNotificationDTO;
 import com.myjob.real_time_chat_final.modelDTO.PostRequestDTO;
 import com.myjob.real_time_chat_final.modelDTO.PostResponseDTO;
 import com.myjob.real_time_chat_final.retrofit.RetrofitClient;
@@ -57,6 +73,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import okhttp3.MediaType;
@@ -76,26 +93,31 @@ public class NewsFeedActivity extends AppCompatActivity {
     private RecyclerView storiesRecyclerView;
     private StoryAdapter storyAdapter;
     private List<Story> storyList;
-    private Uri selectedImageUri;
+    private List<Uri> selectedImageUris;
     private ActivityResultLauncher<Intent> imagePickerLauncher;
     private ImageView selectedImagePreview;
     private int userid = LoginActivity.userid;
     private Button statusInput;
     private WebSocketManager webSocketManager;
     private PostService postApiService;
+    private CommentService commentApiService;
     private ProgressDialog progressDialog;
     private UserService userService;
-    private ShapeableImageView avatar; // Không cần ShapeableImageView vì user_avatar là ImageView
     private User currentUser;
-    private ImageView userAvatar,storyImage; // Thêm biến để lưu ImageView user_avatar
-    private TextView userName; // Thêm biến để lưu TextView user_name (nếu thêm vào layout)
+    private ImageView userAvatar;
+
+    private int currentPage = 0;
+    private int minPage = 0;
+    private final int PAGE_SIZE = 10;
+    private boolean isLoading = false;
+    private boolean isLoadingOlderPosts = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_news_feed);
-        Log.d("NewsFeedActivity", "Đã tải layout activity_news_feed");
+        Log.d("NewsFeedActivity", "Loaded activity_news_feed layout");
 
         View mainView = findViewById(R.id.main);
         ViewCompat.setOnApplyWindowInsetsListener(mainView, (v, insets) -> {
@@ -104,49 +126,102 @@ public class NewsFeedActivity extends AppCompatActivity {
             return insets;
         });
 
-        // Khởi tạo ProgressDialog để hiển thị thanh tải
         progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Đang xử lý...");
+        progressDialog.setMessage("Processing...");
         progressDialog.setCancelable(false);
 
-        // Khởi tạo PostApiService và UserService từ RetrofitClient
         postApiService = RetrofitClient.getApiPostService();
-        userService = RetrofitClient.getApiUserService(); // Khởi tạo userService
+        commentApiService = RetrofitClient.getApiCommentService();
+        userService = RetrofitClient.getApiUserService();
 
-        // Khởi tạo WebSocket để nhận thông báo bình luận hoặc tin nhắn
         webSocketManager = WebSocketManager.getInstance();
         webSocketManager.connect();
 
-        // Đăng ký lắng nghe bình luận mới qua WebSocket
+        // Lắng nghe thông báo bình luận
+        // Lắng nghe thông báo bình luận
         webSocketManager.subscribeToTopic("/topic/comments", message -> {
             runOnUiThread(() -> {
-                Toast.makeText(NewsFeedActivity.this, "Có bình luận mới: " + message, Toast.LENGTH_SHORT).show();
+                try {
+                    Gson gson = new Gson();
+                    CommentDTO notification = gson.fromJson(message, CommentDTO.class);
+                    for (int i = 0; i < postList.size(); i++) {
+                        PostResponseDTO post = postList.get(i);
+                        if (post.getId().equals(notification.getPostId())) {
+                            if (post.getComments() == null) {
+                                post.setComments(new ArrayList<>());
+                            }
+                            if (notification.getParentCommentId() != null) {
+                                for (CommentDTO parent : post.getComments()) {
+                                    if (parent.getId().equals(notification.getParentCommentId())) {
+                                        if (parent.getReplies() == null) {
+                                            parent.setReplies(new ArrayList<>());
+                                        }
+                                        parent.getReplies().add(notification);
+                                        break;
+                                    }
+                                }
+                            } else {
+                                post.getComments().add(notification);
+                            }
+                            postAdapter.notifyItemChanged(i);
+                            Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " commented: " + notification.getContent(), Toast.LENGTH_SHORT).show();
+                            break;
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e("NewsFeedActivity", "Error parsing comment notification: " + e.getMessage());
+                }
             });
         });
 
-        // Đăng ký lắng nghe tin nhắn mới qua WebSocket
-        webSocketManager.subscribeToTopic("/topic/messages", message -> {
+        // Lắng nghe thông báo lượt thích
+        webSocketManager.subscribeToTopic("/topic/likes", message -> {
             runOnUiThread(() -> {
-                Toast.makeText(NewsFeedActivity.this, "Có tin nhắn mới: " + message, Toast.LENGTH_SHORT).show();
+                try {
+                    Gson gson = new Gson();
+                    LikeNotificationDTO notification = gson.fromJson(message, LikeNotificationDTO.class);
+                    for (int i = 0; i < postList.size(); i++) {
+                        PostResponseDTO post = postList.get(i);
+                        if (post.getId().equals(notification.getPostId())) {
+                            post.setLikeCount(post.getLikeCount() + 1);
+                            post.setScore(calculatePostScore(post));
+                            postAdapter.notifyItemChanged(i);
+                            Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " liked a post", Toast.LENGTH_SHORT).show();
+                            break;
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e("NewsFeedActivity", "Error parsing like notification: " + e.getMessage());
+                }
             });
         });
 
-        // Đăng ký imagePickerLauncher để chọn ảnh
         imagePickerLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                selectedImageUri = result.getData().getData();
-                Log.d("NewsFeedActivity", "Đã chọn ảnh URI: " + selectedImageUri);
-                if (selectedImagePreview != null) {
+                if (result.getData().getClipData() != null) {
+                    // Nhiều ảnh được chọn
+                    selectedImageUris = new ArrayList<>();
+                    int count = result.getData().getClipData().getItemCount();
+                    for (int i = 0; i < count; i++) {
+                        Uri imageUri = result.getData().getClipData().getItemAt(i).getUri();
+                        selectedImageUris.add(imageUri);
+                    }
+                } else if (result.getData().getData() != null) {
+                    // Một ảnh được chọn
+                    selectedImageUris = new ArrayList<>();
+                    selectedImageUris.add(result.getData().getData());
+                }
+                Log.d("NewsFeedActivity", "Selected image URIs: " + selectedImageUris);
+                if (selectedImagePreview != null && !selectedImageUris.isEmpty()) {
                     selectedImagePreview.setVisibility(View.VISIBLE);
-                    Glide.with(this).load(selectedImageUri).centerCrop().into(selectedImagePreview);
+                    Glide.with(this).load(selectedImageUris.get(0)).centerCrop().into(selectedImagePreview);
                 }
             } else {
-                Toast.makeText(this, "Đã hủy chọn ảnh", Toast.LENGTH_SHORT).show();
-                Log.d("NewsFeedActivity", "Đã hủy chọn ảnh");
+                Toast.makeText(this, "Cancelled image selection", Toast.LENGTH_SHORT).show();
+                Log.d("NewsFeedActivity", "Cancelled image selection");
             }
         });
 
-        // Khởi tạo RecyclerView cho Stories
         storiesRecyclerView = findViewById(R.id.stories_recycler_view);
         storiesRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         storiesRecyclerView.setHasFixedSize(true);
@@ -155,37 +230,208 @@ public class NewsFeedActivity extends AppCompatActivity {
         storyAdapter = new StoryAdapter(storyList);
         storiesRecyclerView.setAdapter(storyAdapter);
 
-        // Khởi tạo RecyclerView cho bài đăng
         postsRecyclerView = findViewById(R.id.posts_recycler_view);
         postsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         postsRecyclerView.setHasFixedSize(true);
 
         postList = new ArrayList<>();
-        postAdapter = new PostAdapter(postList);
+        postAdapter = new PostAdapter(
+                getSupportFragmentManager(), // Truyền FragmentManager
+                post -> {
+                    // Xử lý sự kiện Like
+                    // Ví dụ: Gọi API để like bài đăng
+                },
+                (post, content, parentCommentId) -> {
+                    // Xử lý sự kiện Comment
+                    // Ví dụ: Gọi API để thêm bình luận
+                },
+                new OnCommentInteractionListener() {
+                    @Override
+                    public void onLikeComment(CommentDTO comment) {
+
+                    }
+
+                    @Override
+                    public void onReplyComment(CommentDTO comment) {
+                        showReplyDialog(comment);
+                    }
+
+                    @Override
+                    public void onShareComment(CommentDTO comment) {
+
+                    }
+                }
+        );
         postsRecyclerView.setAdapter(postAdapter);
 
-        // Khởi tạo nút "Bạn đang nghĩ gì?" và thêm sự kiện click
+        postsRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+                int totalItemCount = layoutManager.getItemCount();
+                int lastVisibleItem = layoutManager.findLastVisibleItemPosition();
+                int firstVisibleItem = layoutManager.findFirstVisibleItemPosition();
+
+                if (!isLoading && totalItemCount <= (lastVisibleItem + 2)) {
+                    loadMorePosts();
+                }
+
+                if (!isLoadingOlderPosts && firstVisibleItem == 0 && dy < 0 && minPage > 0) {
+                    loadOlderPosts();
+                }
+            }
+        });
+
         statusInput = findViewById(R.id.status_input);
         if (statusInput != null) {
-            Log.d("NewsFeedActivity", "Đã khởi tạo status_input");
+            Log.d("NewsFeedActivity", "Initialized status_input");
             statusInput.setOnClickListener(v -> {
-                Log.d("NewsFeedActivity", "Đã nhấn status_input, mở dialog");
+                Log.d("NewsFeedActivity", "Clicked status_input, opening dialog");
                 showCreatePostDialog();
             });
         } else {
-            Log.e("NewsFeedActivity", "Không tìm thấy status_input");
+            Log.e("NewsFeedActivity", "status_input not found");
         }
 
-        // Khởi tạo ImageView user_avatar và TextView user_name (nếu có)
         userAvatar = findViewById(R.id.user_avatar);
-        storyImage = findViewById(R.id.add_story_image);
-        // Gọi loadUserData để tải thông tin người dùng
+
         loadUserData(userid);
+        loadPosts();
+    }
+
+    private void onLikeClick(PostResponseDTO post) {
+        if (!isNetworkAvailable()) {
+            Toast.makeText(this, "No network connection", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        progressDialog.show();
+        postApiService.likePost(post.getId(), (long) userid).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                progressDialog.dismiss();
+                if (response.isSuccessful()) {
+                    // Cập nhật sẽ được xử lý qua WebSocket
+                } else {
+                    Toast.makeText(NewsFeedActivity.this, "Failed to like장을 post", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                progressDialog.dismiss();
+                Log.e("NewsFeedActivity", "Error liking post: " + t.getMessage());
+                Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void onCommentClick(PostResponseDTO post, String content, Long parentCommentId) {
+        if (!isNetworkAvailable()) {
+            Toast.makeText(this, "No network connection", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        progressDialog.show();
+        CommentRequestDTO request = new CommentRequestDTO();
+        request.setPostId(post.getId());
+        request.setUserId((long) userid);
+        request.setContent(content);
+        request.setParentCommentId(parentCommentId);
+
+        commentApiService.createComment(request).enqueue(new Callback<CommentDTO>() {
+            @Override
+            public void onResponse(Call<CommentDTO> call, Response<CommentDTO> response) {
+                progressDialog.dismiss();
+                if (response.isSuccessful() && response.body() != null) {
+                    // Cập nhật sẽ được xử lý qua WebSocket
+                } else {
+                    Toast.makeText(NewsFeedActivity.this, "Failed to post comment", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<CommentDTO> call, Throwable t) {
+                progressDialog.dismiss();
+                Log.e("NewsFeedActivity", "Error posting comment: " + t.getMessage());
+                Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void showReplyDialog(CommentDTO parentComment) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Reply to " + parentComment.getUsername());
+
+        final EditText commentInput = new EditText(this);
+        commentInput.setHint("Write a reply...");
+        commentInput.setTextSize(14);
+        commentInput.setPadding(16, 16, 16, 16);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        params.setMargins(16, 16, 16, 16);
+        commentInput.setLayoutParams(params);
+        builder.setView(commentInput);
+
+        builder.setPositiveButton("Send", (dialog, which) -> {
+            String content = commentInput.getText().toString().trim();
+            if (!content.isEmpty()) {
+                for (PostResponseDTO post : postList) {
+                    if (post.getComments() != null && post.getComments().contains(parentComment)) {
+                        onCommentClick(post, content, parentComment.getId());
+                        dialog.dismiss();
+                        break;
+                    }
+                }
+            } else {
+                Toast.makeText(this, "Reply cannot be empty", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+        commentInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(s.length() > 0);
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
+        });
+    }
+
+    private double calculatePostScore(PostResponseDTO post) {
+        long currentTime = System.currentTimeMillis();
+        long createdAt = post.getCreatedAt().getTime();
+
+        double timeScore = 1.0 / (1 + (currentTime - createdAt) / (1000 * 60 * 60));
+        double likes = post.getLikeCount();
+        double comments = (post.getComments() != null) ? post.getComments().size() : 0;
+        double shares = 0; // Thay bằng post.getShares() nếu có
+        double engagementScore = (likes * 0.4) + (comments * 0.4) + (shares * 0.2);
+        double affinityScore = 0.1;
+
+        return (timeScore * 0.3) + (engagementScore * 0.5) + (affinityScore * 0.2);
+    }
+
+    private void sortPostsByScore() {
+        Collections.sort(postList, (p1, p2) -> Double.compare(p2.getScore(), p1.getScore()));
     }
 
     private void loadUserData(int userId) {
         if (!isNetworkAvailable()) {
-            Toast.makeText(this, "Không có kết nối mạng", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "No network connection", Toast.LENGTH_SHORT).show();
             return;
         }
         userService.getUserById((long) userId).enqueue(new Callback<User>() {
@@ -193,23 +439,41 @@ public class NewsFeedActivity extends AppCompatActivity {
             public void onResponse(Call<User> call, Response<User> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     currentUser = response.body();
-                    // Cập nhật avatar trong bảng tin
                     if (userAvatar != null) {
                         if (currentUser.getAvatarUrl() != null && !currentUser.getAvatarUrl().isEmpty()) {
                             String baseUrl = RetrofitClient.getBaseUrl();
                             String fullAvatarUrl = baseUrl + currentUser.getAvatarUrl();
                             Log.d("NewsFeedActivity", "Loading avatar URL: " + fullAvatarUrl);
-                            Glide.with(NewsFeedActivity.this)
-                                    .load(fullAvatarUrl)
-                                    .circleCrop()
-                                    .error(R.drawable.ic_user)
-                                    .into(userAvatar);
-                            Glide.with(NewsFeedActivity.this)
-                                    .load(fullAvatarUrl)
-                                    .circleCrop()
-                                    .error(R.drawable.ic_user)
-                                    .into(storyImage);
+                            if (fullAvatarUrl.contains("/uploads/")) {
+                                Glide.with(NewsFeedActivity.this)
+                                        .load(fullAvatarUrl)
+                                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                        .circleCrop()
+                                        .placeholder(R.drawable.ic_user)
+                                        .error(R.drawable.ic_user)
+                                        .listener(new RequestListener<Drawable>() {
+                                            @Override
+                                            public boolean onLoadFailed(@Nullable GlideException e, @Nullable Object model, @NonNull Target<Drawable> target, boolean isFirstResource) {
+                                                Log.e("NewsFeedActivity", "Glide load failed for avatar: " + fullAvatarUrl, e);
+                                                return false;
+                                            }
+
+                                            @Override
+                                            public boolean onResourceReady(@NonNull Drawable resource, @NonNull Object model, Target<Drawable> target, @NonNull DataSource dataSource, boolean isFirstResource) {
+                                                Log.d("NewsFeedActivity", "Glide load successful for avatar: " + fullAvatarUrl);
+                                                return false;
+                                            }
+                                        })
+                                        .into(userAvatar);
+                            } else {
+                                Log.w("NewsFeedActivity", "Invalid avatar URL: " + fullAvatarUrl);
+                                Glide.with(NewsFeedActivity.this)
+                                        .load(R.drawable.ic_user)
+                                        .circleCrop()
+                                        .into(userAvatar);
+                            }
                         } else {
+                            Log.w("NewsFeedActivity", "Avatar URL is empty");
                             Glide.with(NewsFeedActivity.this)
                                     .load(R.drawable.ic_user)
                                     .circleCrop()
@@ -218,30 +482,24 @@ public class NewsFeedActivity extends AppCompatActivity {
                     } else {
                         Log.e("NewsFeedActivity", "userAvatar is null");
                     }
-
-                    // Cập nhật tên người dùng trong bảng tin (nếu có TextView user_name)
-                    if (userName != null) {
-                        userName.setText(currentUser.getUsername() != null ? currentUser.getUsername() : "Unknown User");
-                    }
                 } else {
-                    Toast.makeText(NewsFeedActivity.this, "Không thể tải thông tin user", Toast.LENGTH_SHORT).show();
+                    Log.e("NewsFeedActivity", "Failed to load user info, code: " + response.code());
+                    Toast.makeText(NewsFeedActivity.this, "Failed to load user info", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<User> call, Throwable t) {
-                Log.e("NewsFeedActivity", "Lỗi tải thông tin user: " + t.getMessage(), t);
-                Toast.makeText(NewsFeedActivity.this, "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Log.e("NewsFeedActivity", "Error loading user info: " + t.getMessage(), t);
+                Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
-
     private void showCreatePostDialog() {
         try {
             Dialog dialog = new Dialog(this);
             dialog.setContentView(R.layout.dialog_create_post);
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-            Log.d("NewsFeedActivity", "Đã tải dialog create_post");
 
             WindowManager.LayoutParams params = new WindowManager.LayoutParams();
             params.copyFrom(dialog.getWindow().getAttributes());
@@ -249,280 +507,157 @@ public class NewsFeedActivity extends AppCompatActivity {
             params.height = WindowManager.LayoutParams.WRAP_CONTENT;
             dialog.getWindow().setAttributes(params);
 
-            ImageButton closeButton = dialog.findViewById(R.id.close_button);
-            Button postButton = dialog.findViewById(R.id.post_button);
-            EditText postInput = dialog.findViewById(R.id.post_input);
+            EditText postContent = dialog.findViewById(R.id.post_input);
             Spinner privacySpinner = dialog.findViewById(R.id.privacy_spinner);
-            LinearLayout photoOptionLayout = dialog.findViewById(R.id.photo_option_layout);
-            LinearLayout tagOptionLayout = dialog.findViewById(R.id.tag_option_layout);
-            LinearLayout feelingOptionLayout = dialog.findViewById(R.id.feeling_option_layout);
-            LinearLayout checkinOptionLayout = dialog.findViewById(R.id.checkin_option_layout);
-            LinearLayout liveOptionLayout = dialog.findViewById(R.id.live_option_layout);
-            LinearLayout backgroundOptionLayout = dialog.findViewById(R.id.background_option_layout);
-            TextView userName = dialog.findViewById(R.id.dialog_user_name);
-            ImageView userAvatar = dialog.findViewById(R.id.dialog_user_avatar);
+            Button postButton = dialog.findViewById(R.id.post_button);
+            ImageButton closeButton = dialog.findViewById(R.id.close_button);
+            ImageButton photoButton = dialog.findViewById(R.id.photo_button);
             selectedImagePreview = dialog.findViewById(R.id.selected_image_preview);
 
-            selectedImageUri = null;
-            if (selectedImagePreview != null) {
-                selectedImagePreview.setVisibility(View.GONE);
+            if (postContent == null || privacySpinner == null || postButton == null || closeButton == null || photoButton == null || selectedImagePreview == null) {
+                Log.e("NewsFeedActivity", "One or more dialog views not found");
+                Toast.makeText(this, "Error loading dialog", Toast.LENGTH_SHORT).show();
+                return;
             }
 
-            // Cập nhật avatar và tên trong dialog từ currentUser
-            if (currentUser != null) {
-                if (userAvatar != null) {
-                    if (currentUser.getAvatarUrl() != null && !currentUser.getAvatarUrl().isEmpty()) {
-                        String baseUrl = RetrofitClient.getBaseUrl();
-                        String fullAvatarUrl = baseUrl + currentUser.getAvatarUrl();
-                        Log.d("NewsFeedActivity", "Loading dialog avatar URL: " + fullAvatarUrl);
-                        Glide.with(this)
-                                .load(fullAvatarUrl)
-                                .circleCrop()
-                                .error(R.drawable.ic_user)
-                                .into(userAvatar);
-                    } else {
-                        Glide.with(this)
-                                .load(R.drawable.ic_user)
-                                .circleCrop()
-                                .into(userAvatar);
-                    }
-                }
-                if (userName != null) {
-                    userName.setText(currentUser.getUsername() != null ? currentUser.getUsername() : "Unknown User");
-                }
-            } else {
-                Log.e("NewsFeedActivity", "currentUser is null, cannot update dialog avatar and name");
-                // Đặt giá trị mặc định nếu currentUser chưa được tải
-                if (userAvatar != null) {
-                    Glide.with(this)
-                            .load(R.drawable.ic_user)
-                            .circleCrop()
-                            .into(userAvatar);
-                }
-                if (userName != null) {
-                    userName.setText("Unknown User");
-                }
-            }
+            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                    this,
+                    R.array.privacy_options,
+                    android.R.layout.simple_spinner_item
+            );
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            privacySpinner.setAdapter(adapter);
 
-            if (closeButton != null) {
-                closeButton.setOnClickListener(v -> {
-                    Log.d("NewsFeedActivity", "Đã nhấn nút đóng");
-                    dialog.dismiss();
-                });
-            } else {
-                Log.e("NewsFeedActivity", "Không tìm thấy close_button");
-            }
-
-            if (privacySpinner != null) {
-                String[] privacyOptions = {"PUBLIC", "FRIENDS", "PRIVATE"};
-                ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                        this,
-                        android.R.layout.simple_spinner_item,
-                        privacyOptions
-                );
-                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                privacySpinner.setAdapter(adapter);
-                Log.d("NewsFeedActivity", "Đã khởi tạo privacy_spinner");
-            } else {
-                Log.e("NewsFeedActivity", "Không tìm thấy privacy_spinner");
-            }
-
-            if (photoOptionLayout != null) {
-                photoOptionLayout.setOnClickListener(v -> {
-                    Log.d("NewsFeedActivity", "Đã nhấn photo_option_layout, yêu cầu quyền truy cập");
+            photoButton.setOnClickListener(v -> {
+                String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ?
+                        Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
+                if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
                     requestStoragePermission();
-                });
-            } else {
-                Log.e("NewsFeedActivity", "Không tìm thấy photo_option_layout");
-            }
+                } else {
+                    openGallery();
+                }
+            });
 
-            if (tagOptionLayout != null) {
-                tagOptionLayout.setOnClickListener(v -> {
-                    Toast.makeText(this, "Gắn thẻ người khác", Toast.LENGTH_SHORT).show();
-                    Log.d("NewsFeedActivity", "Đã nhấn tag_option_layout");
-                });
-            } else {
-                Log.e("NewsFeedActivity", "Không tìm thấy tag_option_layout");
-            }
+            closeButton.setOnClickListener(v -> {
+                selectedImageUris = null;
+                dialog.dismiss();
+            });
 
-            if (feelingOptionLayout != null) {
-                feelingOptionLayout.setOnClickListener(v -> {
-                    Toast.makeText(this, "Thêm cảm xúc/hoạt động", Toast.LENGTH_SHORT).show();
-                    Log.d("NewsFeedActivity", "Đã nhấn feeling_option_layout");
-                });
-            } else {
-                Log.e("NewsFeedActivity", "Không tìm thấy feeling_option_layout");
-            }
+            postButton.setOnClickListener(v -> {
+                String content = postContent.getText().toString().trim();
+                String selectedPrivacy = privacySpinner.getSelectedItem().toString();
 
-            if (checkinOptionLayout != null) {
-                checkinOptionLayout.setOnClickListener(v -> {
-                    Toast.makeText(this, "Check-in", Toast.LENGTH_SHORT).show();
-                    Log.d("NewsFeedActivity", "Đã nhấn checkin_option_layout");
-                });
-            } else {
-                Log.e("NewsFeedActivity", "Không tìm thấy checkin_option_layout");
-            }
+                if (content.isEmpty() && (selectedImageUris == null || selectedImageUris.isEmpty())) {
+                    Toast.makeText(this, "Post content or image cannot be empty", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
-            if (liveOptionLayout != null) {
-                liveOptionLayout.setOnClickListener(v -> {
-                    Toast.makeText(this, "Bắt đầu video trực tiếp", Toast.LENGTH_SHORT).show();
-                    Log.d("NewsFeedActivity", "Đã nhấn live_option_layout");
-                });
-            } else {
-                Log.e("NewsFeedActivity", "Không tìm thấy live_option_layout");
-            }
+                if (currentUser == null) {
+                    Toast.makeText(this, "User data not loaded", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
-            if (backgroundOptionLayout != null) {
-                backgroundOptionLayout.setOnClickListener(v -> {
-                    Toast.makeText(this, "Thay đổi màu nền", Toast.LENGTH_SHORT).show();
-                    Log.d("NewsFeedActivity", "Đã nhấn background_option_layout");
-                });
-            } else {
-                Log.e("NewsFeedActivity", "Không tìm thấy background_option_layout");
-            }
-
-            if (postButton != null && postInput != null) {
-                postButton.setOnClickListener(v -> {
-                    String postContent = postInput.getText().toString().trim();
-                    String selectedPrivacy = privacySpinner != null ? privacySpinner.getSelectedItem().toString() : "PUBLIC";
-                    if (!postContent.isEmpty() || selectedImageUri != null) {
-                        if (selectedImageUri != null) {
-                            uploadImageForPost(postContent, selectedPrivacy, currentUser, dialog);
-                        } else {
-                            PostRequestDTO request = new PostRequestDTO();
-                            request.setUserId(Long.valueOf(currentUser.getId()));
-                            request.setContent(postContent);
-                            request.setPrivacy(selectedPrivacy);
-                            request.setImageUrl(null);
-
-                            createPost(request, dialog);
-                        }
-                    } else {
-                        Toast.makeText(this, "Vui lòng nhập nội dung hoặc chọn ảnh!", Toast.LENGTH_SHORT).show();
-                        Log.d("NewsFeedActivity", "Nội dung bài đăng và ảnh đều trống");
-                    }
-                });
-            } else {
-                Log.e("NewsFeedActivity", "Không tìm thấy post_button hoặc post_input");
-            }
+                progressDialog.show();
+                if (selectedImageUris != null && !selectedImageUris.isEmpty()) {
+                    uploadImagesForPost(content, selectedPrivacy, currentUser, dialog);
+                } else {
+                    PostRequestDTO request = new PostRequestDTO();
+                    request.setContent(content);
+                    request.setUserId((long) userid);
+                    request.setPrivacy(selectedPrivacy);
+                    request.setImageUrl(null);
+                    createPost(request, dialog);
+                }
+            });
 
             dialog.show();
-            Log.d("NewsFeedActivity", "Đã hiển thị dialog");
         } catch (Exception e) {
-            Log.e("NewsFeedActivity", "Lỗi khi hiển thị dialog: " + e.getMessage(), e);
-            Toast.makeText(this, "Lỗi khi mở dialog: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Log.e("NewsFeedActivity", "Error showing dialog: " + e.getMessage(), e);
+            Toast.makeText(this, "Error opening dialog", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void uploadImageForPost(String postContent, String selectedPrivacy, User currentUser, Dialog dialog) {
+    private void uploadImagesForPost(String postContent, String selectedPrivacy, User currentUser, Dialog dialog) {
         if (!isNetworkAvailable()) {
-            Toast.makeText(this, "Không có kết nối mạng", Toast.LENGTH_SHORT).show();
+            progressDialog.dismiss();
+            Toast.makeText(this, "No network connection", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (selectedImageUri == null) {
-            Toast.makeText(this, "Chưa chọn ảnh", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        try {
-            String mimeType = getContentResolver().getType(selectedImageUri);
-            if (mimeType == null || !(mimeType.equals("image/jpeg") || mimeType.equals("image/png"))) {
-                Toast.makeText(this, "Chỉ hỗ trợ định dạng JPEG hoặc PNG", Toast.LENGTH_SHORT).show();
-                return;
-            }
 
-            byte[] imageBytes = getBytesFromUri(selectedImageUri);
+        List<String> imageUrls = new ArrayList<>();
+        int[] uploadCount = {0};
+        int totalImages = selectedImageUris.size();
+
+        for (Uri imageUri : selectedImageUris) {
+            byte[] imageBytes = getBytesFromUri(imageUri);
             if (imageBytes == null) {
-                Toast.makeText(this, "Không thể đọc file ảnh", Toast.LENGTH_SHORT).show();
+                progressDialog.dismiss();
+                Toast.makeText(this, "Failed to process image", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            RequestBody requestFile = RequestBody.create(MediaType.parse("image/*"), imageBytes);
-            MultipartBody.Part body = MultipartBody.Part.createFormData("image", "post_image.jpg", requestFile);
+            RequestBody imageBody = RequestBody.create(MediaType.parse("image/*"), imageBytes);
+            MultipartBody.Part imagePart = MultipartBody.Part.createFormData("image", "post_image_" + System.currentTimeMillis() + ".jpg", imageBody);
 
-            progressDialog.show();
-
-            postApiService.uploadImage(body).enqueue(new Callback<ImageResponse>() {
+            postApiService.uploadImage(imagePart).enqueue(new Callback<ImageResponse>() {
                 @Override
                 public void onResponse(Call<ImageResponse> call, Response<ImageResponse> response) {
-                    progressDialog.dismiss();
-                    if (response.isSuccessful() && response.body() != null) {
-                        String imageUrl = response.body().getImageUrl();
-                        Toast.makeText(NewsFeedActivity.this, "Tải ảnh thành công", Toast.LENGTH_SHORT).show();
-
-                        PostRequestDTO request = new PostRequestDTO();
-                        request.setUserId(Long.valueOf(currentUser.getId()));
-                        request.setContent(postContent);
-                        request.setPrivacy(selectedPrivacy);
-                        request.setImageUrl(imageUrl);
-
-                        createPost(request, dialog);
-                    } else {
-                        String errorMessage = "Tải ảnh thất bại";
-                        if (response.code() == 400) {
-                            errorMessage = "Dữ liệu không hợp lệ";
-                        } else if (response.code() == 500) {
-                            errorMessage = "Lỗi server";
+                    synchronized (imageUrls) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            imageUrls.add(response.body().getImageUrl());
                         }
-                        Toast.makeText(NewsFeedActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                        uploadCount[0]++;
+                        if (uploadCount[0] == totalImages) {
+                            PostRequestDTO request = new PostRequestDTO();
+                            request.setContent(postContent);
+                            request.setUserId((long) userid);
+                            request.setPrivacy(selectedPrivacy);
+                            request.setImageUrl(imageUrls.isEmpty() ? null : imageUrls);
+                            createPost(request, dialog);
+                        }
                     }
                 }
 
                 @Override
                 public void onFailure(Call<ImageResponse> call, Throwable t) {
-                    progressDialog.dismiss();
-                    Log.e("NewsFeedActivity", "Lỗi tải ảnh: " + t.getMessage(), t);
-                    String errorMessage = t instanceof IOException ? "Lỗi kết nối mạng. Vui lòng kiểm tra Internet." : "Lỗi tải ảnh: " + t.getMessage();
-                    Toast.makeText(NewsFeedActivity.this, errorMessage, Toast.LENGTH_LONG).show();
+                    synchronized (imageUrls) {
+                        progressDialog.dismiss();
+                        Log.e("NewsFeedActivity", "Error uploading image: " + t.getMessage());
+                        Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
                 }
             });
-        } catch (Exception e) {
-            progressDialog.dismiss();
-            Log.e("NewsFeedActivity", "Lỗi xử lý ảnh: " + e.getMessage(), e);
-            Toast.makeText(this, "Lỗi xử lý ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
     private void createPost(PostRequestDTO request, Dialog dialog) {
         if (!isNetworkAvailable()) {
-            Toast.makeText(this, "Không có kết nối mạng", Toast.LENGTH_SHORT).show();
+            progressDialog.dismiss();
+            Toast.makeText(this, "No network connection", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        progressDialog.show();
 
         postApiService.createPost(request).enqueue(new Callback<PostResponseDTO>() {
             @Override
             public void onResponse(Call<PostResponseDTO> call, Response<PostResponseDTO> response) {
                 progressDialog.dismiss();
                 if (response.isSuccessful() && response.body() != null) {
-                    PostResponseDTO newPost = response.body();
-                    postList.add(0, newPost);
+                    postList.add(0, response.body());
                     postAdapter.notifyItemInserted(0);
                     postsRecyclerView.scrollToPosition(0);
-                    Toast.makeText(NewsFeedActivity.this, "Bài đăng đã được tạo!", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
+                    selectedImageUris = null;
+                    Toast.makeText(NewsFeedActivity.this, "Post created successfully", Toast.LENGTH_SHORT).show();
                 } else {
-                    String errorMessage;
-                    if (response.code() == 400) {
-                        errorMessage = "Dữ liệu không hợp lệ";
-                    } else if (response.code() == 404) {
-                        errorMessage = "Không tìm thấy user";
-                    } else if (response.code() == 500) {
-                        errorMessage = "Lỗi server: " + (response.errorBody() != null ? response.errorBody().toString() : "Không xác định");
-                    } else {
-                        errorMessage = "Không thể tạo bài đăng: " + response.code();
-                    }
-                    Toast.makeText(NewsFeedActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
-                    Log.e("NewsFeedActivity", "Lỗi tạo bài đăng: " + errorMessage);
+                    Toast.makeText(NewsFeedActivity.this, "Failed to create post", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<PostResponseDTO> call, Throwable t) {
                 progressDialog.dismiss();
-                Log.e("NewsFeedActivity", "Lỗi tạo bài đăng: " + t.getMessage(), t);
-                String errorMessage = t instanceof IOException ? "Lỗi kết nối mạng. Vui lòng kiểm tra Internet." : "Lỗi tạo bài đăng: " + t.getMessage();
-                Toast.makeText(NewsFeedActivity.this, errorMessage, Toast.LENGTH_LONG).show();
+                Log.e("NewsFeedActivity", "Error creating post: " + t.getMessage());
+                Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -531,38 +666,45 @@ public class NewsFeedActivity extends AppCompatActivity {
         String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ?
                 Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
 
-        if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
-            Log.d("NewsFeedActivity", "Đã cấp quyền: " + permission);
-            openGallery();
-        } else if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
-            Log.d("NewsFeedActivity", "Hiển thị lý do cần quyền");
-            Toast.makeText(this, "Cần quyền truy cập thư viện để chọn ảnh", Toast.LENGTH_LONG).show();
-            ActivityCompat.requestPermissions(this, new String[]{permission}, STORAGE_PERMISSION_CODE);
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Permission needed")
+                    .setMessage("Storage permission is needed to upload images")
+                    .setPositiveButton("OK", (dialog, which) -> {
+                        ActivityCompat.requestPermissions(NewsFeedActivity.this,
+                                new String[]{permission}, STORAGE_PERMISSION_CODE);
+                    })
+                    .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+                    .create().show();
         } else {
-            Log.d("NewsFeedActivity", "Yêu cầu quyền: " + permission);
-            ActivityCompat.requestPermissions(this, new String[]{permission}, STORAGE_PERMISSION_CODE);
+            ActivityCompat.requestPermissions(this,
+                    new String[]{permission}, STORAGE_PERMISSION_CODE);
         }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == STORAGE_PERMISSION_CODE && grantResults.length > 0) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.d("NewsFeedActivity", "Đã cấp quyền, mở thư viện ảnh");
+        if (requestCode == STORAGE_PERMISSION_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 openGallery();
             } else {
                 String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ?
                         Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
                 if (!ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
-                    Log.d("NewsFeedActivity", "Quyền bị từ chối vĩnh viễn: " + permission);
-                    Toast.makeText(this, "Quyền truy cập thư viện bị từ chối. Vui lòng cấp quyền trong cài đặt.", Toast.LENGTH_LONG).show();
-                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                    intent.setData(Uri.parse("package:" + getPackageName()));
-                    startActivity(intent);
+                    new AlertDialog.Builder(this)
+                            .setTitle("Permission needed")
+                            .setMessage("Storage permission is required to upload images. Please enable it in settings.")
+                            .setPositiveButton("Settings", (dialog, which) -> {
+                                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                                Uri uri = Uri.fromParts("package", getPackageName(), null);
+                                intent.setData(uri);
+                                startActivity(intent);
+                            })
+                            .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+                            .create().show();
                 } else {
-                    Log.d("NewsFeedActivity", "Quyền bị từ chối: " + permission);
-                    Toast.makeText(this, "Cần quyền truy cập thư viện để chọn ảnh", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Storage permission denied", Toast.LENGTH_SHORT).show();
                 }
             }
         }
@@ -572,16 +714,18 @@ public class NewsFeedActivity extends AppCompatActivity {
         Intent intent;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
-            Log.d("NewsFeedActivity", "Mở thư viện ảnh với ACTION_PICK_IMAGES (API 33+)");
+            intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 5); // Giới hạn tối đa 5 ảnh
+            Log.d("NewsFeedActivity", "Opening gallery with ACTION_PICK_IMAGES (API 33+)");
         } else {
             intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            Log.d("NewsFeedActivity", "Mở thư viện ảnh với ACTION_PICK (API < 33)");
+            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true); // Cho phép chọn nhiều ảnh
+            Log.d("NewsFeedActivity", "Opening gallery with ACTION_PICK (API < 33)");
         }
         try {
             imagePickerLauncher.launch(intent);
         } catch (Exception e) {
-            Log.e("NewsFeedActivity", "Lỗi khi mở thư viện ảnh: " + e.getMessage(), e);
-            Toast.makeText(this, "Không thể mở thư viện ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Log.e("NewsFeedActivity", "Error opening gallery: " + e.getMessage(), e);
+            Toast.makeText(this, "Cannot open gallery: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -592,21 +736,141 @@ public class NewsFeedActivity extends AppCompatActivity {
     }
 
     private byte[] getBytesFromUri(Uri uri) {
-        try (InputStream inputStream = getContentResolver().openInputStream(uri)) {
-            if (inputStream == null) {
-                return null;
-            }
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(uri);
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             byte[] buffer = new byte[1024];
             int bytesRead;
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 byteArrayOutputStream.write(buffer, 0, bytesRead);
             }
+            inputStream.close();
             return byteArrayOutputStream.toByteArray();
         } catch (IOException e) {
-            Log.e("NewsFeedActivity", "Lỗi đọc dữ liệu ảnh: " + e.getMessage(), e);
+            Log.e("NewsFeedActivity", "Error reading image: " + e.getMessage());
             return null;
         }
+    }
+
+    private void loadPosts() {
+        if (!isNetworkAvailable()) {
+            Toast.makeText(this, "No network connection", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Log.d("NewsFeedActivity", "Loading posts, page: " + currentPage);
+        isLoading = true;
+        postApiService.getPosts(currentPage, PAGE_SIZE).enqueue(new Callback<List<PostResponseDTO>>() {
+            @Override
+            public void onResponse(Call<List<PostResponseDTO>> call, Response<List<PostResponseDTO>> response) {
+                isLoading = false;
+                if (response.isSuccessful() && response.body() != null) {
+                    Log.d("NewsFeedActivity", "Posts loaded, size: " + response.body().size());
+                    postList.addAll(response.body());
+                    for (PostResponseDTO post : postList) {
+                        post.setScore(calculatePostScore(post));
+                        Log.d("NewsFeedActivity", "Post " + post.getId() + " avatarUrl: " + post.getAvatarUrl());
+                        Log.d("NewsFeedActivity", "Post " + post.getId() + " imageUrl: " + post.getImageUrl());
+                        // Kiểm tra URL hợp lệ
+                        if (post.getAvatarUrl() != null && !post.getAvatarUrl().contains("/uploads/")) {
+                            Log.w("NewsFeedActivity", "Invalid avatar URL for post " + post.getId() + ": " + post.getAvatarUrl());
+                        }
+                        if (post.getImageUrl() != null) {
+                            for (String imageUrl : post.getImageUrl()) {
+                                if (!imageUrl.contains("/uploads/")) {
+                                    Log.w("NewsFeedActivity", "Invalid image URL for post " + post.getId() + ": " + imageUrl);
+                                }
+                            }
+                        }
+                    }
+                    sortPostsByScore();
+                    postAdapter.updatePosts(postList);
+                    currentPage++;
+                } else {
+                    Log.e("NewsFeedActivity", "Failed to load posts, code: " + response.code());
+                    Toast.makeText(NewsFeedActivity.this, "Failed to load posts", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<PostResponseDTO>> call, Throwable t) {
+                isLoading = false;
+                Log.e("NewsFeedActivity", "Error loading posts: " + t.getMessage());
+                Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void loadMorePosts() {
+        if (!isNetworkAvailable()) {
+            Toast.makeText(this, "No network connection", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Log.d("NewsFeedActivity", "Loading more posts, page: " + currentPage);
+        isLoading = true;
+        postApiService.getPosts(currentPage, PAGE_SIZE).enqueue(new Callback<List<PostResponseDTO>>() {
+            @Override
+            public void onResponse(Call<List<PostResponseDTO>> call, Response<List<PostResponseDTO>> response) {
+                isLoading = false;
+                if (response.isSuccessful() && response.body() != null) {
+                    Log.d("NewsFeedActivity", "More posts loaded, size: " + response.body().size());
+                    postList.addAll(response.body());
+                    for (PostResponseDTO post : response.body()) {
+                        post.setScore(calculatePostScore(post));
+                    }
+                    sortPostsByScore();
+                    postAdapter.updatePosts(postList); // Sử dụng updatePosts
+                    currentPage++;
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<PostResponseDTO>> call, Throwable t) {
+                isLoading = false;
+                Log.e("NewsFeedActivity", "Error loading more posts: " + t.getMessage());
+                Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void loadOlderPosts() {
+        if (!isNetworkAvailable()) {
+            Toast.makeText(this, "No network connection", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        isLoadingOlderPosts = true;
+        int olderPage = minPage - 1;
+        if (olderPage < 0) {
+            isLoadingOlderPosts = false;
+            return;
+        }
+
+        Log.d("NewsFeedActivity", "Loading older posts, page: " + olderPage);
+        postApiService.getPosts(olderPage, PAGE_SIZE).enqueue(new Callback<List<PostResponseDTO>>() {
+            @Override
+            public void onResponse(Call<List<PostResponseDTO>> call, Response<List<PostResponseDTO>> response) {
+                isLoadingOlderPosts = false;
+                if (response.isSuccessful() && response.body() != null) {
+                    Log.d("NewsFeedActivity", "Older posts loaded, size: " + response.body().size());
+                    postList.addAll(0, response.body());
+                    for (PostResponseDTO post : response.body()) {
+                        post.setScore(calculatePostScore(post));
+                    }
+                    sortPostsByScore();
+                    postAdapter.addOlderPosts(response.body()); // Sử dụng addOlderPosts
+                    minPage = olderPage;
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<PostResponseDTO>> call, Throwable t) {
+                isLoadingOlderPosts = false;
+                Log.e("NewsFeedActivity", "Error loading older posts: " + t.getMessage());
+                Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override

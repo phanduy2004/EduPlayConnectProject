@@ -1,6 +1,7 @@
 package com.myjob.real_time_chat_final.retrofit;
 
 import com.myjob.real_time_chat_final.api.CategoryService;
+import com.myjob.real_time_chat_final.api.CommentService;
 import com.myjob.real_time_chat_final.api.ConversationService;
 import com.myjob.real_time_chat_final.api.DictionaryApi;
 import com.myjob.real_time_chat_final.api.FriendshipService;
@@ -54,6 +55,9 @@ public class RetrofitClient {
     }
     public static PostService getApiPostService(){
         return getInstance().create(PostService.class);
+    }
+    public static CommentService getApiCommentService(){
+        return getInstance().create(CommentService.class);
     }
 
 }

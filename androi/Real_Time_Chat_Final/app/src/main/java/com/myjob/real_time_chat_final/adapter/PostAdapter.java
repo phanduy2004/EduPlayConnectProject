@@ -1,34 +1,63 @@
 package com.myjob.real_time_chat_final.adapter;
 
-import android.graphics.drawable.Drawable;
-import android.text.format.DateUtils;
+import android.content.Intent;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.fragment.app.FragmentManager;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.GlideException;
-import com.bumptech.glide.load.resource.bitmap.CenterCrop;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
+import com.myjob.real_time_chat_final.OnCommentInteractionListener;
 import com.myjob.real_time_chat_final.R;
+import com.myjob.real_time_chat_final.modelDTO.CommentDTO;
 import com.myjob.real_time_chat_final.modelDTO.PostResponseDTO;
 import com.myjob.real_time_chat_final.retrofit.RetrofitClient;
+import com.myjob.real_time_chat_final.ui.ImageGalleryDialog;
 
-import android.util.Log;
-import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import android.graphics.drawable.Drawable;
 
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder> {
 
-    private List<PostResponseDTO> postList;
+    private List<PostResponseDTO> postList = new ArrayList<>();
+    private final FragmentManager fragmentManager; // Thêm FragmentManager
+    private final OnLikeClickListener likeClickListener;
+    private final OnCommentClickListener commentClickListener;
+    private final OnCommentInteractionListener commentInteractionListener;
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+    private static final String TAG = "PostAdapter";
 
-    public PostAdapter(List<PostResponseDTO> postList) {
-        this.postList = postList;
+    public interface OnLikeClickListener {
+        void onLikeClick(PostResponseDTO post);
+    }
+
+    public interface OnCommentClickListener {
+        void onCommentClick(PostResponseDTO post, String content, Long parentCommentId);
+    }
+
+    // Constructor đã sửa để nhận FragmentManager
+    public PostAdapter(FragmentManager fragmentManager, OnLikeClickListener likeClickListener,
+                       OnCommentClickListener commentClickListener, OnCommentInteractionListener commentInteractionListener) {
+        this.fragmentManager = fragmentManager;
+        this.likeClickListener = likeClickListener;
+        this.commentClickListener = commentClickListener;
+        this.commentInteractionListener = commentInteractionListener;
     }
 
     @NonNull
@@ -42,93 +71,173 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     public void onBindViewHolder(@NonNull PostViewHolder holder, int position) {
         PostResponseDTO post = postList.get(position);
 
-        // Hiển thị tên người dùng
-        if (holder.postUsername != null) {
-            holder.postUsername.setText(post.getUsername() != null ? post.getUsername() : "Unknown User");
+        // Hiển thị thông tin người dùng
+        holder.usernameTextView.setText(post.getUsername() != null ? post.getUsername() : "Unknown");
+        String avatarUrl = post.getAvatarUrl() != null && !post.getAvatarUrl().isEmpty()
+                ? RetrofitClient.getBaseUrl() + post.getAvatarUrl() : null;
+        Log.d(TAG, "Loading avatar URL: " + avatarUrl);
+        if (avatarUrl != null && avatarUrl.contains("/uploads/")) {
+            Glide.with(holder.itemView.getContext())
+                    .load(avatarUrl)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .placeholder(R.drawable.ic_user)
+                    .circleCrop()
+                    .override(100, 100)
+                    .error(R.drawable.ic_user)
+                    .listener(new RequestListener<Drawable>() {
+                        @Override
+                        public boolean onLoadFailed(@Nullable com.bumptech.glide.load.engine.GlideException e,
+                                                    Object model, Target<Drawable> target, boolean isFirstResource) {
+                            Log.e(TAG, "Glide load failed for avatar: " + avatarUrl, e);
+                            return false;
+                        }
+
+                        @Override
+                        public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target,
+                                                       com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
+                            Log.d(TAG, "Glide load successful for avatar: " + avatarUrl);
+                            return false;
+                        }
+                    })
+                    .into(holder.avatarImageView);
+        } else {
+            Log.w(TAG, "Invalid avatar URL: " + avatarUrl);
+            holder.avatarImageView.setImageResource(R.drawable.ic_user);
         }
 
-        // Hiển thị thời gian
-        if (holder.postTime != null && post.getCreatedAt() != null) {
-            holder.postTime.setText(DateUtils.getRelativeTimeSpanString(
-                    post.getCreatedAt().getTime(),
-                    System.currentTimeMillis(),
-                    DateUtils.MINUTE_IN_MILLIS
-            ));
+        // Hiển thị avatar trong ô nhập bình luận
+        if (avatarUrl != null && avatarUrl.contains("/uploads/")) {
+            Glide.with(holder.itemView.getContext())
+                    .load(avatarUrl)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .placeholder(R.drawable.ic_user)
+                    .circleCrop()
+                    .override(80, 80)
+                    .error(R.drawable.ic_user)
+                    .listener(new RequestListener<Drawable>() {
+                        @Override
+                        public boolean onLoadFailed(@Nullable com.bumptech.glide.load.engine.GlideException e,
+                                                    Object model, Target<Drawable> target, boolean isFirstResource) {
+                            Log.e(TAG, "Glide load failed for comment avatar: " + avatarUrl, e);
+                            return false;
+                        }
+
+                        @Override
+                        public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target,
+                                                       com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
+                            Log.d(TAG, "Glide load successful for comment avatar: " + avatarUrl);
+                            return false;
+                        }
+                    })
+                    .into(holder.commentAvatarInput);
+        } else {
+            Log.w(TAG, "Invalid comment avatar URL: " + avatarUrl);
+            holder.commentAvatarInput.setImageResource(R.drawable.ic_user);
         }
 
-        // Hiển thị quyền riêng tư
-        if (holder.postPrivacy != null) {
-            holder.postPrivacy.setText(post.getPrivacy() != null ? post.getPrivacy() : "PUBLIC");
-        }
+        // Hiển thị thời gian và quyền riêng tư
+        String time = post.getCreatedAt() != null ? sdf.format(post.getCreatedAt()) : "Unknown";
+        holder.timeTextView.setText(time);
+        holder.privacyTextView.setText(post.getPrivacy() != null ? post.getPrivacy() : "PUBLIC");
 
         // Hiển thị nội dung bài đăng
-        if (holder.postContent != null) {
-            holder.postContent.setText(post.getContent() != null ? post.getContent() : "");
-        }
+        holder.contentTextView.setText(post.getContent() != null ? post.getContent() : "");
 
-        // Hiển thị ảnh (nếu có)
-        if (holder.postImage != null) {
-            if (post.getImageUrl() != null && !post.getImageUrl().isEmpty()) {
-                String baseUrl = RetrofitClient.getBaseUrl(); // Lấy base URL từ RetrofitClient
-                String fullImageUrl = baseUrl + post.getImageUrl();
-                Log.d("PostAdapter", "Loading post image URL: " + fullImageUrl);
-
-                holder.postImage.setVisibility(View.VISIBLE);
-                Glide.with(holder.itemView.getContext())
-                        .load(fullImageUrl)
-                        .transform(new CenterCrop()) // Giữ tỷ lệ ảnh, tương tự scaleType="centerCrop"
-                        .listener(new com.bumptech.glide.request.RequestListener<android.graphics.drawable.Drawable>() {
-
-
-                            @Override
-                            public boolean onLoadFailed(@Nullable GlideException e, @Nullable Object model, @NonNull Target<Drawable> target, boolean isFirstResource) {
-                                Log.e("PostAdapter", "Failed to load image: " + fullImageUrl + ", error: " + (e != null ? e.getMessage() : "Unknown error"));
-                                holder.postImage.setVisibility(View.GONE);
-                                return false;
-                            }
-
-                            @Override
-                            public boolean onResourceReady(android.graphics.drawable.Drawable resource, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
-                                Log.d("PostAdapter", "Successfully loaded image: " + fullImageUrl);
-                                return false;
-                            }
-                        })
-                        .into(holder.postImage);
-            } else {
-                holder.postImage.setVisibility(View.GONE);
+        // Hiển thị ảnh
+        List<String> imageUrls = post.getImageUrl();
+        List<String> validImageUrls = new ArrayList<>();
+        if (imageUrls != null && !imageUrls.isEmpty()) {
+            for (String url : imageUrls) {
+                if (url != null && !url.isEmpty() && url.contains("/uploads/")) {
+                    validImageUrls.add(url);
+                } else {
+                    Log.w(TAG, "Invalid image URL for post " + post.getId() + ": " + url);
+                }
             }
         }
 
-        // Hiển thị số lượt thích và bình luận (mặc định là 0 vì DTO chưa có dữ liệu này)
-        if (holder.likeCount != null) {
-            holder.likeCount.setText("0");
-        }
-        if (holder.commentCount != null) {
-            holder.commentCount.setText("0");
+        if (!validImageUrls.isEmpty()) {
+            Log.d(TAG, "Loading images: " + validImageUrls);
+            holder.imagesRecyclerView.setVisibility(View.VISIBLE);
+            Log.d(TAG, "imagesRecyclerView visibility: " + (holder.imagesRecyclerView.getVisibility() == View.VISIBLE ? "VISIBLE" : "GONE"));
+
+            // Tùy chỉnh GridLayoutManager dựa trên số lượng ảnh
+            int imageCount = validImageUrls.size();
+            if (!(holder.imagesRecyclerView.getLayoutManager() instanceof GridLayoutManager)) {
+                GridLayoutManager newLayoutManager = new GridLayoutManager(holder.itemView.getContext(), 3);
+                holder.imagesRecyclerView.setLayoutManager(newLayoutManager);
+            }
+            GridLayoutManager layoutManager = (GridLayoutManager) holder.imagesRecyclerView.getLayoutManager();
+            if (imageCount == 1 || imageCount == 2 || imageCount >= 4) {
+                layoutManager.setSpanCount(imageCount == 1 ? 1 : 2);
+            } else if (imageCount == 3) {
+                layoutManager.setSpanCount(3);
+            }
+
+            layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+                @Override
+                public int getSpanSize(int position) {
+                    if (imageCount == 3) {
+                        if (position == 0) {
+                            return 2; // Ảnh đầu tiên chiếm 2/3
+                        } else {
+                            return 1; // Hai ảnh còn lại chiếm 1/3
+                        }
+                    }
+                    return 1; // Các trường hợp khác, mỗi ảnh chiếm 1 cột
+                }
+            });
+
+            PostImagesAdapter imageAdapter = new PostImagesAdapter(validImageUrls, () -> {
+                Log.d(TAG, "See more clicked for post: " + post.getId());
+                try {
+                    ImageGalleryDialog dialog = ImageGalleryDialog.newInstance(new ArrayList<>(validImageUrls));
+                    dialog.show(fragmentManager, "ImageGalleryDialog");
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to show ImageGalleryDialog", e);
+                }
+            });
+            holder.imagesRecyclerView.setAdapter(imageAdapter);
+            holder.imagesRecyclerView.requestLayout();
+        } else {
+            Log.d(TAG, "No valid images for post: " + post.getId());
+            holder.imagesRecyclerView.setVisibility(View.GONE);
         }
 
-        // Xử lý sự kiện cho các nút (có thể thêm logic sau)
-        if (holder.btnLike != null) {
-            holder.btnLike.setOnClickListener(v -> {
-                // TODO: Thêm logic cho nút Like
-            });
-        }
-        if (holder.btnComment != null) {
-            holder.btnComment.setOnClickListener(v -> {
-                // TODO: Thêm logic cho nút Comment
-            });
-        }
-        if (holder.btnShare != null) {
-            holder.btnShare.setOnClickListener(v -> {
-                // TODO: Thêm logic cho nút Share
-            });
-        }
+        // Like và comment count
+        holder.likeCountTextView.setText(post.getLikeCount() + " Likes");
+        int commentCount = (post.getComments() != null) ? post.getComments().size() : 0;
+        holder.commentCountTextView.setText(commentCount + " Comments");
 
-        // Hiển thị avatar (nếu có logic tải avatar từ user)
-        if (holder.postAvatar != null) {
-            // Hiện tại để mặc định, có thể thêm logic tải avatar từ user nếu cần
-            holder.postAvatar.setImageResource(R.drawable.ic_user);
+        // Comment recycler view
+        if (holder.commentAdapter == null) {
+            holder.commentAdapter = new CommentAdapter(commentInteractionListener);
+            holder.commentsRecyclerView.setAdapter(holder.commentAdapter);
+            holder.commentsRecyclerView.setLayoutManager(new LinearLayoutManager(holder.itemView.getContext()));
+            holder.commentsRecyclerView.setNestedScrollingEnabled(false);
         }
+        List<CommentDTO> comments = post.getComments() != null ? post.getComments() : new ArrayList<>();
+        holder.commentAdapter.updateComments(comments);
+
+        // Xử lý sự kiện
+        holder.commentSendButton.setOnClickListener(v -> {
+            String commentContent = holder.commentInput.getText().toString().trim();
+            if (!commentContent.isEmpty()) {
+                commentClickListener.onCommentClick(post, commentContent, null);
+                holder.commentInput.setText("");
+            }
+        });
+
+        holder.likeButton.setOnClickListener(v -> likeClickListener.onLikeClick(post));
+
+        holder.commentToggleButton.setOnClickListener(v -> holder.commentInput.requestFocus());
+
+        holder.shareButton.setOnClickListener(v -> {
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.setType("text/plain");
+            shareIntent.putExtra(Intent.EXTRA_TEXT, post.getContent() != null ? post.getContent() : "");
+            holder.itemView.getContext().startActivity(Intent.createChooser(shareIntent, "Share Post"));
+        });
     }
 
     @Override
@@ -136,32 +245,101 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         return postList.size();
     }
 
+    public void updatePosts(List<PostResponseDTO> newPosts) {
+        PostDiffCallback diffCallback = new PostDiffCallback(postList, newPosts);
+        DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(diffCallback);
+        postList.clear();
+        postList.addAll(newPosts);
+        diffResult.dispatchUpdatesTo(this);
+    }
+
+    public void addPost(PostResponseDTO post) {
+        postList.add(0, post);
+        notifyItemInserted(0);
+    }
+
+    public void addOlderPosts(List<PostResponseDTO> olderPosts) {
+        postList.addAll(0, olderPosts);
+        notifyItemRangeInserted(0, olderPosts.size());
+    }
+
+    public void updatePost(Long postId, PostResponseDTO updatedPost) {
+        for (int i = 0; i < postList.size(); i++) {
+            if (postList.get(i).getId().equals(postId)) {
+                postList.set(i, updatedPost);
+                notifyItemChanged(i);
+                break;
+            }
+        }
+    }
+
     static class PostViewHolder extends RecyclerView.ViewHolder {
-        ImageView postAvatar;
-        TextView postUsername;
-        TextView postTime;
-        TextView postPrivacy;
-        TextView postContent;
-        ImageView postImage;
-        TextView likeCount;
-        TextView commentCount;
-        Button btnLike;
-        Button btnComment;
-        Button btnShare;
+        ImageView avatarImageView, commentAvatarInput;
+        TextView usernameTextView, timeTextView, privacyTextView, contentTextView,
+                likeCountTextView, commentCountTextView, likeButton, commentToggleButton, shareButton;
+        RecyclerView imagesRecyclerView, commentsRecyclerView;
+        CommentAdapter commentAdapter;
+        ImageButton commentSendButton;
+        EditText commentInput;
 
         public PostViewHolder(@NonNull View itemView) {
             super(itemView);
-            postAvatar = itemView.findViewById(R.id.post_avatar);
-            postUsername = itemView.findViewById(R.id.post_username);
-            postTime = itemView.findViewById(R.id.post_time);
-            postPrivacy = itemView.findViewById(R.id.post_privacy);
-            postContent = itemView.findViewById(R.id.post_content);
-            postImage = itemView.findViewById(R.id.post_image);
-            likeCount = itemView.findViewById(R.id.like_count);
-            commentCount = itemView.findViewById(R.id.comment_count);
-            btnLike = itemView.findViewById(R.id.btn_like);
-            btnComment = itemView.findViewById(R.id.btn_comment);
-            btnShare = itemView.findViewById(R.id.btn_share);
+            avatarImageView = itemView.findViewById(R.id.post_avatar);
+            usernameTextView = itemView.findViewById(R.id.post_username);
+            timeTextView = itemView.findViewById(R.id.post_time);
+            privacyTextView = itemView.findViewById(R.id.post_privacy);
+            contentTextView = itemView.findViewById(R.id.post_content);
+            imagesRecyclerView = itemView.findViewById(R.id.post_images_recycler_view);
+            likeCountTextView = itemView.findViewById(R.id.like_count);
+            commentCountTextView = itemView.findViewById(R.id.comment_count);
+            commentsRecyclerView = itemView.findViewById(R.id.comments_recycler_view);
+            commentInput = itemView.findViewById(R.id.comment_input);
+            commentAvatarInput = itemView.findViewById(R.id.comment_avatar_input);
+            likeButton = itemView.findViewById(R.id.btn_like);
+            commentToggleButton = itemView.findViewById(R.id.btn_comment_toggle);
+            commentSendButton = itemView.findViewById(R.id.btn_comment_send);
+            shareButton = itemView.findViewById(R.id.btn_share);
+
+            imagesRecyclerView.setHasFixedSize(true);
+            imagesRecyclerView.setNestedScrollingEnabled(false);
+            imagesRecyclerView.setItemViewCacheSize(10);
+            commentsRecyclerView.setHasFixedSize(true);
+            commentsRecyclerView.setNestedScrollingEnabled(false);
+        }
+    }
+
+    static class PostDiffCallback extends DiffUtil.Callback {
+        private final List<PostResponseDTO> oldList;
+        private final List<PostResponseDTO> newList;
+
+        public PostDiffCallback(List<PostResponseDTO> oldList, List<PostResponseDTO> newList) {
+            this.oldList = oldList;
+            this.newList = newList;
+        }
+
+        @Override
+        public int getOldListSize() {
+            return oldList.size();
+        }
+
+        @Override
+        public int getNewListSize() {
+            return newList.size();
+        }
+
+        @Override
+        public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+            return oldList.get(oldItemPosition).getId().equals(newList.get(newItemPosition).getId());
+        }
+
+        @Override
+        public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+            PostResponseDTO oldPost = oldList.get(oldItemPosition);
+            PostResponseDTO newPost = newList.get(newItemPosition);
+            return oldPost.getLikeCount() == newPost.getLikeCount() &&
+                    (oldPost.getComments() != null ? oldPost.getComments().size() : 0) ==
+                            (newPost.getComments() != null ? newPost.getComments().size() : 0) &&
+                    oldPost.getContent().equals(newPost.getContent());
         }
     }
 }

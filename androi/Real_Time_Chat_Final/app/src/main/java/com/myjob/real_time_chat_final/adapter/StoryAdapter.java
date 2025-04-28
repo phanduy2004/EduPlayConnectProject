@@ -85,8 +85,8 @@ public class StoryAdapter extends RecyclerView.Adapter<StoryAdapter.StoryViewHol
             storyAvatar = itemView.findViewById(R.id.story_avatar);
             storyImage = itemView.findViewById(R.id.story_image);
             storyBorder = itemView.findViewById(R.id.story_border);
-            storyImageBorder = itemView.findViewById(R.id.story_image_border);
-            storyImageContainer = itemView.findViewById(R.id.story_image_container);
+         /*   storyImageBorder = itemView.findViewById(R.id.story_image_border);
+            storyImageContainer = itemView.findViewById(R.id.story_image_container);*/
             storyUsername = itemView.findViewById(R.id.story_username);
         }
     }
