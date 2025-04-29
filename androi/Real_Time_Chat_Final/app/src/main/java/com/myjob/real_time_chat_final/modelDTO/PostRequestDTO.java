@@ -7,7 +7,7 @@ public class PostRequestDTO {
     private Long userId;
     private String content;
     private String privacy;
-    private List<String> imageUrl; // Ảnh được gửi dưới dạng Base64 (nếu có)
+    private List<String> imageUrls; // Ảnh được gửi dưới dạng Base64 (nếu có)
 
     public Long getUserId() {
         return userId;
@@ -33,11 +33,11 @@ public class PostRequestDTO {
         this.privacy = privacy;
     }
 
-    public List<String> getImageUrl() {
-        return imageUrl;
+    public List<String> getImageUrls() {
+        return imageUrls;
     }
 
-    public void setImageUrl(List<String> imageUrl) {
-        this.imageUrl = imageUrl;
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls;
     }
 }

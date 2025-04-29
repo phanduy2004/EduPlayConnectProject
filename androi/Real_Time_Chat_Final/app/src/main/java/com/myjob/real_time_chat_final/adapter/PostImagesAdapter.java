@@ -1,6 +1,5 @@
 package com.myjob.real_time_chat_final.adapter;
 
-import android.content.Context;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,6 +16,7 @@ import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.myjob.real_time_chat_final.R;
 import com.myjob.real_time_chat_final.retrofit.RetrofitClient;
+import java.util.ArrayList;
 import java.util.List;
 import android.graphics.drawable.Drawable;
 
@@ -24,20 +24,23 @@ public class PostImagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     private static final String TAG = "PostImagesAdapter";
     private static final int TYPE_IMAGE = 1;
     private static final int TYPE_SEE_MORE = 2;
-    private final List<String> images;
-    private final int displayImageCount; // Số ảnh hiển thị (tối đa 4)
+    private List<String> images;
+    private final int displayImageCount;
     private OnSeeMoreClickListener seeMoreClickListener;
 
-    // Interface cho sự kiện "Xem thêm"
     public interface OnSeeMoreClickListener {
         void onSeeMoreClick();
     }
 
-    // Constructor nhận List<String> và OnSeeMoreClickListener
     public PostImagesAdapter(List<String> images, OnSeeMoreClickListener listener) {
-        this.images = images;
+        this.images = images != null ? new ArrayList<>(images) : new ArrayList<>();
         this.seeMoreClickListener = listener;
-        this.displayImageCount = Math.min(images.size(), 4); // Hiển thị tối đa 4 ảnh
+        this.displayImageCount = Math.min(this.images.size(), 6);
+    }
+
+    public void updateImages(List<String> newImages) {
+        this.images = newImages != null ? new ArrayList<>(newImages) : new ArrayList<>();
+        notifyDataSetChanged();
     }
 
     @Override
@@ -51,10 +54,10 @@ public class PostImagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
     @Override
     public int getItemCount() {
-        if (images.size() <= 4) {
+        if (images.size() <= 6) {
             return images.size();
         } else {
-            return displayImageCount + 1; // 4 ảnh + 1 "See more"
+            return displayImageCount + 1; // 6 ảnh + 1 "See more"
         }
     }
 
@@ -79,24 +82,29 @@ public class PostImagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                 String fullImageUrl = RetrofitClient.getBaseUrl() + imageUrl;
                 Log.d(TAG, "Loading image URL: " + fullImageUrl);
 
-                // Tùy chỉnh kích thước dựa trên số lượng ảnh
-                int imageCount = Math.min(images.size(), 4);
+                int imageCount = Math.min(images.size(), 6);
                 int width = 300;
                 int height = 300;
                 if (imageCount == 1) {
-                    width = 600; // Ảnh lớn hơn nếu chỉ có 1 ảnh
-                    height = (int) (width * 9.0 / 16.0); // Tỷ lệ 16:9
+                    width = 600;
+                    height = (int) (width * 9.0 / 16.0);
                 } else if (imageCount == 3 && position == 0) {
-                    width = 400; // Ảnh lớn (2/3 chiều rộng)
+                    width = 400;
                     height = 400;
                 } else if (imageCount == 3 && position > 0) {
-                    width = 200; // Ảnh nhỏ (1/3 chiều rộng)
+                    width = 200;
+                    height = 200;
+                } else if (imageCount == 5 && position < 2) {
+                    width = 300;
+                    height = 300;
+                } else if (imageCount == 5 && position >= 2) {
+                    width = 200;
                     height = 200;
                 }
 
                 Glide.with(imageHolder.imageView.getContext())
                         .load(fullImageUrl)
-                        .thumbnail(0.25f) // Hiển thị ảnh nhỏ trước
+                        .thumbnail(0.25f)
                         .transition(DrawableTransitionOptions.withCrossFade())
                         .diskCacheStrategy(DiskCacheStrategy.ALL)
                         .centerCrop()

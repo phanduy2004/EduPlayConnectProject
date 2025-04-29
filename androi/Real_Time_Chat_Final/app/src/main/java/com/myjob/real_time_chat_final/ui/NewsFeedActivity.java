@@ -7,6 +7,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -24,6 +25,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -52,6 +54,7 @@ import com.google.gson.Gson;
 import com.myjob.real_time_chat_final.OnCommentInteractionListener;
 import com.myjob.real_time_chat_final.R;
 import com.myjob.real_time_chat_final.adapter.PostAdapter;
+import com.myjob.real_time_chat_final.adapter.SelectedImagesAdapter;
 import com.myjob.real_time_chat_final.adapter.StoryAdapter;
 
 import com.myjob.real_time_chat_final.api.CommentService;
@@ -74,6 +77,9 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -88,7 +94,7 @@ public class NewsFeedActivity extends AppCompatActivity {
     private RecyclerView postsRecyclerView;
     private PostAdapter postAdapter;
     private List<PostResponseDTO> postList;
-
+    private Dialog createPostDialog; // Biến để lưu trữ dialog tạo bài post
     private RecyclerView storiesRecyclerView;
     private StoryAdapter storyAdapter;
     private List<Story> storyList;
@@ -212,21 +218,41 @@ public class NewsFeedActivity extends AppCompatActivity {
 
         imagePickerLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                if (result.getData().getClipData() != null) {
-                    selectedImageUris = new ArrayList<>();
-                    int count = result.getData().getClipData().getItemCount();
-                    for (int i = 0; i < count; i++) {
-                        Uri imageUri = result.getData().getClipData().getItemAt(i).getUri();
-                        selectedImageUris.add(imageUri);
+                Intent data = result.getData();
+                List<Uri> newImageUris = new ArrayList<>();
+                int maxImages = 10; // Giới hạn tối đa 10 ảnh
+
+                // Xử lý nhiều ảnh
+                if (data.getClipData() != null) {
+                    int count = data.getClipData().getItemCount();
+                    for (int i = 0; i < count && (selectedImageUris.size() + newImageUris.size()) < maxImages; i++) {
+                        Uri imageUri = data.getClipData().getItemAt(i).getUri();
+                        newImageUris.add(imageUri);
                     }
-                } else if (result.getData().getData() != null) {
-                    selectedImageUris = new ArrayList<>();
-                    selectedImageUris.add(result.getData().getData());
+                } else if (data.getData() != null && selectedImageUris.size() < maxImages) {
+                    // Xử lý một ảnh
+                    newImageUris.add(data.getData());
                 }
-                Log.d("NewsFeedActivity", "Selected image URIs: " + selectedImageUris);
-                if (selectedImagePreview != null && !selectedImageUris.isEmpty()) {
-                    selectedImagePreview.setVisibility(View.VISIBLE);
-                    Glide.with(this).load(selectedImageUris.get(0)).centerCrop().into(selectedImagePreview);
+
+                if (!newImageUris.isEmpty()) {
+                    selectedImageUris.addAll(newImageUris);
+                    Log.d("NewsFeedActivity", "Selected image URIs: " + selectedImageUris.size());
+
+                    // Cập nhật RecyclerView trong dialog nếu đang mở
+                    if (createPostDialog != null && createPostDialog.isShowing()) {
+                        RecyclerView selectedImagesRecyclerView = createPostDialog.findViewById(R.id.selected_images_recycler_view);
+                        if (selectedImagesRecyclerView != null) {
+                            selectedImagesRecyclerView.setVisibility(View.VISIBLE);
+                            SelectedImagesAdapter adapter = (SelectedImagesAdapter) selectedImagesRecyclerView.getAdapter();
+                            if (adapter != null) {
+                                adapter.notifyDataSetChanged();
+                            }
+                        }
+                    }
+                } else if (selectedImageUris.size() >= maxImages) {
+                    Toast.makeText(this, "Maximum 10 images allowed", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "No images selected", Toast.LENGTH_SHORT).show();
                 }
             } else {
                 Toast.makeText(this, "Cancelled image selection", Toast.LENGTH_SHORT).show();
@@ -570,23 +596,58 @@ public class NewsFeedActivity extends AppCompatActivity {
             dialog.setContentView(R.layout.dialog_create_post);
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
 
+            // Thiết lập kích thước dialog
             WindowManager.LayoutParams params = new WindowManager.LayoutParams();
             params.copyFrom(dialog.getWindow().getAttributes());
             params.width = WindowManager.LayoutParams.MATCH_PARENT;
             params.height = WindowManager.LayoutParams.WRAP_CONTENT;
             dialog.getWindow().setAttributes(params);
 
+            // Lấy các view từ layout
             EditText postContent = dialog.findViewById(R.id.post_input);
             Spinner privacySpinner = dialog.findViewById(R.id.privacy_spinner);
             Button postButton = dialog.findViewById(R.id.post_button);
             ImageButton closeButton = dialog.findViewById(R.id.close_button);
-            ImageButton photoButton = dialog.findViewById(R.id.photo_button);
-            selectedImagePreview = dialog.findViewById(R.id.selected_image_preview);
+            LinearLayout photoOptionLayout = dialog.findViewById(R.id.photo_option_layout);
+            RecyclerView selectedImagesRecyclerView = dialog.findViewById(R.id.selected_images_recycler_view);
+            LinearLayout tagOptionLayout = dialog.findViewById(R.id.tag_option_layout);
+            LinearLayout feelingOptionLayout = dialog.findViewById(R.id.feeling_option_layout);
+            LinearLayout checkinOptionLayout = dialog.findViewById(R.id.checkin_option_layout);
+            LinearLayout liveOptionLayout = dialog.findViewById(R.id.live_option_layout);
+            LinearLayout backgroundOptionLayout = dialog.findViewById(R.id.background_option_layout);
+            ImageView userAvatar = dialog.findViewById(R.id.dialog_user_avatar);
+            TextView userName = dialog.findViewById(R.id.dialog_user_name);
+            ProgressBar uploadProgress = dialog.findViewById(R.id.upload_progress);
 
-            if (postContent == null || privacySpinner == null || postButton == null || closeButton == null || photoButton == null || selectedImagePreview == null) {
-                Log.e("NewsFeedActivity", "One or more dialog views not found");
-                Toast.makeText(this, "Error loading dialog", Toast.LENGTH_SHORT).show();
+            // Kiểm tra null cho các view
+            if (postContent == null || privacySpinner == null || postButton == null || closeButton == null ||
+                    photoOptionLayout == null || selectedImagesRecyclerView == null ||
+                    tagOptionLayout == null || feelingOptionLayout == null ||
+                    checkinOptionLayout == null || liveOptionLayout == null ||
+                    backgroundOptionLayout == null || userAvatar == null || userName == null || uploadProgress == null) {
+                Log.e("NewsFeedActivity", "Một hoặc nhiều view trong dialog không được tìm thấy");
+                Toast.makeText(this, "Lỗi tải giao diện dialog", Toast.LENGTH_SHORT).show();
                 return;
+            }
+
+            // Hiển thị thông tin người dùng
+            if (currentUser != null) {
+                userName.setText(currentUser.getUsername() != null ? currentUser.getUsername() : "Người dùng");
+                String avataUrl = RetrofitClient.getBaseUrl() + currentUser.getAvatarUrl();
+                Glide.with(this)
+                        .load(avataUrl)
+                        .circleCrop()
+                        .placeholder(R.drawable.ic_user)
+                        .error(R.drawable.ic_user)
+                        .into(userAvatar);
+            } else {
+                Log.w("NewsFeedActivity", "currentUser là null, hiển thị giá trị mặc định");
+                userName.setText("Người dùng");
+                Glide.with(this)
+                        .load(R.drawable.ic_user)
+                        .circleCrop()
+                        .into(userAvatar);
+                Toast.makeText(this, "Không thể tải thông tin người dùng", Toast.LENGTH_SHORT).show();
             }
 
             ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
@@ -597,24 +658,80 @@ public class NewsFeedActivity extends AppCompatActivity {
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             privacySpinner.setAdapter(adapter);
 
-            photoButton.setOnClickListener(v -> {
-                String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ?
-                        Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
-                if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
-                    requestStoragePermission();
-                } else {
-                    openGallery();
+            // Khởi tạo RecyclerView cho ảnh preview
+            if (selectedImageUris == null) {
+                selectedImageUris = new ArrayList<>();
+            }
+
+            // Khởi tạo adapter mà không sử dụng imagesAdapter trong lambda
+            SelectedImagesAdapter imagesAdapter = new SelectedImagesAdapter(this, selectedImageUris, position -> {
+                selectedImageUris.remove(position);
+                // Cập nhật RecyclerView trong dialog
+                RecyclerView recyclerView = dialog.findViewById(R.id.selected_images_recycler_view);
+                if (recyclerView != null) {
+                    SelectedImagesAdapter adapterInstance = (SelectedImagesAdapter) recyclerView.getAdapter();
+                    if (adapterInstance != null) {
+                        adapterInstance.notifyItemRemoved(position);
+                        if (selectedImageUris.isEmpty()) {
+                            recyclerView.setVisibility(View.GONE);
+                        }
+                    }
                 }
             });
 
+            selectedImagesRecyclerView.setAdapter(imagesAdapter);
+            selectedImagesRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+            selectedImagesRecyclerView.setVisibility(selectedImageUris.isEmpty() ? View.GONE : View.VISIBLE);
+
+            photoOptionLayout.setOnClickListener(v -> {
+                requestStoragePermission();
+            });
+
+            tagOptionLayout.setOnClickListener(v -> {
+                Toast.makeText(this, "Tag people clicked", Toast.LENGTH_SHORT).show();
+            });
+
+            feelingOptionLayout.setOnClickListener(v -> {
+                Toast.makeText(this, "Feeling/activity clicked", Toast.LENGTH_SHORT).show();
+            });
+
+            checkinOptionLayout.setOnClickListener(v -> {
+                Toast.makeText(this, "Check in clicked", Toast.LENGTH_SHORT).show();
+            });
+
+            liveOptionLayout.setOnClickListener(v -> {
+                Toast.makeText(this, "Live video clicked", Toast.LENGTH_SHORT).show();
+            });
+
+            backgroundOptionLayout.setOnClickListener(v -> {
+                Toast.makeText(this, "Background color clicked", Toast.LENGTH_SHORT).show();
+            });
+
             closeButton.setOnClickListener(v -> {
-                selectedImageUris = null;
+                selectedImageUris.clear();
                 dialog.dismiss();
+                createPostDialog = null;
             });
 
             postButton.setOnClickListener(v -> {
                 String content = postContent.getText().toString().trim();
                 String selectedPrivacy = privacySpinner.getSelectedItem().toString();
+
+                String mappedPrivacy;
+                switch (selectedPrivacy) {
+                    case "Public":
+                        mappedPrivacy = "PUBLIC";
+                        break;
+                    case "Friends":
+                        mappedPrivacy = "FRIENDS";
+                        break;
+                    case "Private":
+                        mappedPrivacy = "PRIVATE";
+                        break;
+                    default:
+                        Toast.makeText(this, "Invalid privacy option", Toast.LENGTH_SHORT).show();
+                        return;
+                }
 
                 if (content.isEmpty() && (selectedImageUris == null || selectedImageUris.isEmpty())) {
                     Toast.makeText(this, "Post content or image cannot be empty", Toast.LENGTH_SHORT).show();
@@ -628,17 +745,20 @@ public class NewsFeedActivity extends AppCompatActivity {
 
                 progressDialog.show();
                 if (selectedImageUris != null && !selectedImageUris.isEmpty()) {
-                    uploadImagesForPost(content, selectedPrivacy, currentUser, dialog);
+                    Log.e("sai","dd");
+                    uploadImagesForPost(content, mappedPrivacy, currentUser, dialog);
                 } else {
+                    Log.e("đúng","dd");
                     PostRequestDTO request = new PostRequestDTO();
                     request.setContent(content);
                     request.setUserId((long) userid);
-                    request.setPrivacy(selectedPrivacy);
-                    request.setImageUrl(null);
+                    request.setPrivacy(mappedPrivacy);
+                    request.setImageUrls(null); // Không có ảnh
                     createPost(request, dialog);
                 }
             });
 
+            createPostDialog = dialog;
             dialog.show();
         } catch (Exception e) {
             Log.e("NewsFeedActivity", "Error showing dialog: " + e.getMessage(), e);
@@ -653,47 +773,111 @@ public class NewsFeedActivity extends AppCompatActivity {
             return;
         }
 
-        List<String> imageUrls = new ArrayList<>();
-        int[] uploadCount = {0};
-        int totalImages = selectedImageUris.size();
+        ProgressBar uploadProgress = dialog.findViewById(R.id.upload_progress);
+        if (uploadProgress != null) {
+            uploadProgress.setVisibility(View.VISIBLE);
+        }
 
+        List<MultipartBody.Part> imageParts = new ArrayList<>();
         for (Uri imageUri : selectedImageUris) {
             byte[] imageBytes = getBytesFromUri(imageUri);
-            if (imageBytes == null) {
+            if (imageBytes != null) {
+                RequestBody imageBody = RequestBody.create(MediaType.parse("image/jpeg"), imageBytes);
+                MultipartBody.Part imagePart = MultipartBody.Part.createFormData("file", "post_image_" + System.currentTimeMillis() + ".jpg", imageBody);
+                imageParts.add(imagePart);
+            }
+        }
+
+        if (imageParts.isEmpty()) {
+            progressDialog.dismiss();
+            if (uploadProgress != null) {
+                uploadProgress.setVisibility(View.GONE);
+            }
+            Toast.makeText(this, "Failed to process images", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        postApiService.uploadImages(imageParts).enqueue(new Callback<List<ImageResponse>>() {
+            @Override
+            public void onResponse(Call<List<ImageResponse>> call, Response<List<ImageResponse>> response) {
+                Log.d("NewsFeedActivity", "Request URL: " + call.request().url());
                 progressDialog.dismiss();
-                Toast.makeText(this, "Failed to process image", Toast.LENGTH_SHORT).show();
-                return;
+                if (uploadProgress != null) {
+                    uploadProgress.setVisibility(View.GONE);
+                }
+                if (response.isSuccessful() && response.body() != null) {
+                    List<String> imageUrls = response.body().stream()
+                            .filter(img -> img.getImageUrl() != null)
+                            .map(img -> {
+                                // Nối BASE_URL vào URL tương đối
+                                String relativeUrl = img.getImageUrl();
+                                return relativeUrl;
+                            })
+                            .collect(Collectors.toList());
+                    if (imageUrls.isEmpty()) {
+                        Toast.makeText(NewsFeedActivity.this, "No images uploaded", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    PostRequestDTO request = new PostRequestDTO();
+                    request.setContent(postContent);
+                    request.setUserId((long) userid);
+                    request.setPrivacy(selectedPrivacy);
+                    request.setImageUrls(imageUrls);
+                    createPost(request, dialog);
+                } else {
+                    String errorMessage = response.body() != null && !response.body().isEmpty() && response.body().get(0).getError() != null
+                            ? response.body().get(0).getError()
+                            : "Failed to upload images, code: " + response.code();
+                    Log.e("NewsFeedActivity", errorMessage);
+                    Toast.makeText(NewsFeedActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                }
             }
 
-            RequestBody imageBody = RequestBody.create(MediaType.parse("image/*"), imageBytes);
-            MultipartBody.Part imagePart = MultipartBody.Part.createFormData("image", "post_image_" + System.currentTimeMillis() + ".jpg", imageBody);
-
-            postApiService.uploadImage(imagePart).enqueue(new Callback<ImageResponse>() {
-                @Override
-                public void onResponse(Call<ImageResponse> call, Response<ImageResponse> response) {
-                    synchronized (imageUrls) {
-                        if (response.isSuccessful() && response.body() != null) {
-                            imageUrls.add(response.body().getImageUrl());
-                        }
-                        uploadCount[0]++;
-                        if (uploadCount[0] == totalImages) {
-                            PostRequestDTO request = new PostRequestDTO();
-                            request.setContent(postContent);
-                            request.setUserId((long) userid);
-                            request.setPrivacy(selectedPrivacy);
-                            request.setImageUrl(imageUrls.isEmpty() ? null : imageUrls);
-                            createPost(request, dialog);
-                        }
-                    }
+            @Override
+            public void onFailure(Call<List<ImageResponse>> call, Throwable t) {
+                Log.e("NewsFeedActivity", "Error uploading images, URL: " + call.request().url() + ", message: " + t.getMessage(), t);
+                progressDialog.dismiss();
+                if (uploadProgress != null) {
+                    uploadProgress.setVisibility(View.GONE);
                 }
+                Toast.makeText(NewsFeedActivity.this, "Error uploading images: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
 
-                @Override
-                public void onFailure(Call<ImageResponse> call, Throwable t) {
-                    synchronized (imageUrls) {
-                        progressDialog.dismiss();
-                        Log.e("NewsFeedActivity", "Error uploading image: " + t.getMessage());
-                        Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
+    private byte[] getBytesFromUri(Uri uri) {
+        try {
+            Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, stream);
+            byte[] bytes = stream.toByteArray();
+            Log.d("NewsFeedActivity", "Compressed image size: " + bytes.length + " bytes");
+            bitmap.recycle();
+            stream.close();
+            return bytes;
+        } catch (IOException e) {
+            Log.e("NewsFeedActivity", "Error reading image: " + e.getMessage(), e);
+            return null;
+        }
+    }
+
+    private void checkUploadCompletion(int[] uploadCount, int totalImages, boolean[] hasError, List<String> imageUrls, String postContent, String selectedPrivacy, Dialog dialog) {
+        if (uploadCount[0] == totalImages) {
+            runOnUiThread(() -> {
+                ProgressBar uploadProgress = dialog.findViewById(R.id.upload_progress);
+                if (uploadProgress != null) {
+                    uploadProgress.setVisibility(View.GONE);
+                }
+                progressDialog.dismiss();
+                if (hasError[0] && imageUrls.isEmpty()) {
+                    Toast.makeText(NewsFeedActivity.this, "Failed to upload images. Please try again.", Toast.LENGTH_LONG).show();
+                } else {
+                    PostRequestDTO request = new PostRequestDTO();
+                    request.setContent(postContent);
+                    request.setUserId((long) userid);
+                    request.setPrivacy(selectedPrivacy);
+                    request.setImageUrls(imageUrls.isEmpty() ? null : imageUrls); // Sử dụng setImageUrls
+                    createPost(request, dialog);
                 }
             });
         }
@@ -702,7 +886,11 @@ public class NewsFeedActivity extends AppCompatActivity {
     private void createPost(PostRequestDTO request, Dialog dialog) {
         if (!isNetworkAvailable()) {
             progressDialog.dismiss();
-            Toast.makeText(this, "No network connection", Toast.LENGTH_SHORT).show();
+            ProgressBar uploadProgress = dialog.findViewById(R.id.upload_progress);
+            if (uploadProgress != null) {
+                uploadProgress.setVisibility(View.GONE);
+            }
+            Toast.makeText(this, "Không có kết nối mạng", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -710,23 +898,35 @@ public class NewsFeedActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<PostResponseDTO> call, Response<PostResponseDTO> response) {
                 progressDialog.dismiss();
+                ProgressBar uploadProgress = dialog.findViewById(R.id.upload_progress);
+                if (uploadProgress != null) {
+                    uploadProgress.setVisibility(View.GONE);
+                }
                 if (response.isSuccessful() && response.body() != null) {
-                    postList.add(0, response.body());
-                    postAdapter.notifyItemInserted(0);
+                    PostResponseDTO newPost = response.body();
+                    newPost.setScore(calculatePostScore(newPost));
+                    postAdapter.addNewPost(newPost);
                     postsRecyclerView.scrollToPosition(0);
                     dialog.dismiss();
-                    selectedImageUris = null;
-                    Toast.makeText(NewsFeedActivity.this, "Post created successfully", Toast.LENGTH_SHORT).show();
+                    createPostDialog = null;
+                    if (selectedImageUris != null) {
+                        selectedImageUris.clear();
+                    }
+                    Toast.makeText(NewsFeedActivity.this, "Tạo bài đăng thành công", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(NewsFeedActivity.this, "Failed to create post", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NewsFeedActivity.this, "Không thể tạo bài đăng", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<PostResponseDTO> call, Throwable t) {
                 progressDialog.dismiss();
-                Log.e("NewsFeedActivity", "Error creating post: " + t.getMessage());
-                Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                ProgressBar uploadProgress = dialog.findViewById(R.id.upload_progress);
+                if (uploadProgress != null) {
+                    uploadProgress.setVisibility(View.GONE);
+                }
+                Log.e("NewsFeedActivity", "Lỗi tạo bài đăng: " + t.getMessage());
+                Toast.makeText(NewsFeedActivity.this, "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -735,67 +935,47 @@ public class NewsFeedActivity extends AppCompatActivity {
         String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ?
                 Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
 
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
-            new AlertDialog.Builder(this)
-                    .setTitle("Permission needed")
-                    .setMessage("Storage permission is needed to upload images")
-                    .setPositiveButton("OK", (dialog, which) -> {
-                        ActivityCompat.requestPermissions(NewsFeedActivity.this,
-                                new String[]{permission}, STORAGE_PERMISSION_CODE);
-                    })
-                    .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
-                    .create().show();
+        if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
+            Log.d("EditProfile", "Quyền đã được cấp: " + permission);
+            openGallery();
+        } else if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
+            Toast.makeText(this, "Cần quyền truy cập thư viện để chọn ảnh đại diện", Toast.LENGTH_LONG).show();
+            ActivityCompat.requestPermissions(this, new String[]{permission}, STORAGE_PERMISSION_CODE);
         } else {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{permission}, STORAGE_PERMISSION_CODE);
+            Log.d("EditProfile", "Yêu cầu quyền: " + permission);
+            ActivityCompat.requestPermissions(this, new String[]{permission}, STORAGE_PERMISSION_CODE);
         }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == STORAGE_PERMISSION_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        if (requestCode == STORAGE_PERMISSION_CODE && grantResults.length > 0) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d("EditProfile", "Quyền được cấp, mở thư viện ảnh");
                 openGallery();
             } else {
                 String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ?
                         Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
                 if (!ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
-                    new AlertDialog.Builder(this)
-                            .setTitle("Permission needed")
-                            .setMessage("Storage permission is required to upload images. Please enable it in settings.")
-                            .setPositiveButton("Settings", (dialog, which) -> {
-                                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                                Uri uri = Uri.fromParts("package", getPackageName(), null);
-                                intent.setData(uri);
-                                startActivity(intent);
-                            })
-                            .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
-                            .create().show();
+                    Log.d("EditProfile", "Quyền bị từ chối vĩnh viễn: " + permission);
+                    Toast.makeText(this, "Quyền truy cập thư viện bị từ chối. Vui lòng cấp quyền trong cài đặt.", Toast.LENGTH_LONG).show();
+                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                    intent.setData(Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
                 } else {
-                    Toast.makeText(this, "Storage permission denied", Toast.LENGTH_SHORT).show();
+                    Log.d("EditProfile", "Quyền bị từ chối: " + permission);
+                    Toast.makeText(this, "Cần quyền truy cập thư viện để chọn ảnh", Toast.LENGTH_LONG).show();
                 }
             }
         }
     }
 
     private void openGallery() {
-        Intent intent;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
-            intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 5);
-            Log.d("NewsFeedActivity", "Opening gallery with ACTION_PICK_IMAGES (API 33+)");
-        } else {
-            intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-            Log.d("NewsFeedActivity", "Opening gallery with ACTION_PICK (API < 33)");
-        }
-        try {
-            imagePickerLauncher.launch(intent);
-        } catch (Exception e) {
-            Log.e("NewsFeedActivity", "Error opening gallery: " + e.getMessage(), e);
-            Toast.makeText(this, "Cannot open gallery: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("image/*");
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true); // Cho phép chọn nhiều ảnh
+        imagePickerLauncher.launch(intent);
     }
 
     private boolean isNetworkAvailable() {
@@ -804,22 +984,7 @@ public class NewsFeedActivity extends AppCompatActivity {
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
-    private byte[] getBytesFromUri(Uri uri) {
-        try {
-            InputStream inputStream = getContentResolver().openInputStream(uri);
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                byteArrayOutputStream.write(buffer, 0, bytesRead);
-            }
-            inputStream.close();
-            return byteArrayOutputStream.toByteArray();
-        } catch (IOException e) {
-            Log.e("NewsFeedActivity", "Error reading image: " + e.getMessage());
-            return null;
-        }
-    }
+
 
     private void loadPosts() {
         if (!isNetworkAvailable()) {

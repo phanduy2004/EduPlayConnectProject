@@ -24,11 +24,12 @@ import retrofit2.http.Query;
 
 public interface PostService {
     @Multipart
-    @POST("api/upload")
-    Call<ImageResponse> uploadImage(@Part MultipartBody.Part image);
+    @POST("api/posts/upload")
+    Call<List<ImageResponse>> uploadImages(@Part List<MultipartBody.Part> files);
 
     @POST("api/posts/create")
     Call<PostResponseDTO> createPost(@Body PostRequestDTO request);
+
 
     @GET("api/posts")
     Call<List<PostResponseDTO>> getPosts(
