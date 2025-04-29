@@ -62,7 +62,6 @@ import com.myjob.real_time_chat_final.model.ImageResponse;
 import com.myjob.real_time_chat_final.model.Story;
 import com.myjob.real_time_chat_final.model.User;
 import com.myjob.real_time_chat_final.modelDTO.CommentDTO;
-import com.myjob.real_time_chat_final.modelDTO.CommentNotificationDTO;
 import com.myjob.real_time_chat_final.modelDTO.CommentRequestDTO;
 import com.myjob.real_time_chat_final.modelDTO.LikeNotificationDTO;
 import com.myjob.real_time_chat_final.modelDTO.PostRequestDTO;
@@ -138,33 +137,48 @@ public class NewsFeedActivity extends AppCompatActivity {
         webSocketManager.connect();
 
         // Lắng nghe thông báo bình luận
-        // Lắng nghe thông báo bình luận
         webSocketManager.subscribeToTopic("/topic/comments", message -> {
             runOnUiThread(() -> {
                 try {
                     Gson gson = new Gson();
                     CommentDTO notification = gson.fromJson(message, CommentDTO.class);
+                    // Bỏ qua nếu bình luận do chính người dùng hiện tại tạo
+                    if (notification.getUserId() != null && notification.getUserId().equals((long) userid)) {
+                        Log.d("NewsFeedActivity", "Ignoring self-created comment: " + notification.getId());
+                        return;
+                    }
                     for (int i = 0; i < postList.size(); i++) {
                         PostResponseDTO post = postList.get(i);
                         if (post.getId().equals(notification.getPostId())) {
                             if (post.getComments() == null) {
                                 post.setComments(new ArrayList<>());
                             }
+                            // Nếu là trả lời, luôn gắn vào bình luận cha
                             if (notification.getParentCommentId() != null) {
                                 for (CommentDTO parent : post.getComments()) {
                                     if (parent.getId().equals(notification.getParentCommentId())) {
                                         if (parent.getReplies() == null) {
                                             parent.setReplies(new ArrayList<>());
                                         }
-                                        parent.getReplies().add(notification);
+                                        // Kiểm tra trùng lặp
+                                        if (!commentExists(parent.getReplies(), notification.getId())) {
+                                            parent.getReplies().add(notification);
+                                            sortComments(post.getComments());
+                                            postAdapter.notifyItemChanged(i);
+                                            Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " commented: " + notification.getContent(), Toast.LENGTH_SHORT).show();
+                                        }
                                         break;
                                     }
                                 }
                             } else {
-                                post.getComments().add(notification);
+                                // Kiểm tra trùng lặp
+                                if (!commentExists(post.getComments(), notification.getId())) {
+                                    post.getComments().add(notification);
+                                    sortComments(post.getComments());
+                                    postAdapter.notifyItemChanged(i);
+                                    Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " commented: " + notification.getContent(), Toast.LENGTH_SHORT).show();
+                                }
                             }
-                            postAdapter.notifyItemChanged(i);
-                            Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " commented: " + notification.getContent(), Toast.LENGTH_SHORT).show();
                             break;
                         }
                     }
@@ -199,7 +213,6 @@ public class NewsFeedActivity extends AppCompatActivity {
         imagePickerLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                 if (result.getData().getClipData() != null) {
-                    // Nhiều ảnh được chọn
                     selectedImageUris = new ArrayList<>();
                     int count = result.getData().getClipData().getItemCount();
                     for (int i = 0; i < count; i++) {
@@ -207,7 +220,6 @@ public class NewsFeedActivity extends AppCompatActivity {
                         selectedImageUris.add(imageUri);
                     }
                 } else if (result.getData().getData() != null) {
-                    // Một ảnh được chọn
                     selectedImageUris = new ArrayList<>();
                     selectedImageUris.add(result.getData().getData());
                 }
@@ -236,19 +248,12 @@ public class NewsFeedActivity extends AppCompatActivity {
 
         postList = new ArrayList<>();
         postAdapter = new PostAdapter(
-                getSupportFragmentManager(), // Truyền FragmentManager
-                post -> {
-                    // Xử lý sự kiện Like
-                    // Ví dụ: Gọi API để like bài đăng
-                },
-                (post, content, parentCommentId) -> {
-                    // Xử lý sự kiện Comment
-                    // Ví dụ: Gọi API để thêm bình luận
-                },
+                getSupportFragmentManager(),
+                this::onLikeClick,
+                this::onCommentClick,
                 new OnCommentInteractionListener() {
                     @Override
                     public void onLikeComment(CommentDTO comment) {
-
                     }
 
                     @Override
@@ -258,7 +263,6 @@ public class NewsFeedActivity extends AppCompatActivity {
 
                     @Override
                     public void onShareComment(CommentDTO comment) {
-
                     }
                 }
         );
@@ -300,6 +304,43 @@ public class NewsFeedActivity extends AppCompatActivity {
         loadPosts();
     }
 
+    private boolean commentExists(List<CommentDTO> comments, Long commentId) {
+        if (comments == null || commentId == null) return false;
+        for (CommentDTO comment : comments) {
+            if (comment.getId() != null && comment.getId().equals(commentId)) {
+                return true;
+            }
+            if (comment.getReplies() != null && commentExists(comment.getReplies(), commentId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<CommentDTO> getAllCommentsFlat(List<CommentDTO> comments) {
+        List<CommentDTO> flatList = new ArrayList<>();
+        if (comments != null) {
+            for (CommentDTO comment : comments) {
+                flatList.add(comment);
+                if (comment.getReplies() != null) {
+                    flatList.addAll(comment.getReplies());
+                }
+            }
+        }
+        return flatList;
+    }
+
+    private void sortComments(List<CommentDTO> comments) {
+        if (comments != null) {
+            Collections.sort(comments, (c1, c2) -> c1.getCreatedAt().compareTo(c2.getCreatedAt()));
+            for (CommentDTO comment : comments) {
+                if (comment.getReplies() != null) {
+                    Collections.sort(comment.getReplies(), (c1, c2) -> c1.getCreatedAt().compareTo(c2.getCreatedAt()));
+                }
+            }
+        }
+    }
+
     private void onLikeClick(PostResponseDTO post) {
         if (!isNetworkAvailable()) {
             Toast.makeText(this, "No network connection", Toast.LENGTH_SHORT).show();
@@ -312,9 +353,8 @@ public class NewsFeedActivity extends AppCompatActivity {
             public void onResponse(Call<Void> call, Response<Void> response) {
                 progressDialog.dismiss();
                 if (response.isSuccessful()) {
-                    // Cập nhật sẽ được xử lý qua WebSocket
                 } else {
-                    Toast.makeText(NewsFeedActivity.this, "Failed to like장을 post", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NewsFeedActivity.this, "Failed to like post", Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -345,7 +385,32 @@ public class NewsFeedActivity extends AppCompatActivity {
             public void onResponse(Call<CommentDTO> call, Response<CommentDTO> response) {
                 progressDialog.dismiss();
                 if (response.isSuccessful() && response.body() != null) {
-                    // Cập nhật sẽ được xử lý qua WebSocket
+                    CommentDTO newComment = response.body();
+                    // Cập nhật danh sách bình luận cục bộ
+                    for (int i = 0; i < postList.size(); i++) {
+                        if (postList.get(i).getId().equals(post.getId())) {
+                            PostResponseDTO targetPost = postList.get(i);
+                            if (targetPost.getComments() == null) {
+                                targetPost.setComments(new ArrayList<>());
+                            }
+                            if (parentCommentId != null) {
+                                for (CommentDTO parent : targetPost.getComments()) {
+                                    if (parent.getId().equals(parentCommentId)) {
+                                        if (parent.getReplies() == null) {
+                                            parent.setReplies(new ArrayList<>());
+                                        }
+                                        parent.getReplies().add(newComment);
+                                        break;
+                                    }
+                                }
+                            } else {
+                                targetPost.getComments().add(newComment);
+                            }
+                            sortComments(targetPost.getComments());
+                            postAdapter.notifyItemChanged(i);
+                            break;
+                        }
+                    }
                 } else {
                     Toast.makeText(NewsFeedActivity.this, "Failed to post comment", Toast.LENGTH_SHORT).show();
                 }
@@ -360,9 +425,9 @@ public class NewsFeedActivity extends AppCompatActivity {
         });
     }
 
-    private void showReplyDialog(CommentDTO parentComment) {
+    private void showReplyDialog(CommentDTO comment) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Reply to " + parentComment.getUsername());
+        builder.setTitle("Reply to " + comment.getUsername());
 
         final EditText commentInput = new EditText(this);
         commentInput.setHint("Write a reply...");
@@ -380,8 +445,11 @@ public class NewsFeedActivity extends AppCompatActivity {
             String content = commentInput.getText().toString().trim();
             if (!content.isEmpty()) {
                 for (PostResponseDTO post : postList) {
-                    if (post.getComments() != null && post.getComments().contains(parentComment)) {
-                        onCommentClick(post, content, parentComment.getId());
+                    List<CommentDTO> allComments = getAllCommentsFlat(post.getComments());
+                    if (allComments.contains(comment)) {
+                        // Nếu comment là bình luận con, lấy parentCommentId của bình luận cha
+                        Long parentId = comment.getParentCommentId() != null ? comment.getParentCommentId() : comment.getId();
+                        onCommentClick(post, content, parentId);
                         dialog.dismiss();
                         break;
                     }
@@ -418,7 +486,7 @@ public class NewsFeedActivity extends AppCompatActivity {
         double timeScore = 1.0 / (1 + (currentTime - createdAt) / (1000 * 60 * 60));
         double likes = post.getLikeCount();
         double comments = (post.getComments() != null) ? post.getComments().size() : 0;
-        double shares = 0; // Thay bằng post.getShares() nếu có
+        double shares = 0;
         double engagementScore = (likes * 0.4) + (comments * 0.4) + (shares * 0.2);
         double affinityScore = 0.1;
 
@@ -495,6 +563,7 @@ public class NewsFeedActivity extends AppCompatActivity {
             }
         });
     }
+
     private void showCreatePostDialog() {
         try {
             Dialog dialog = new Dialog(this);
@@ -714,11 +783,11 @@ public class NewsFeedActivity extends AppCompatActivity {
         Intent intent;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
-            intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 5); // Giới hạn tối đa 5 ảnh
+            intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 5);
             Log.d("NewsFeedActivity", "Opening gallery with ACTION_PICK_IMAGES (API 33+)");
         } else {
             intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true); // Cho phép chọn nhiều ảnh
+            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             Log.d("NewsFeedActivity", "Opening gallery with ACTION_PICK (API < 33)");
         }
         try {
@@ -771,7 +840,6 @@ public class NewsFeedActivity extends AppCompatActivity {
                         post.setScore(calculatePostScore(post));
                         Log.d("NewsFeedActivity", "Post " + post.getId() + " avatarUrl: " + post.getAvatarUrl());
                         Log.d("NewsFeedActivity", "Post " + post.getId() + " imageUrl: " + post.getImageUrl());
-                        // Kiểm tra URL hợp lệ
                         if (post.getAvatarUrl() != null && !post.getAvatarUrl().contains("/uploads/")) {
                             Log.w("NewsFeedActivity", "Invalid avatar URL for post " + post.getId() + ": " + post.getAvatarUrl());
                         }
@@ -820,7 +888,7 @@ public class NewsFeedActivity extends AppCompatActivity {
                         post.setScore(calculatePostScore(post));
                     }
                     sortPostsByScore();
-                    postAdapter.updatePosts(postList); // Sử dụng updatePosts
+                    postAdapter.updatePosts(postList);
                     currentPage++;
                 }
             }
@@ -859,7 +927,7 @@ public class NewsFeedActivity extends AppCompatActivity {
                         post.setScore(calculatePostScore(post));
                     }
                     sortPostsByScore();
-                    postAdapter.addOlderPosts(response.body()); // Sử dụng addOlderPosts
+                    postAdapter.addOlderPosts(response.body());
                     minPage = olderPage;
                 }
             }

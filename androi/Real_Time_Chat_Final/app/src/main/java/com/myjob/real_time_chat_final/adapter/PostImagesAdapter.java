@@ -96,6 +96,7 @@ public class PostImagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
                 Glide.with(imageHolder.imageView.getContext())
                         .load(fullImageUrl)
+                        .thumbnail(0.25f) // Hiển thị ảnh nhỏ trước
                         .transition(DrawableTransitionOptions.withCrossFade())
                         .diskCacheStrategy(DiskCacheStrategy.ALL)
                         .centerCrop()

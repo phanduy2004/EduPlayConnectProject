@@ -36,7 +36,7 @@ import android.graphics.drawable.Drawable;
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder> {
 
     private List<PostResponseDTO> postList = new ArrayList<>();
-    private final FragmentManager fragmentManager; // Thêm FragmentManager
+    private final FragmentManager fragmentManager;
     private final OnLikeClickListener likeClickListener;
     private final OnCommentClickListener commentClickListener;
     private final OnCommentInteractionListener commentInteractionListener;
@@ -51,7 +51,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         void onCommentClick(PostResponseDTO post, String content, Long parentCommentId);
     }
 
-    // Constructor đã sửa để nhận FragmentManager
     public PostAdapter(FragmentManager fragmentManager, OnLikeClickListener likeClickListener,
                        OnCommentClickListener commentClickListener, OnCommentInteractionListener commentInteractionListener) {
         this.fragmentManager = fragmentManager;
@@ -79,6 +78,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         if (avatarUrl != null && avatarUrl.contains("/uploads/")) {
             Glide.with(holder.itemView.getContext())
                     .load(avatarUrl)
+                    .thumbnail(0.25f)
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .placeholder(R.drawable.ic_user)
                     .circleCrop()
@@ -109,6 +109,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         if (avatarUrl != null && avatarUrl.contains("/uploads/")) {
             Glide.with(holder.itemView.getContext())
                     .load(avatarUrl)
+                    .thumbnail(0.25f)
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .placeholder(R.drawable.ic_user)
                     .circleCrop()
@@ -161,7 +162,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             holder.imagesRecyclerView.setVisibility(View.VISIBLE);
             Log.d(TAG, "imagesRecyclerView visibility: " + (holder.imagesRecyclerView.getVisibility() == View.VISIBLE ? "VISIBLE" : "GONE"));
 
-            // Tùy chỉnh GridLayoutManager dựa trên số lượng ảnh
             int imageCount = validImageUrls.size();
             if (!(holder.imagesRecyclerView.getLayoutManager() instanceof GridLayoutManager)) {
                 GridLayoutManager newLayoutManager = new GridLayoutManager(holder.itemView.getContext(), 3);
@@ -179,25 +179,38 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                 public int getSpanSize(int position) {
                     if (imageCount == 3) {
                         if (position == 0) {
-                            return 2; // Ảnh đầu tiên chiếm 2/3
+                            return 2;
                         } else {
-                            return 1; // Hai ảnh còn lại chiếm 1/3
+                            return 1;
                         }
                     }
-                    return 1; // Các trường hợp khác, mỗi ảnh chiếm 1 cột
+                    return 1;
                 }
             });
 
-            PostImagesAdapter imageAdapter = new PostImagesAdapter(validImageUrls, () -> {
-                Log.d(TAG, "See more clicked for post: " + post.getId());
-                try {
-                    ImageGalleryDialog dialog = ImageGalleryDialog.newInstance(new ArrayList<>(validImageUrls));
-                    dialog.show(fragmentManager, "ImageGalleryDialog");
-                } catch (Exception e) {
-                    Log.e(TAG, "Failed to show ImageGalleryDialog", e);
-                }
-            });
-            holder.imagesRecyclerView.setAdapter(imageAdapter);
+            if (holder.imageAdapter == null) {
+                holder.imageAdapter = new PostImagesAdapter(validImageUrls, () -> {
+                    Log.d(TAG, "See more clicked for post: " + post.getId());
+                    try {
+                        ImageGalleryDialog dialog = ImageGalleryDialog.newInstance(new ArrayList<>(validImageUrls));
+                        dialog.show(fragmentManager, "ImageGalleryDialog");
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to show ImageGalleryDialog", e);
+                    }
+                });
+                holder.imagesRecyclerView.setAdapter(holder.imageAdapter);
+            } else {
+                holder.imageAdapter = new PostImagesAdapter(validImageUrls, () -> {
+                    Log.d(TAG, "See more clicked for post: " + post.getId());
+                    try {
+                        ImageGalleryDialog dialog = ImageGalleryDialog.newInstance(new ArrayList<>(validImageUrls));
+                        dialog.show(fragmentManager, "ImageGalleryDialog");
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to show ImageGalleryDialog", e);
+                    }
+                });
+                holder.imagesRecyclerView.setAdapter(holder.imageAdapter);
+            }
             holder.imagesRecyclerView.requestLayout();
         } else {
             Log.d(TAG, "No valid images for post: " + post.getId());
@@ -208,6 +221,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         holder.likeCountTextView.setText(post.getLikeCount() + " Likes");
         int commentCount = (post.getComments() != null) ? post.getComments().size() : 0;
         holder.commentCountTextView.setText(commentCount + " Comments");
+        Log.d(TAG, "Post " + post.getId() + " has " + commentCount + " comments");
 
         // Comment recycler view
         if (holder.commentAdapter == null) {
@@ -216,8 +230,11 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             holder.commentsRecyclerView.setLayoutManager(new LinearLayoutManager(holder.itemView.getContext()));
             holder.commentsRecyclerView.setNestedScrollingEnabled(false);
         }
+
+        // Hiển thị tất cả bình luận
         List<CommentDTO> comments = post.getComments() != null ? post.getComments() : new ArrayList<>();
         holder.commentAdapter.updateComments(comments);
+        holder.seeMoreComments.setVisibility(View.GONE);
 
         // Xử lý sự kiện
         holder.commentSendButton.setOnClickListener(v -> {
@@ -276,8 +293,10 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     static class PostViewHolder extends RecyclerView.ViewHolder {
         ImageView avatarImageView, commentAvatarInput;
         TextView usernameTextView, timeTextView, privacyTextView, contentTextView,
-                likeCountTextView, commentCountTextView, likeButton, commentToggleButton, shareButton;
+                likeCountTextView, commentCountTextView, likeButton, commentToggleButton, shareButton,
+                seeMoreComments;
         RecyclerView imagesRecyclerView, commentsRecyclerView;
+        PostImagesAdapter imageAdapter;
         CommentAdapter commentAdapter;
         ImageButton commentSendButton;
         EditText commentInput;
@@ -299,6 +318,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             commentToggleButton = itemView.findViewById(R.id.btn_comment_toggle);
             commentSendButton = itemView.findViewById(R.id.btn_comment_send);
             shareButton = itemView.findViewById(R.id.btn_share);
+            seeMoreComments = itemView.findViewById(R.id.see_more_comments);
 
             imagesRecyclerView.setHasFixedSize(true);
             imagesRecyclerView.setNestedScrollingEnabled(false);

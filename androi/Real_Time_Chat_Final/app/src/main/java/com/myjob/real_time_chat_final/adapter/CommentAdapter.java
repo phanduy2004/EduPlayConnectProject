@@ -46,7 +46,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
         CommentDTO comment = commentList.get(position);
         int indentLevel = calculateIndentLevel(comment);
 
-        // Thụt vào dựa trên mức độ phân cấp
+        // Thụt vào dựa trên mức độ phân cấp (0 cho cha, 1 cho con)
         holder.itemView.setPadding(indentLevel * 32, 4, 8, 4);
 
         // Avatar
@@ -98,19 +98,14 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
     }
 
     private int calculateIndentLevel(CommentDTO comment) {
-        int level = 0;
-        CommentDTO current = comment;
-        while (current.getParentCommentId() != null) {
-            level++;
-            current = findCommentById(current.getParentCommentId());
-            if (current == null) break;
-        }
-        return level;
+        // Chỉ có 2 cấp: 0 cho bình luận cha, 1 cho bình luận con
+        return comment.getParentCommentId() == null ? 0 : 1;
     }
 
     private CommentDTO findCommentById(Long id) {
+        if (id == null) return null;
         for (CommentDTO comment : commentList) {
-            if (comment.getId().equals(id)) {
+            if (comment.getId() != null && comment.getId().equals(id)) {
                 return comment;
             }
         }
@@ -127,7 +122,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
         for (CommentDTO comment : comments) {
             commentList.add(comment);
             if (comment.getReplies() != null && !comment.getReplies().isEmpty()) {
-                flattenComments(comment.getReplies());
+                commentList.addAll(comment.getReplies());
             }
         }
     }

@@ -26,7 +26,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Username and Time -->
+        <!-- Username -->
         <TextView
             android:id="@+id/post_username"
             android:layout_width="0dp"
@@ -41,6 +41,7 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toStartOf="@id/post_privacy" />
 
+        <!-- Time -->
         <TextView
             android:id="@+id/post_time"
             android:layout_width="wrap_content"
@@ -79,6 +80,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/post_avatar" />
 
+        <!-- Images RecyclerView -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/post_images_recycler_view"
             android:layout_width="0dp"
@@ -93,6 +95,7 @@
             app:layout_constraintTop_toBottomOf="@id/post_content"
             app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
             app:spanCount="2" />
+
         <!-- Like and Comment Count -->
         <TextView
             android:id="@+id/like_count"
@@ -119,18 +122,30 @@
             app:layout_constraintStart_toEndOf="@id/like_count"
             app:layout_constraintTop_toBottomOf="@id/post_images_recycler_view" />
 
-        <!-- Comments RecyclerView -->
+        <!-- RecyclerView cho bình luận -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/comments_recycler_view"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="8dp"
             android:nestedScrollingEnabled="false"
-            android:visibility="visible"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/like_count" />
+            app:layout_constraintTop_toBottomOf="@id/like_count"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+        <!-- Nút "Xem thêm bình luận" -->
+        <TextView
+            android:id="@+id/see_more_comments"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Xem thêm bình luận"
+            android:textColor="@android:color/holo_blue_dark"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/comments_recycler_view" />
 
         <!-- Comment Input -->
         <LinearLayout
@@ -143,7 +158,7 @@
             android:padding="6dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/comments_recycler_view">
+            app:layout_constraintTop_toBottomOf="@id/see_more_comments">
 
             <ImageView
                 android:id="@+id/comment_avatar_input"
