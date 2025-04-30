@@ -25,7 +25,7 @@ import com.bumptech.glide.request.target.Target;
 import com.myjob.real_time_chat_final.OnCommentInteractionListener;
 import com.myjob.real_time_chat_final.R;
 import com.myjob.real_time_chat_final.modelDTO.CommentDTO;
-import com.myjob.real_time_chat_final.modelDTO.PostResponseDTO;
+import com.myjob.real_time_chat_final.modelDTO.PostResponseDTOponseDTO;
 import com.myjob.real_time_chat_final.retrofit.RetrofitClient;
 import com.myjob.real_time_chat_final.ui.ImageGalleryDialog;
 import java.text.SimpleDateFormat;
