@@ -8,9 +8,17 @@ public class CommentDTO {
     private Long id;                    // ID của bình luận
     private Long userId;
     private String avatarUrl;
+    private Long postId; // Thêm trường postId// ID của người dùng tạo bình luận
+    private String username;            // Tên người dùng
+    private String content;             // Nội dung bình luận
+    private Date createdAt;             // Thời gian tạo bình luận
+    private Long parentCommentId;       // ID của bình luận cha (nếu là trả lời)
+    private List<CommentDTO> replies;
+
     public String getAvatarUrl() {
         return avatarUrl;
     }
+
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
     }
@@ -22,13 +30,6 @@ public class CommentDTO {
     public void setPostId(Long postId) {
         this.postId = postId;
     }
-
-    private Long postId; // Thêm trường postId// ID của người dùng tạo bình luận
-    private String username;            // Tên người dùng
-    private String content;             // Nội dung bình luận
-    private Date createdAt;             // Thời gian tạo bình luận
-    private Long parentCommentId;       // ID của bình luận cha (nếu là trả lời)
-    private List<CommentDTO> replies;   // Danh sách các bình luận trả lời
 
     // Getter và Setter
     public Long getId() {

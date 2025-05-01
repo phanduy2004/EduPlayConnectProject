@@ -51,6 +51,7 @@ import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.myjob.real_time_chat_final.OnCommentInteractionListener;
 import com.myjob.real_time_chat_final.R;
 import com.myjob.real_time_chat_final.adapter.PostAdapter;
@@ -65,6 +66,7 @@ import com.myjob.real_time_chat_final.model.ImageResponse;
 import com.myjob.real_time_chat_final.model.Story;
 import com.myjob.real_time_chat_final.model.User;
 import com.myjob.real_time_chat_final.modelDTO.CommentDTO;
+import com.myjob.real_time_chat_final.modelDTO.CommentNotificationDTO;
 import com.myjob.real_time_chat_final.modelDTO.CommentRequestDTO;
 import com.myjob.real_time_chat_final.modelDTO.LikeNotificationDTO;
 import com.myjob.real_time_chat_final.modelDTO.PostRequestDTO;
@@ -116,6 +118,7 @@ public class NewsFeedActivity extends AppCompatActivity {
     private final int PAGE_SIZE = 10;
     private boolean isLoading = false;
     private boolean isLoadingOlderPosts = false;
+    private String currentUserAvatarUrl;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -144,74 +147,127 @@ public class NewsFeedActivity extends AppCompatActivity {
 
         // Lắng nghe thông báo bình luận
         webSocketManager.subscribeToTopic("/topic/comments", message -> {
-            runOnUiThread(() -> {
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            executor.execute(() -> {
                 try {
-                    Gson gson = new Gson();
+                    Log.d("NewsFeedActivity", "Received WebSocket message: " + message);
+                    Gson gson = new GsonBuilder()
+                            .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                            .create();
                     CommentDTO notification = gson.fromJson(message, CommentDTO.class);
-                    // Bỏ qua nếu bình luận do chính người dùng hiện tại tạo
-                    if (notification.getUserId() != null && notification.getUserId().equals((long) userid)) {
-                        Log.d("NewsFeedActivity", "Ignoring self-created comment: " + notification.getId());
+
+                    // Kiểm tra dữ liệu nhận được
+                    if (notification.getPostId() == null) {
+                        Log.w("NewsFeedActivity", "Invalid comment notification: Missing postId: " + message);
                         return;
                     }
-                    for (int i = 0; i < postList.size(); i++) {
-                        PostResponseDTO post = postList.get(i);
-                        if (post.getId().equals(notification.getPostId())) {
-                            if (post.getComments() == null) {
-                                post.setComments(new ArrayList<>());
-                            }
-                            // Nếu là trả lời, luôn gắn vào bình luận cha
-                            if (notification.getParentCommentId() != null) {
-                                for (CommentDTO parent : post.getComments()) {
-                                    if (parent.getId().equals(notification.getParentCommentId())) {
+                    if (notification.getId() == null) {
+                        Log.w("NewsFeedActivity", "Invalid comment notification: Missing commentId: " + message);
+                        return;
+                    }
+                    if (notification.getContent() == null || notification.getContent().isEmpty()) {
+                        Log.w("NewsFeedActivity", "Invalid comment notification: Empty content: " + message);
+                        return;
+                    }
+                    if (notification.getCreatedAt() == null) {
+                        Log.w("NewsFeedActivity", "Invalid comment notification: Missing createdAt: " + message);
+                        return;
+                    }
+                    if (notification.getUserId() != null && notification.getUserId().equals((long) userid)) {
+                        Log.d("NewsFeedActivity", "Ignoring self-comment: commentId=" + notification.getId() + ", content=" + notification.getContent());
+                        return;
+                    }
+
+                    // Khởi tạo replies để tránh null
+                    if (notification.getReplies() == null) {
+                        notification.setReplies(new ArrayList<>());
+                    }
+
+                    runOnUiThread(() -> {
+                        for (int i = 0; i < postList.size(); i++) {
+                            PostResponseDTO post = postList.get(i);
+                            if (post.getId().equals(notification.getPostId())) {
+                                if (post.getComments() == null) {
+                                    post.setComments(new ArrayList<>());
+                                }
+                                if (notification.getParentCommentId() != null) {
+                                    CommentDTO parent = findParentComment(post.getComments(), notification.getParentCommentId());
+                                    if (parent != null) {
                                         if (parent.getReplies() == null) {
                                             parent.setReplies(new ArrayList<>());
                                         }
-                                        // Kiểm tra trùng lặp
                                         if (!commentExists(parent.getReplies(), notification.getId())) {
+                                            Log.d("NewsFeedActivity", "Adding reply to parent: commentId=" + notification.getId() + ", parentId=" + notification.getParentCommentId());
                                             parent.getReplies().add(notification);
                                             sortComments(post.getComments());
                                             postAdapter.notifyItemChanged(i);
-                                            Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " commented: " + notification.getContent(), Toast.LENGTH_SHORT).show();
+                                            Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " đã trả lời: " + notification.getContent(), Toast.LENGTH_SHORT).show();
+                                        } else {
+                                            Log.d("NewsFeedActivity", "Reply already exists: commentId=" + notification.getId());
                                         }
-                                        break;
+                                    } else {
+                                        Log.w("NewsFeedActivity", "Parent comment not found: parentId=" + notification.getParentCommentId());
+                                    }
+                                } else {
+                                    if (!commentExists(post.getComments(), notification.getId())) {
+                                        Log.d("NewsFeedActivity", "Adding comment: commentId=" + notification.getId());
+                                        post.getComments().add(notification);
+                                        sortComments(post.getComments());
+                                        postAdapter.notifyItemChanged(i);
+                                        Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " đã bình luận: " + notification.getContent(), Toast.LENGTH_SHORT).show();
+                                    } else {
+                                        Log.d("NewsFeedActivity", "Comment already exists: commentId=" + notification.getId());
                                     }
                                 }
-                            } else {
-                                // Kiểm tra trùng lặp
-                                if (!commentExists(post.getComments(), notification.getId())) {
-                                    post.getComments().add(notification);
-                                    sortComments(post.getComments());
-                                    postAdapter.notifyItemChanged(i);
-                                    Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " commented: " + notification.getContent(), Toast.LENGTH_SHORT).show();
-                                }
+                                break;
                             }
-                            break;
                         }
-                    }
+                        if (!postList.stream().anyMatch(p -> p.getId().equals(notification.getPostId()))) {
+                            Log.w("NewsFeedActivity", "Post not found for comment notification: postId=" + notification.getPostId());
+                        }
+                    });
                 } catch (Exception e) {
-                    Log.e("NewsFeedActivity", "Error parsing comment notification: " + e.getMessage());
+                    Log.e("NewsFeedActivity", "Error parsing comment notification: " + e.getMessage() + ", message: " + message, e);
+                } finally {
+                    executor.shutdown();
                 }
             });
         });
 
-        // Lắng nghe thông báo lượt thích
+
+
         webSocketManager.subscribeToTopic("/topic/likes", message -> {
-            runOnUiThread(() -> {
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            executor.execute(() -> {
                 try {
                     Gson gson = new Gson();
                     LikeNotificationDTO notification = gson.fromJson(message, LikeNotificationDTO.class);
-                    for (int i = 0; i < postList.size(); i++) {
-                        PostResponseDTO post = postList.get(i);
-                        if (post.getId().equals(notification.getPostId())) {
-                            post.setLikeCount(post.getLikeCount() + 1);
-                            post.setScore(calculatePostScore(post));
-                            postAdapter.notifyItemChanged(i);
-                            Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " liked a post", Toast.LENGTH_SHORT).show();
-                            break;
-                        }
+                    if (notification.getPostId() == null) {
+                        Log.w("NewsFeedActivity", "Thông báo lượt thích không hợp lệ: " + message);
+                        return;
                     }
+                    runOnUiThread(() -> {
+                        for (int i = 0; i < postList.size(); i++) {
+                            PostResponseDTO post = postList.get(i);
+                            if (post.getId().equals(notification.getPostId())) {
+                                if (post.getLikeCount() == 0) {
+                                    post.setLikeCount(0);
+                                }
+                                post.setLikeCount(post.getLikeCount() + 1);
+                                post.setScore(calculatePostScore(post));
+                                postAdapter.notifyItemChanged(i);
+                                Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " đã thích bài viết", Toast.LENGTH_SHORT).show();
+                                break;
+                            }
+                        }
+                        if (!postList.stream().anyMatch(p -> p.getId().equals(notification.getPostId()))) {
+                            Log.w("NewsFeedActivity", "Không tìm thấy bài viết cho thông báo lượt thích: " + notification.getPostId());
+                        }
+                    });
                 } catch (Exception e) {
-                    Log.e("NewsFeedActivity", "Error parsing like notification: " + e.getMessage());
+                    Log.e("NewsFeedActivity", "Lỗi phân tích thông báo lượt thích: " + e.getMessage(), e);
+                } finally {
+                    executor.shutdown();
                 }
             });
         });
@@ -290,7 +346,7 @@ public class NewsFeedActivity extends AppCompatActivity {
                     @Override
                     public void onShareComment(CommentDTO comment) {
                     }
-                }
+                },currentUserAvatarUrl
         );
         postsRecyclerView.setAdapter(postAdapter);
 
@@ -329,7 +385,24 @@ public class NewsFeedActivity extends AppCompatActivity {
         loadUserData(userid);
         loadPosts();
     }
-
+    // Hàm tìm bình luận cha trong danh sách bình luận (bao gồm replies)
+    private CommentDTO findParentComment(List<CommentDTO> comments, Long parentCommentId) {
+        if (comments == null || parentCommentId == null) {
+            return null;
+        }
+        for (CommentDTO comment : comments) {
+            if (comment.getId() != null && comment.getId().equals(parentCommentId)) {
+                return comment;
+            }
+            if (comment.getReplies() != null) {
+                CommentDTO found = findParentComment(comment.getReplies(), parentCommentId);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
     private boolean commentExists(List<CommentDTO> comments, Long commentId) {
         if (comments == null || commentId == null) return false;
         for (CommentDTO comment : comments) {
@@ -379,15 +452,17 @@ public class NewsFeedActivity extends AppCompatActivity {
             public void onResponse(Call<Void> call, Response<Void> response) {
                 progressDialog.dismiss();
                 if (response.isSuccessful()) {
+                    Log.d("NewsFeedActivity", "Successfully liked post: " + post.getId());
                 } else {
-                    Toast.makeText(NewsFeedActivity.this, "Failed to like post", Toast.LENGTH_SHORT).show();
+                    Log.e("NewsFeedActivity", "Failed to like post: " + post.getId() + ", code: " + response.code() + ", message: " + response.message());
+                    Toast.makeText(NewsFeedActivity.this, "Failed to like post: " + response.message(), Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<Void> call, Throwable t) {
                 progressDialog.dismiss();
-                Log.e("NewsFeedActivity", "Error liking post: " + t.getMessage());
+                Log.e("NewsFeedActivity", "Error liking post: " + post.getId() + ", message: " + t.getMessage(), t);
                 Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
@@ -412,25 +487,39 @@ public class NewsFeedActivity extends AppCompatActivity {
                 progressDialog.dismiss();
                 if (response.isSuccessful() && response.body() != null) {
                     CommentDTO newComment = response.body();
-                    // Cập nhật danh sách bình luận cục bộ
+                    Log.d("NewsFeedActivity", "Successfully commented on post: postId=" + post.getId() + ", commentId=" + newComment.getId());
                     for (int i = 0; i < postList.size(); i++) {
                         if (postList.get(i).getId().equals(post.getId())) {
                             PostResponseDTO targetPost = postList.get(i);
                             if (targetPost.getComments() == null) {
                                 targetPost.setComments(new ArrayList<>());
                             }
+                            // Khởi tạo replies cho newComment
+                            if (newComment.getReplies() == null) {
+                                newComment.setReplies(new ArrayList<>());
+                            }
                             if (parentCommentId != null) {
-                                for (CommentDTO parent : targetPost.getComments()) {
-                                    if (parent.getId().equals(parentCommentId)) {
-                                        if (parent.getReplies() == null) {
-                                            parent.setReplies(new ArrayList<>());
-                                        }
-                                        parent.getReplies().add(newComment);
-                                        break;
+                                CommentDTO parent = findParentComment(targetPost.getComments(), parentCommentId);
+                                if (parent != null) {
+                                    if (parent.getReplies() == null) {
+                                        parent.setReplies(new ArrayList<>());
                                     }
+                                    if (!commentExists(parent.getReplies(), newComment.getId())) {
+                                        Log.d("NewsFeedActivity", "Adding reply via API: commentId=" + newComment.getId() + ", parentId=" + parentCommentId);
+                                        parent.getReplies().add(newComment);
+                                    } else {
+                                        Log.d("NewsFeedActivity", "Reply already exists via API: commentId=" + newComment.getId());
+                                    }
+                                } else {
+                                    Log.w("NewsFeedActivity", "Parent comment not found for reply: parentId=" + parentCommentId);
                                 }
                             } else {
-                                targetPost.getComments().add(newComment);
+                                if (!commentExists(targetPost.getComments(), newComment.getId())) {
+                                    Log.d("NewsFeedActivity", "Adding comment via API: commentId=" + newComment.getId());
+                                    targetPost.getComments().add(newComment);
+                                } else {
+                                    Log.d("NewsFeedActivity", "Comment already exists via API: commentId=" + newComment.getId());
+                                }
                             }
                             sortComments(targetPost.getComments());
                             postAdapter.notifyItemChanged(i);
@@ -438,19 +527,19 @@ public class NewsFeedActivity extends AppCompatActivity {
                         }
                     }
                 } else {
-                    Toast.makeText(NewsFeedActivity.this, "Failed to post comment", Toast.LENGTH_SHORT).show();
+                    Log.e("NewsFeedActivity", "Failed to post comment on post: postId=" + post.getId() + ", code: " + response.code() + ", message: " + response.message());
+                    Toast.makeText(NewsFeedActivity.this, "Failed to post comment: " + response.message(), Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<CommentDTO> call, Throwable t) {
                 progressDialog.dismiss();
-                Log.e("NewsFeedActivity", "Error posting comment: " + t.getMessage());
+                Log.e("NewsFeedActivity", "Error posting comment on post: postId=" + post.getId() + ", message: " + t.getMessage(), t);
                 Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
-
     private void showReplyDialog(CommentDTO comment) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Reply to " + comment.getUsername());
@@ -533,41 +622,34 @@ public class NewsFeedActivity extends AppCompatActivity {
             public void onResponse(Call<User> call, Response<User> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     currentUser = response.body();
+                    currentUserAvatarUrl = currentUser.getAvatarUrl(); // Lưu avatarUrl
                     if (userAvatar != null) {
-                        if (currentUser.getAvatarUrl() != null && !currentUser.getAvatarUrl().isEmpty()) {
-                            String baseUrl = RetrofitClient.getBaseUrl();
-                            String fullAvatarUrl = baseUrl + currentUser.getAvatarUrl();
-                            Log.d("NewsFeedActivity", "Loading avatar URL: " + fullAvatarUrl);
-                            if (fullAvatarUrl.contains("/uploads/")) {
-                                Glide.with(NewsFeedActivity.this)
-                                        .load(fullAvatarUrl)
-                                        .diskCacheStrategy(DiskCacheStrategy.ALL)
-                                        .circleCrop()
-                                        .placeholder(R.drawable.ic_user)
-                                        .error(R.drawable.ic_user)
-                                        .listener(new RequestListener<Drawable>() {
-                                            @Override
-                                            public boolean onLoadFailed(@Nullable GlideException e, @Nullable Object model, @NonNull Target<Drawable> target, boolean isFirstResource) {
-                                                Log.e("NewsFeedActivity", "Glide load failed for avatar: " + fullAvatarUrl, e);
-                                                return false;
-                                            }
+                        String avatarUrl = currentUser.getAvatarUrl() != null && !currentUser.getAvatarUrl().isEmpty()
+                                ? RetrofitClient.getBaseUrl() + currentUser.getAvatarUrl() : null;
+                        Log.d("NewsFeedActivity", "Loading avatar URL: " + avatarUrl);
+                        if (avatarUrl != null && avatarUrl.contains("/uploads/")) {
+                            Glide.with(NewsFeedActivity.this)
+                                    .load(avatarUrl)
+                                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                    .circleCrop()
+                                    .placeholder(R.drawable.ic_user)
+                                    .error(R.drawable.ic_user)
+                                    .listener(new RequestListener<Drawable>() {
+                                        @Override
+                                        public boolean onLoadFailed(@Nullable GlideException e, @Nullable Object model, @NonNull Target<Drawable> target, boolean isFirstResource) {
+                                            Log.e("NewsFeedActivity", "Glide load failed for avatar: " + avatarUrl, e);
+                                            return false;
+                                        }
 
-                                            @Override
-                                            public boolean onResourceReady(@NonNull Drawable resource, @NonNull Object model, Target<Drawable> target, @NonNull DataSource dataSource, boolean isFirstResource) {
-                                                Log.d("NewsFeedActivity", "Glide load successful for avatar: " + fullAvatarUrl);
-                                                return false;
-                                            }
-                                        })
-                                        .into(userAvatar);
-                            } else {
-                                Log.w("NewsFeedActivity", "Invalid avatar URL: " + fullAvatarUrl);
-                                Glide.with(NewsFeedActivity.this)
-                                        .load(R.drawable.ic_user)
-                                        .circleCrop()
-                                        .into(userAvatar);
-                            }
+                                        @Override
+                                        public boolean onResourceReady(@NonNull Drawable resource, @NonNull Object model, Target<Drawable> target, @NonNull DataSource dataSource, boolean isFirstResource) {
+                                            Log.d("NewsFeedActivity", "Glide load successful for avatar: " + avatarUrl);
+                                            return false;
+                                        }
+                                    })
+                                    .into(userAvatar);
                         } else {
-                            Log.w("NewsFeedActivity", "Avatar URL is empty");
+                            Log.w("NewsFeedActivity", "Invalid avatar URL: " + avatarUrl);
                             Glide.with(NewsFeedActivity.this)
                                     .load(R.drawable.ic_user)
                                     .circleCrop()
@@ -576,6 +658,29 @@ public class NewsFeedActivity extends AppCompatActivity {
                     } else {
                         Log.e("NewsFeedActivity", "userAvatar is null");
                     }
+                    // Cập nhật PostAdapter với currentUserAvatarUrl
+                    postAdapter = new PostAdapter(
+                            getSupportFragmentManager(),
+                            NewsFeedActivity.this::onLikeClick,
+                            NewsFeedActivity.this::onCommentClick,
+                            new OnCommentInteractionListener() {
+                                @Override
+                                public void onLikeComment(CommentDTO comment) {
+                                }
+
+                                @Override
+                                public void onReplyComment(CommentDTO comment) {
+                                    showReplyDialog(comment);
+                                }
+
+                                @Override
+                                public void onShareComment(CommentDTO comment) {
+                                }
+                            },RetrofitClient.getBaseUrl() + currentUser.getAvatarUrl()
+
+                    );
+                    postsRecyclerView.setAdapter(postAdapter);
+                    postAdapter.updatePosts(postList); // Cập nhật lại danh sách bài viết
                 } else {
                     Log.e("NewsFeedActivity", "Failed to load user info, code: " + response.code());
                     Toast.makeText(NewsFeedActivity.this, "Failed to load user info", Toast.LENGTH_SHORT).show();
@@ -904,6 +1009,16 @@ public class NewsFeedActivity extends AppCompatActivity {
                 }
                 if (response.isSuccessful() && response.body() != null) {
                     PostResponseDTO newPost = response.body();
+                    // Khởi tạo các trường nếu null
+                    if (newPost.getComments() == null) {
+                        newPost.setComments(new ArrayList<>());
+                    }
+                    if (newPost.getLikeCount() == 0) {
+                        newPost.setLikeCount(0);
+                    }
+                    if (newPost.getImageUrl() == null) {
+                        newPost.setImageUrl(new ArrayList<>());
+                    }
                     newPost.setScore(calculatePostScore(newPost));
                     postAdapter.addNewPost(newPost);
                     postsRecyclerView.scrollToPosition(0);
@@ -914,7 +1029,8 @@ public class NewsFeedActivity extends AppCompatActivity {
                     }
                     Toast.makeText(NewsFeedActivity.this, "Tạo bài đăng thành công", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(NewsFeedActivity.this, "Không thể tạo bài đăng", Toast.LENGTH_SHORT).show();
+                    Log.e("NewsFeedActivity", "Không thể tạo bài đăng, mã lỗi: " + response.code() + ", thông điệp: " + response.message());
+                    Toast.makeText(NewsFeedActivity.this, "Không thể tạo bài đăng: " + response.message(), Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -925,7 +1041,7 @@ public class NewsFeedActivity extends AppCompatActivity {
                 if (uploadProgress != null) {
                     uploadProgress.setVisibility(View.GONE);
                 }
-                Log.e("NewsFeedActivity", "Lỗi tạo bài đăng: " + t.getMessage());
+                Log.e("NewsFeedActivity", "Lỗi tạo bài đăng: " + t.getMessage(), t);
                 Toast.makeText(NewsFeedActivity.this, "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });

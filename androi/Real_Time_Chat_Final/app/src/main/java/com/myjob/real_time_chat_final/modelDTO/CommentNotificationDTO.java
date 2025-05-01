@@ -4,14 +4,15 @@ import java.util.Date;
 
 public class CommentNotificationDTO {
     private Long id;                    // ID của bình luận
-    private Long postId;                // ID của bài đăng liên quan
-    private Long userId;                // ID của người dùng tạo bình luận
+    private Long postId;                // ID của bài đăng
+    private Long userId;                // ID của người dùng
     private String username;            // Tên người dùng
     private String content;             // Nội dung bình luận
-    private Date createdAt;             // Thời gian tạo bình luận
+    private String avatarUrl;           // URL avatar của người dùng
+    private Date createdAt;             // Thời gian tạo
     private Long parentCommentId;       // ID của bình luận cha (nếu là trả lời)
 
-    // Getter và Setter
+    // Getters và Setters
     public Long getId() {
         return id;
     }
@@ -50,6 +51,14 @@ public class CommentNotificationDTO {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 
     public Date getCreatedAt() {

@@ -59,11 +59,14 @@ public class CommentService {
 
         // Gửi thông báo qua WebSocket
         CommentNotificationDTO notification = new CommentNotificationDTO();
+        notification.setId(comment.getId()); // Thêm ID của bình luận
         notification.setPostId(request.getPostId());
         notification.setUserId(request.getUserId());
         notification.setUsername(user.getUsername());
         notification.setContent(request.getContent());
+        notification.setAvatarUrl(user.getAvatarUrl()); // Thêm avatarUrl
         notification.setCreatedAt(comment.getCreatedAt());
+        notification.setParentCommentId(parentComment != null ? parentComment.getId() : null); // Thêm parentCommentId
         messagingTemplate.convertAndSend("/topic/comments", notification);
 
         // Ánh xạ Comment sang CommentDTO và trả về
@@ -76,13 +79,12 @@ public class CommentService {
         commentDTO.setId(comment.getId());
         commentDTO.setUserId(comment.getUser().getId());
         commentDTO.setPostId(comment.getPost().getId());
-        commentDTO.setAvatarUrl(comment.getUser().getAvatarUrl()); // Lấy avatarUrl từ User
-        commentDTO.setUsername(comment.getUser().getUsername());   // Lấy username từ User
+        commentDTO.setAvatarUrl(comment.getUser().getAvatarUrl());
+        commentDTO.setUsername(comment.getUser().getUsername());
         commentDTO.setContent(comment.getContent());
         commentDTO.setCreatedAt(comment.getCreatedAt());
         commentDTO.setParentCommentId(comment.getParentComment() != null ? comment.getParentComment().getId() : null);
-        commentDTO.setReplies(new ArrayList<>()); // Khởi tạo danh sách replies rỗng
-
+        commentDTO.setReplies(new ArrayList<>());
         return commentDTO;
     }
 }

@@ -21,9 +21,6 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
-            android:name=".ui.DialogFragment"
-            android:exported="false" />
-        <activity
             android:name=".ui.NewsFeedActivity"
             android:exported="false" />
         <activity
