@@ -122,8 +122,8 @@ public class MessageListActivity extends AppCompatActivity {
                 Intent intent = new Intent(MessageListActivity.this, FriendListActivity.class);
                 startActivity(intent);
                 return true;
-            } else if (itemId == R.id.nav_findRoom) {
-                Intent intent = new Intent(MessageListActivity.this, JoinRoomActivity.class);
+            } else if (itemId == R.id.nav_newsfeed) {
+                Intent intent = new Intent(MessageListActivity.this, NewsFeedActivity.class);
                 startActivity(intent);
                 return true;
             }

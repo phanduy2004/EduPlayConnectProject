@@ -5,7 +5,7 @@
         android:icon="@drawable/ic_home"
         android:title="Home" />
     <item
-        android:id="@+id/nav_findRoom"
+        android:id="@+id/nav_newsfeed"
         android:icon="@drawable/ic_newsfeed"
         android:title="News Feed" />
     <item

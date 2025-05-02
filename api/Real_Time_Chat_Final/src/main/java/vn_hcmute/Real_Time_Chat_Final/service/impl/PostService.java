@@ -9,14 +9,13 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import vn_hcmute.Real_Time_Chat_Final.entity.Post;
 import vn_hcmute.Real_Time_Chat_Final.entity.PostMedia;
 import vn_hcmute.Real_Time_Chat_Final.entity.User;
 import vn_hcmute.Real_Time_Chat_Final.model.PostRequestDTO;
 import vn_hcmute.Real_Time_Chat_Final.model.PostResponseDTO;
 import vn_hcmute.Real_Time_Chat_Final.model.CommentDTO;
+import vn_hcmute.Real_Time_Chat_Final.repository.LikeRepository;
 import vn_hcmute.Real_Time_Chat_Final.repository.PostRepository;
 import vn_hcmute.Real_Time_Chat_Final.repository.UserRepository;
 
@@ -36,6 +35,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final PostMediaService postMediaService;
     private final UserRepository userRepository;
+    private final LikeRepository likeRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Value("${file.upload-dir}")
@@ -53,13 +53,9 @@ public class PostService {
                 .postMediaList(new ArrayList<>())
                 .build();
 
-// Log để kiểm tra imageUrls
-        System.out.println("Image URLs received: " + request.getImageUrls());
-
         if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
             for (int i = 0; i < request.getImageUrls().size(); i++) {
                 String imageUrl = request.getImageUrls().get(i);
-                System.out.println("Adding PostMedia with URL: " + imageUrl + ", displayOrder: " + (i + 1));
                 PostMedia postMedia = PostMedia.builder()
                         .post(post)
                         .mediaUrl(imageUrl)
@@ -68,22 +64,18 @@ public class PostService {
                         .build();
                 post.addPostMedia(postMedia);
             }
-        } else {
-            System.out.println("No image URLs provided in the request");
         }
 
         Post savedPost = postRepository.save(post);
-        System.out.println("Saved Post with ID: " + savedPost.getId() + ", PostMedia count: " + savedPost.getPostMediaList().size());
-
         messagingTemplate.convertAndSend("/topic/posts", "New post created: " + savedPost.getId());
-        return convertToDTO(savedPost);
+        return convertToDTO(savedPost, request.getUserId());
     }
 
-    public List<PostResponseDTO> getPosts(int page, int size) {
+    public List<PostResponseDTO> getPosts(int page, int size, Long userId) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Post> postPage = postRepository.findAllByOrderByCreatedAtDesc(pageable);
         return postPage.getContent().stream()
-                .map(this::convertToDTO)
+                .map(post -> convertToDTO(post, userId))
                 .collect(Collectors.toList());
     }
 
@@ -103,7 +95,7 @@ public class PostService {
                         Path filePath = Paths.get(uploadDir, fileName);
                         Files.createDirectories(filePath.getParent());
                         Files.write(filePath, file.getBytes());
-                        return "/uploads/" + fileName; // Trả về URL tương đối
+                        return "/uploads/" + fileName;
                     } catch (IOException e) {
                         throw new RuntimeException("Failed to upload file: " + file.getOriginalFilename(), e);
                     }
@@ -111,13 +103,15 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
-    private PostResponseDTO convertToDTO(Post post) {
+    private PostResponseDTO convertToDTO(Post post, Long userId) {
         PostResponseDTO dto = new PostResponseDTO();
         dto.setId(post.getId());
         dto.setUserId(post.getUser().getId());
         dto.setUsername(post.getUser().getUsername());
         dto.setAvatarUrl(post.getUser().getAvatarUrl());
         dto.setContent(post.getContent());
+        dto.setLikeCount((int) likeRepository.countByPostId(post.getId()));
+        dto.setLikedByUser(likeRepository.existsByPostIdAndUserId(post.getId(), userId));
 
         if (post.getPostMediaList() != null && !post.getPostMediaList().isEmpty()) {
             List<String> imageUrls = post.getPostMediaList().stream()
@@ -134,7 +128,6 @@ public class PostService {
 
         dto.setPrivacy(post.getPrivacy().toString());
         dto.setCreatedAt(post.getCreatedAt());
-        dto.setLikeCount(post.getLikes() != null ? post.getLikes().size() : 0);
 
         if (post.getComments() != null) {
             dto.setComments(post.getComments().stream()
@@ -156,6 +149,7 @@ public class PostService {
                                         replyDTO.setId(reply.getId());
                                         replyDTO.setUserId(reply.getUser().getId());
                                         replyDTO.setUsername(reply.getUser().getUsername());
+                                        replyDTO.setAvatarUrl(reply.getUser().getAvatarUrl());
                                         replyDTO.setContent(reply.getContent());
                                         replyDTO.setCreatedAt(reply.getCreatedAt());
                                         replyDTO.setParentCommentId(reply.getParentComment() != null ?

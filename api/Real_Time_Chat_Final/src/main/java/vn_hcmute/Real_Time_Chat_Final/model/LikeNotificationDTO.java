@@ -13,6 +13,8 @@ public class LikeNotificationDTO {
     private Long userId;
     private String username;
     private Timestamp createdAt;
+    private long likeCount;
+    private String action;
 
     public LikeNotificationDTO() {
     }
