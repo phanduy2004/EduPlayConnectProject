@@ -15,4 +15,7 @@
     <color name="green">#008000</color> <!-- Màu xanh -->
     <color name="my_primary">#EF6C00</color>
     <color name="grey">#898989</color>
+    <color name="like_button_liked">#FF3B82F6</color> <!-- Màu xanh dương khi đã Like -->
+    <color name="like_button_unliked">#FF6B7280</color> <!-- Màu xám khi chưa Like -->
+    <color name="like_button_color">@color/like_button_unliked</color> <!-- Màu mặc định -->
 </resources>

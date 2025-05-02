@@ -19,6 +19,16 @@ public class PostResponseDTO {
     private List<CommentDTO> comments;  // Danh sách bình luận
     private double score;               // Điểm số (dùng để sắp xếp bài đăng)
 
+    private Boolean isLikedByUser;      // Trạng thái: người dùng hiện tại đã thích bài viết chưa
+
+    public Boolean isLikedByUser() {
+        return isLikedByUser;
+    }
+
+    public void setLikedByUser(Boolean likedByUser) {
+        isLikedByUser = likedByUser;
+    }
+
     // Getter và Setter
     public Long getId() {
         return id;

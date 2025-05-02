@@ -42,8 +42,10 @@ public class PostController {
     @GetMapping("/posts")
     public List<PostResponseDTO> getPosts(
             @RequestParam("page") int page,
-            @RequestParam("size") int size) {
-        return postService.getPosts(page, size);
+            @RequestParam("size") int size,
+            @RequestParam("userId") Long userId) {
+        log.info("Fetching posts for userId: {}, page: {}, size: {}", userId, page, size);
+        return postService.getPosts(page, size, userId);
     }
 
     @PostMapping("/posts/upload")

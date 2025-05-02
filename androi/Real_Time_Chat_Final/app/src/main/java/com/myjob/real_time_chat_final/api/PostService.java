@@ -10,6 +10,7 @@ import com.myjob.real_time_chat_final.modelDTO.PostResponseDTO;
 import java.util.List;
 
 import okhttp3.MultipartBody;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.Field;
@@ -34,22 +35,23 @@ public interface PostService {
     @GET("api/posts")
     Call<List<PostResponseDTO>> getPosts(
             @Query("page") int page,
-            @Query("size") int size
+            @Query("size") int size,
+            @Query("userId") Long userId
     );
     // API để Like một bài đăng
     @POST("likes/post/{postId}/user/{userId}")
-    Call<Void> likePost(
+    Call<ResponseBody> likePost(
             @Path("postId") Long postId,
             @Path("userId") Long userId
     );
 
     // API để tạo bình luận
-    @POST("comments/post/{postId}/user/{userId}")
+   /* @POST("comments/post/{postId}/user/{userId}")
     @FormUrlEncoded
     Call<PostResponseDTO> createComment(
             @Path("postId") Long postId,
             @Path("userId") Long userId,
             @Field("content") String content,
             @Field("parentCommentId") Long parentCommentId
-    );
+    );*/
 }

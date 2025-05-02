@@ -1,15 +1,14 @@
 package vn_hcmute.Real_Time_Chat_Final.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import vn_hcmute.Real_Time_Chat_Final.entity.Post.Privacy;
 import vn_hcmute.Real_Time_Chat_Final.entity.PostMedia;
 
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
-
+@Getter
+@Setter
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,7 +23,8 @@ public class PostResponseDTO {
     private Date createdAt;             // Thời gian tạo bài đăng
     private int likeCount;              // Số lượt thích
     private List<CommentDTO> comments;  // Danh sách bình luận
-    private double score;
+    private double score;               // Điểm bài viết
+    private boolean isLikedByUser;      // Trạng thái: người dùng hiện tại đã thích bài viết chưa
 
 
 }

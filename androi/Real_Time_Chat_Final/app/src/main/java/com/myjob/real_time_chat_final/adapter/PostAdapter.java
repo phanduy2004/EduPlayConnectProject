@@ -10,6 +10,8 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.FragmentManager;
@@ -33,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder> {
 
@@ -218,7 +221,11 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         int commentCount = (post.getComments() != null) ? post.getComments().size() : 0;
         holder.commentCountTextView.setText(commentCount + " Bình luận");
         Log.d(TAG, "Bài viết " + post.getId() + " có " + commentCount + " bình luận");
-
+        // Cập nhật trạng thái nút Like
+        boolean isLikedByUser = post.isLikedByUser() != null && post.isLikedByUser();
+        holder.likeButton.setText(isLikedByUser ? "Unlike" : "Like");
+        holder.likeButton.setTextColor(holder.itemView.getContext().getResources().getColor(
+                isLikedByUser ? R.color.like_button_liked : R.color.like_button_unliked));
         // Comment recycler view
         if (holder.commentAdapter == null) {
             holder.commentAdapter = new CommentAdapter(commentInteractionListener);
@@ -235,10 +242,15 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
 
         // Xử lý sự kiện
         holder.commentSendButton.setOnClickListener(v -> {
+            Log.d(TAG, "Nút gửi bình luận được nhấn cho bài viết: id=" + post.getId());
             String commentContent = holder.commentInput.getText().toString().trim();
             if (!commentContent.isEmpty()) {
+                Log.d(TAG, "Gửi bình luận: nội dung=" + commentContent + ", postId=" + post.getId());
                 commentClickListener.onCommentClick(post, commentContent, null);
                 holder.commentInput.setText("");
+            } else {
+                Log.d(TAG, "Nội dung bình luận trống, không gửi");
+                Toast.makeText(holder.itemView.getContext(), "Vui lòng nhập nội dung bình luận", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -285,7 +297,11 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     }
 
     public void addNewPost(PostResponseDTO newPost) {
-        Log.d(TAG, "Adding new post: id=" + newPost.getId());
+        Log.d(TAG, "Thêm bài viết mới: id=" + newPost.getId() + ", nội dung=" + newPost.getContent());
+        if (newPost.getId() == null) {
+            Log.e(TAG, "Bài viết mới có ID null, bỏ qua việc thêm");
+            return;
+        }
         List<PostResponseDTO> newList = new ArrayList<>();
         newList.add(newPost);
         newList.addAll(postList);
@@ -294,6 +310,8 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         postList.clear();
         postList.addAll(newList);
         diffResult.dispatchUpdatesTo(this);
+        Log.d(TAG, "Kích thước danh sách bài viết sau khi thêm: " + postList.size() + ", danh sách id: " +
+                postList.stream().map(p -> String.valueOf(p.getId())).collect(Collectors.joining(", ")));
     }
 
     public void addOlderPosts(List<PostResponseDTO> olderPosts) {

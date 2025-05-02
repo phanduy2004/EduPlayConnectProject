@@ -86,6 +86,7 @@ import java.util.stream.Collectors;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -240,32 +241,42 @@ public class NewsFeedActivity extends AppCompatActivity {
             ExecutorService executor = Executors.newSingleThreadExecutor();
             executor.execute(() -> {
                 try {
-                    Gson gson = new Gson();
+                    Gson gson = new GsonBuilder()
+                            .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                            .create();
                     LikeNotificationDTO notification = gson.fromJson(message, LikeNotificationDTO.class);
-                    if (notification.getPostId() == null) {
-                        Log.w("NewsFeedActivity", "Thông báo lượt thích không hợp lệ: " + message);
+                    if (notification.getPostId() == null || notification.getAction() == null) {
+                        Log.w("NewsFeedActivity", "Invalid like notification: " + message);
                         return;
                     }
                     runOnUiThread(() -> {
                         for (int i = 0; i < postList.size(); i++) {
                             PostResponseDTO post = postList.get(i);
-                            if (post.getId().equals(notification.getPostId())) {
-                                if (post.getLikeCount() == 0) {
-                                    post.setLikeCount(0);
+                            if (post.getId() != null && post.getId().equals(notification.getPostId())) {
+                                int currentLikeCount = post.getLikeCount() != 0 ? post.getLikeCount() : 0;
+                                if (notification.getAction().equals("LIKED")) {
+                                    post.setLikeCount(currentLikeCount + 1);
+                                    if (notification.getUserId().equals((long) userid)) {
+                                        post.setLikedByUser(true);
+                                    }
+                                } else if (notification.getAction().equals("UNLIKED")) {
+                                    post.setLikeCount(Math.max(0, currentLikeCount - 1));
+                                    if (notification.getUserId().equals((long) userid)) {
+                                        post.setLikedByUser(false);
+                                    }
                                 }
-                                post.setLikeCount(post.getLikeCount() + 1);
                                 post.setScore(calculatePostScore(post));
                                 postAdapter.notifyItemChanged(i);
-                                Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " đã thích bài viết", Toast.LENGTH_SHORT).show();
+                                if (!notification.getUserId().equals((long) userid)) {
+                                    Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " " +
+                                            (notification.getAction().equals("LIKED") ? "liked" : "unliked") + " the post", Toast.LENGTH_SHORT).show();
+                                }
                                 break;
                             }
                         }
-                        if (!postList.stream().anyMatch(p -> p.getId().equals(notification.getPostId()))) {
-                            Log.w("NewsFeedActivity", "Không tìm thấy bài viết cho thông báo lượt thích: " + notification.getPostId());
-                        }
                     });
                 } catch (Exception e) {
-                    Log.e("NewsFeedActivity", "Lỗi phân tích thông báo lượt thích: " + e.getMessage(), e);
+                    Log.e("NewsFeedActivity", "Error parsing like notification: " + message, e);
                 } finally {
                     executor.shutdown();
                 }
@@ -348,6 +359,7 @@ public class NewsFeedActivity extends AppCompatActivity {
                     }
                 },currentUserAvatarUrl
         );
+        postAdapter.updatePosts(postList);
         postsRecyclerView.setAdapter(postAdapter);
 
         postsRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
@@ -447,23 +459,44 @@ public class NewsFeedActivity extends AppCompatActivity {
         }
 
         progressDialog.show();
-        postApiService.likePost(post.getId(), (long) userid).enqueue(new Callback<Void>() {
+        postApiService.likePost(post.getId(), (long) userid).enqueue(new Callback<ResponseBody>() {
             @Override
-            public void onResponse(Call<Void> call, Response<Void> response) {
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 progressDialog.dismiss();
-                if (response.isSuccessful()) {
-                    Log.d("NewsFeedActivity", "Successfully liked post: " + post.getId());
+                if (response.isSuccessful() && response.body() != null) {
+                    try {
+                        String status = response.body().string().trim();
+                        Log.d("NewsFeedActivity", "Like status for post " + post.getId() + ": " + status);
+                        for (int i = 0; i < postList.size(); i++) {
+                            if (postList.get(i).getId().equals(post.getId())) {
+                                PostResponseDTO targetPost = postList.get(i);
+                                if (status.equals("LIKED")) {
+                                    targetPost.setLikedByUser(true);
+                                    targetPost.setLikeCount(targetPost.getLikeCount() != 0 ? targetPost.getLikeCount() + 1 : 1);
+                                } else if (status.equals("UNLIKED")) {
+                                    targetPost.setLikedByUser(false);
+                                    targetPost.setLikeCount(targetPost.getLikeCount() != 0 ? Math.max(0, targetPost.getLikeCount() - 1) : 0);
+                                }
+                                targetPost.setScore(calculatePostScore(targetPost));
+                                postAdapter.notifyItemChanged(i);
+                                break;
+                            }
+                        }
+                    } catch (IOException e) {
+                        Log.e("NewsFeedActivity", "Error reading response body: " + e.getMessage(), e);
+                        Toast.makeText(NewsFeedActivity.this, "Error processing like", Toast.LENGTH_SHORT).show();
+                    }
                 } else {
                     Log.e("NewsFeedActivity", "Failed to like post: " + post.getId() + ", code: " + response.code() + ", message: " + response.message());
-                    Toast.makeText(NewsFeedActivity.this, "Failed to like post: " + response.message(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NewsFeedActivity.this, "Failed to like post", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
-            public void onFailure(Call<Void> call, Throwable t) {
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
                 progressDialog.dismiss();
                 Log.e("NewsFeedActivity", "Error liking post: " + post.getId() + ", message: " + t.getMessage(), t);
-                Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(NewsFeedActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -474,7 +507,7 @@ public class NewsFeedActivity extends AppCompatActivity {
             return;
         }
 
-        progressDialog.show();
+
         CommentRequestDTO request = new CommentRequestDTO();
         request.setPostId(post.getId());
         request.setUserId((long) userid);
@@ -484,7 +517,6 @@ public class NewsFeedActivity extends AppCompatActivity {
         commentApiService.createComment(request).enqueue(new Callback<CommentDTO>() {
             @Override
             public void onResponse(Call<CommentDTO> call, Response<CommentDTO> response) {
-                progressDialog.dismiss();
                 if (response.isSuccessful() && response.body() != null) {
                     CommentDTO newComment = response.body();
                     Log.d("NewsFeedActivity", "Successfully commented on post: postId=" + post.getId() + ", commentId=" + newComment.getId());
@@ -534,7 +566,6 @@ public class NewsFeedActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<CommentDTO> call, Throwable t) {
-                progressDialog.dismiss();
                 Log.e("NewsFeedActivity", "Error posting comment on post: postId=" + post.getId() + ", message: " + t.getMessage(), t);
                 Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
@@ -597,15 +628,33 @@ public class NewsFeedActivity extends AppCompatActivity {
     private double calculatePostScore(PostResponseDTO post) {
         long currentTime = System.currentTimeMillis();
         long createdAt = post.getCreatedAt().getTime();
+        long timeDiff = currentTime - createdAt;
 
-        double timeScore = 1.0 / (1 + (currentTime - createdAt) / (1000 * 60 * 60));
-        double likes = post.getLikeCount();
+        // Tính timeScore cơ bản
+        double timeScore = 1.0 / (1 + timeDiff / (1000.0 * 60 * 60));
+
+        // Thêm boost cho bài đăng trong 5 phút đầu (300.000 ms)
+        double boostScore = 0.0;
+        if (timeDiff <= 300_000) { // 5 phút = 300.000 ms
+            boostScore = 100.0; // Điểm thưởng lớn để ưu tiên bài đăng mới
+            Log.d("NewsFeedActivity", "Áp dụng boost cho bài đăng mới: id=" + post.getId() + ", timeDiff=" + timeDiff + "ms");
+        }
+
+        // Tính engagementScore
+        double likes = post.getLikeCount() != 0 ? post.getLikeCount() : 0;
         double comments = (post.getComments() != null) ? post.getComments().size() : 0;
-        double shares = 0;
+        double shares = 0; // Hiện tại shares = 0
         double engagementScore = (likes * 0.4) + (comments * 0.4) + (shares * 0.2);
+
+        // Điểm affinity (giữ nguyên)
         double affinityScore = 0.1;
 
-        return (timeScore * 0.3) + (engagementScore * 0.5) + (affinityScore * 0.2);
+        // Tổng điểm: tăng trọng số timeScore và thêm boostScore
+        double totalScore = (timeScore * 0.3) + (engagementScore * 0.5) + (affinityScore * 0.2) + boostScore;
+
+        Log.d("NewsFeedActivity", "Tính điểm bài đăng: id=" + post.getId() + ", totalScore=" + totalScore +
+                ", timeScore=" + timeScore + ", boostScore=" + boostScore + ", engagementScore=" + engagementScore);
+        return totalScore;
     }
 
     private void sortPostsByScore() {
@@ -848,7 +897,6 @@ public class NewsFeedActivity extends AppCompatActivity {
                     return;
                 }
 
-                progressDialog.show();
                 if (selectedImageUris != null && !selectedImageUris.isEmpty()) {
                     Log.e("sai","dd");
                     uploadImagesForPost(content, mappedPrivacy, currentUser, dialog);
@@ -873,7 +921,7 @@ public class NewsFeedActivity extends AppCompatActivity {
 
     private void uploadImagesForPost(String postContent, String selectedPrivacy, User currentUser, Dialog dialog) {
         if (!isNetworkAvailable()) {
-            progressDialog.dismiss();
+
             Toast.makeText(this, "No network connection", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -894,7 +942,7 @@ public class NewsFeedActivity extends AppCompatActivity {
         }
 
         if (imageParts.isEmpty()) {
-            progressDialog.dismiss();
+
             if (uploadProgress != null) {
                 uploadProgress.setVisibility(View.GONE);
             }
@@ -906,7 +954,6 @@ public class NewsFeedActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<List<ImageResponse>> call, Response<List<ImageResponse>> response) {
                 Log.d("NewsFeedActivity", "Request URL: " + call.request().url());
-                progressDialog.dismiss();
                 if (uploadProgress != null) {
                     uploadProgress.setVisibility(View.GONE);
                 }
@@ -941,7 +988,7 @@ public class NewsFeedActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<List<ImageResponse>> call, Throwable t) {
                 Log.e("NewsFeedActivity", "Error uploading images, URL: " + call.request().url() + ", message: " + t.getMessage(), t);
-                progressDialog.dismiss();
+
                 if (uploadProgress != null) {
                     uploadProgress.setVisibility(View.GONE);
                 }
@@ -973,7 +1020,7 @@ public class NewsFeedActivity extends AppCompatActivity {
                 if (uploadProgress != null) {
                     uploadProgress.setVisibility(View.GONE);
                 }
-                progressDialog.dismiss();
+
                 if (hasError[0] && imageUrls.isEmpty()) {
                     Toast.makeText(NewsFeedActivity.this, "Failed to upload images. Please try again.", Toast.LENGTH_LONG).show();
                 } else {
@@ -990,7 +1037,7 @@ public class NewsFeedActivity extends AppCompatActivity {
 
     private void createPost(PostRequestDTO request, Dialog dialog) {
         if (!isNetworkAvailable()) {
-            progressDialog.dismiss();
+
             ProgressBar uploadProgress = dialog.findViewById(R.id.upload_progress);
             if (uploadProgress != null) {
                 uploadProgress.setVisibility(View.GONE);
@@ -1009,7 +1056,15 @@ public class NewsFeedActivity extends AppCompatActivity {
                 }
                 if (response.isSuccessful() && response.body() != null) {
                     PostResponseDTO newPost = response.body();
-                    // Khởi tạo các trường nếu null
+                    Log.d("NewsFeedActivity", "Bài viết mới được tạo: id=" + newPost.getId() + ", nội dung=" + newPost.getContent() +
+                            ", danh sách ảnh=" + newPost.getImageUrl() + ", bình luận=" + newPost.getComments() +
+                            ", lượt thích=" + newPost.getLikeCount());
+                    if (newPost.getId() == null) {
+                        Log.e("NewsFeedActivity", "Bài viết mới có ID null!");
+                        Toast.makeText(NewsFeedActivity.this, "Lỗi: Thiếu ID bài viết", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    // Khởi tạo các trường
                     if (newPost.getComments() == null) {
                         newPost.setComments(new ArrayList<>());
                     }
@@ -1020,7 +1075,10 @@ public class NewsFeedActivity extends AppCompatActivity {
                         newPost.setImageUrl(new ArrayList<>());
                     }
                     newPost.setScore(calculatePostScore(newPost));
+                    postList.add(0, newPost); // Thêm vào postList
                     postAdapter.addNewPost(newPost);
+                    Log.d("NewsFeedActivity", "Danh sách bài viết sau khi thêm: " +
+                            postList.stream().map(p -> String.valueOf(p.getId())).collect(Collectors.joining(", ")));
                     postsRecyclerView.scrollToPosition(0);
                     dialog.dismiss();
                     createPostDialog = null;
@@ -1036,13 +1094,7 @@ public class NewsFeedActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<PostResponseDTO> call, Throwable t) {
-                progressDialog.dismiss();
-                ProgressBar uploadProgress = dialog.findViewById(R.id.upload_progress);
-                if (uploadProgress != null) {
-                    uploadProgress.setVisibility(View.GONE);
-                }
-                Log.e("NewsFeedActivity", "Lỗi tạo bài đăng: " + t.getMessage(), t);
-                Toast.makeText(NewsFeedActivity.this, "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+
             }
         });
     }
@@ -1108,29 +1160,15 @@ public class NewsFeedActivity extends AppCompatActivity {
             return;
         }
 
-        Log.d("NewsFeedActivity", "Loading posts, page: " + currentPage);
         isLoading = true;
-        postApiService.getPosts(currentPage, PAGE_SIZE).enqueue(new Callback<List<PostResponseDTO>>() {
+        postApiService.getPosts(currentPage, PAGE_SIZE, (long) userid).enqueue(new Callback<List<PostResponseDTO>>() {
             @Override
             public void onResponse(Call<List<PostResponseDTO>> call, Response<List<PostResponseDTO>> response) {
                 isLoading = false;
                 if (response.isSuccessful() && response.body() != null) {
-                    Log.d("NewsFeedActivity", "Posts loaded, size: " + response.body().size());
                     postList.addAll(response.body());
                     for (PostResponseDTO post : postList) {
                         post.setScore(calculatePostScore(post));
-                        Log.d("NewsFeedActivity", "Post " + post.getId() + " avatarUrl: " + post.getAvatarUrl());
-                        Log.d("NewsFeedActivity", "Post " + post.getId() + " imageUrl: " + post.getImageUrl());
-                        if (post.getAvatarUrl() != null && !post.getAvatarUrl().contains("/uploads/")) {
-                            Log.w("NewsFeedActivity", "Invalid avatar URL for post " + post.getId() + ": " + post.getAvatarUrl());
-                        }
-                        if (post.getImageUrl() != null) {
-                            for (String imageUrl : post.getImageUrl()) {
-                                if (!imageUrl.contains("/uploads/")) {
-                                    Log.w("NewsFeedActivity", "Invalid image URL for post " + post.getId() + ": " + imageUrl);
-                                }
-                            }
-                        }
                     }
                     sortPostsByScore();
                     postAdapter.updatePosts(postList);
@@ -1145,7 +1183,7 @@ public class NewsFeedActivity extends AppCompatActivity {
             public void onFailure(Call<List<PostResponseDTO>> call, Throwable t) {
                 isLoading = false;
                 Log.e("NewsFeedActivity", "Error loading posts: " + t.getMessage());
-                Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(NewsFeedActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -1156,14 +1194,12 @@ public class NewsFeedActivity extends AppCompatActivity {
             return;
         }
 
-        Log.d("NewsFeedActivity", "Loading more posts, page: " + currentPage);
         isLoading = true;
-        postApiService.getPosts(currentPage, PAGE_SIZE).enqueue(new Callback<List<PostResponseDTO>>() {
+        postApiService.getPosts(currentPage, PAGE_SIZE, (long) userid).enqueue(new Callback<List<PostResponseDTO>>() {
             @Override
             public void onResponse(Call<List<PostResponseDTO>> call, Response<List<PostResponseDTO>> response) {
                 isLoading = false;
                 if (response.isSuccessful() && response.body() != null) {
-                    Log.d("NewsFeedActivity", "More posts loaded, size: " + response.body().size());
                     postList.addAll(response.body());
                     for (PostResponseDTO post : response.body()) {
                         post.setScore(calculatePostScore(post));
@@ -1178,7 +1214,7 @@ public class NewsFeedActivity extends AppCompatActivity {
             public void onFailure(Call<List<PostResponseDTO>> call, Throwable t) {
                 isLoading = false;
                 Log.e("NewsFeedActivity", "Error loading more posts: " + t.getMessage());
-                Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(NewsFeedActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -1196,13 +1232,11 @@ public class NewsFeedActivity extends AppCompatActivity {
             return;
         }
 
-        Log.d("NewsFeedActivity", "Loading older posts, page: " + olderPage);
-        postApiService.getPosts(olderPage, PAGE_SIZE).enqueue(new Callback<List<PostResponseDTO>>() {
+        postApiService.getPosts(olderPage, PAGE_SIZE, (long) userid).enqueue(new Callback<List<PostResponseDTO>>() {
             @Override
             public void onResponse(Call<List<PostResponseDTO>> call, Response<List<PostResponseDTO>> response) {
                 isLoadingOlderPosts = false;
                 if (response.isSuccessful() && response.body() != null) {
-                    Log.d("NewsFeedActivity", "Older posts loaded, size: " + response.body().size());
                     postList.addAll(0, response.body());
                     for (PostResponseDTO post : response.body()) {
                         post.setScore(calculatePostScore(post));
@@ -1217,7 +1251,7 @@ public class NewsFeedActivity extends AppCompatActivity {
             public void onFailure(Call<List<PostResponseDTO>> call, Throwable t) {
                 isLoadingOlderPosts = false;
                 Log.e("NewsFeedActivity", "Error loading older posts: " + t.getMessage());
-                Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(NewsFeedActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -1225,6 +1259,5 @@ public class NewsFeedActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        webSocketManager.disconnect();
     }
 }

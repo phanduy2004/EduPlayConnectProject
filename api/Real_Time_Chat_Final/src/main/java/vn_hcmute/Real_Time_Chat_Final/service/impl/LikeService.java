@@ -1,6 +1,5 @@
 package vn_hcmute.Real_Time_Chat_Final.service.impl;
 
-
 import vn_hcmute.Real_Time_Chat_Final.entity.Like;
 import vn_hcmute.Real_Time_Chat_Final.entity.Post;
 import vn_hcmute.Real_Time_Chat_Final.entity.User;
@@ -29,31 +28,35 @@ public class LikeService {
     private SimpMessagingTemplate messagingTemplate;
 
     @Transactional
-    public void likePost(Long postId, Long userId) {
+    public String likePost(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
-        // Kiểm tra xem người dùng đã like bài đăng chưa
-        if (likeRepository.existsByPostIdAndUserId(postId, userId)) {
-            // Nếu đã like, thì bỏ like
+        boolean isLiked = likeRepository.existsByPostIdAndUserId(postId, userId);
+        LikeNotificationDTO notification = new LikeNotificationDTO();
+        notification.setPostId(postId);
+        notification.setUserId(userId);
+        notification.setUsername(user.getUsername());
+
+        if (isLiked) {
             likeRepository.deleteByPostIdAndUserId(postId, userId);
+            notification.setLikeCount((int) likeRepository.countByPostId(postId));
+            notification.setAction("UNLIKED");
+            messagingTemplate.convertAndSend("/topic/likes", notification);
+            return "UNLIKED";
         } else {
-            // Nếu chưa like, thì thêm like
             Like like = Like.builder()
                     .post(post)
                     .user(user)
                     .build();
             likeRepository.save(like);
-
-            // Gửi thông báo qua WebSocket
-            LikeNotificationDTO notification = new LikeNotificationDTO();
-            notification.setPostId(postId);
-            notification.setUserId(userId);
-            notification.setUsername(user.getUsername());
+            notification.setLikeCount((int) likeRepository.countByPostId(postId));
+            notification.setAction("LIKED");
             notification.setCreatedAt(like.getCreatedAt());
             messagingTemplate.convertAndSend("/topic/likes", notification);
+            return "LIKED";
         }
     }
 }

@@ -184,8 +184,8 @@ public class FriendListActivity extends AppCompatActivity implements FriendReque
                 Intent intent = new Intent(FriendListActivity.this, UserActivity.class);
                 startActivity(intent);
                 return true;
-            } else if (itemId == R.id.nav_findRoom) {
-                Intent intent = new Intent(FriendListActivity.this, JoinRoomActivity.class);
+            } else if (itemId == R.id.nav_newsfeed) {
+                Intent intent = new Intent(FriendListActivity.this, NewsFeedActivity.class);
                 startActivity(intent);
                 return true;
             } else if (itemId == R.id.nav_chatmessage) {

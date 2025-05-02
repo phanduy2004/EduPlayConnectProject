@@ -1,6 +1,7 @@
 package vn_hcmute.Real_Time_Chat_Final.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import vn_hcmute.Real_Time_Chat_Final.service.impl.LikeService;
 
@@ -11,8 +12,8 @@ public class LikeController {
     @Autowired
     private LikeService likeService;
 
-    @PostMapping("/post/{postId}/user/{userId}")
-    public void likePost(@PathVariable Long postId, @PathVariable Long userId) {
-        likeService.likePost(postId, userId);
+    @PostMapping(value = "/post/{postId}/user/{userId}", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String likePost(@PathVariable Long postId, @PathVariable Long userId) {
+        return likeService.likePost(postId, userId);
     }
 }

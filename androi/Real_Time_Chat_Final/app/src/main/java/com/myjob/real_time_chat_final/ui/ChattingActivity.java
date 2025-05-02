@@ -158,6 +158,5 @@ public class ChattingActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        webSocketManager.disconnect();
     }
 }

@@ -7,6 +7,15 @@ public class LikeNotificationDTO {
     private Long userId;
     private String username;
     private String avatarUrl; // Thêm trường này
+    private String action;
+
+    public String getAction() {
+        return action;
+    }
+
+    public void setAction(String action) {
+        this.action = action;
+    }
 
     private Timestamp createdAt;
 

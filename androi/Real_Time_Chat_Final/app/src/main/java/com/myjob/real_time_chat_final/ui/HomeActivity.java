@@ -53,7 +53,7 @@ public class HomeActivity extends AppCompatActivity {
                     startActivity(intent);
                     return true;
                 }
-                else if(item.getItemId()== R.id.nav_findRoom){
+                else if(item.getItemId()== R.id.nav_newsfeed){
                     Intent intent = new Intent(HomeActivity.this, NewsFeedActivity.class);
                     intent.putExtra("USER_ID", userid); // Gửi userId sang MessListActivity
                     startActivity(intent);
