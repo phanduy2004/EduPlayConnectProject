@@ -61,4 +61,8 @@ dependencies {
     implementation ("de.hdodenhof:circleimageview:3.1.0") // Phiên bản mới nhất
     implementation ("androidx.activity:activity:1.8.0") // Cho Activity Result API
 
+    //Media3
+    implementation ("androidx.media3:media3-exoplayer:1.2.0")
+    implementation ("androidx.media3:media3-exoplayer-dash:1.2.0")
+    implementation ("androidx.media3:media3-ui:1.2.0")
 }

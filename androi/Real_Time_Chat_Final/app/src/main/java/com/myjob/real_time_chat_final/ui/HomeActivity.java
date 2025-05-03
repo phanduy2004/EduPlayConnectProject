@@ -14,7 +14,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.myjob.real_time_chat_final.R;
 
 public class HomeActivity extends AppCompatActivity {
-    ImageButton alphabet, math, qizz, dictionary;
+    ImageButton alphabet, math, qizz, dictionary,topic;
     private final int userid = LoginActivity.userid;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +31,7 @@ public class HomeActivity extends AppCompatActivity {
         math = findViewById(R.id.mathBtn);
         qizz = findViewById(R.id.quizzBtn);
         dictionary = findViewById(R.id.dictionaryBtn);
+        topic = findViewById(R.id.topicStudy);
         BottomNavigationView bottomNavigationView = findViewById(R.id.navBar);
         // Xử lý sự kiện click vào item trên BottomNavigationView
         bottomNavigationView.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
@@ -61,6 +62,7 @@ public class HomeActivity extends AppCompatActivity {
                     startActivity(intent);
                     return true;
                 }
+
                 else
                     return false;
             }
@@ -82,5 +84,10 @@ public class HomeActivity extends AppCompatActivity {
             Intent intent = new Intent(HomeActivity.this, DictionaryActivity.class);
             startActivity(intent);
         });
+        topic.setOnClickListener(v->{
+            Intent intent = new Intent(HomeActivity.this, TopicStudyActivity.class);
+            startActivity(intent);
+        });
+
     }
 }
