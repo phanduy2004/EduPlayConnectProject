@@ -4,6 +4,7 @@ import android.os.IInterface;
 
 import com.myjob.real_time_chat_final.model.ImageResponse;
 import com.myjob.real_time_chat_final.model.Post;
+import com.myjob.real_time_chat_final.modelDTO.NotificationDTO;
 import com.myjob.real_time_chat_final.modelDTO.PostRequestDTO;
 import com.myjob.real_time_chat_final.modelDTO.PostResponseDTO;
 
@@ -44,6 +45,18 @@ public interface PostService {
             @Path("postId") Long postId,
             @Path("userId") Long userId
     );
+    @GET("api/notifications")
+    Call<List<NotificationDTO>> getNotifications(
+            @Query("userId") Long userId,
+            @Query("page") int page,
+            @Query("size") int size
+    );
+
+    @POST("api/notifications/create")
+    Call<NotificationDTO> createNotification(@Body NotificationDTO notificationDTO);
+
+    @POST("api/notifications/mark-all-read")
+    Call<Void> markAllNotificationsAsRead(@Query("userId") long userId);
 
     // API để tạo bình luận
    /* @POST("comments/post/{postId}/user/{userId}")

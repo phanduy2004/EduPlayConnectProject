@@ -222,7 +222,8 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         holder.commentCountTextView.setText(commentCount + " Bình luận");
         Log.d(TAG, "Bài viết " + post.getId() + " có " + commentCount + " bình luận");
         // Cập nhật trạng thái nút Like
-        boolean isLikedByUser = post.isLikedByUser() != null && post.isLikedByUser();
+        boolean isLikedByUser = post.isLikedByUser();
+        Log.d(TAG, "HELLO" + isLikedByUser);
         holder.likeButton.setText(isLikedByUser ? "Unlike" : "Like");
         holder.likeButton.setTextColor(holder.itemView.getContext().getResources().getColor(
                 isLikedByUser ? R.color.like_button_liked : R.color.like_button_unliked));
@@ -415,7 +416,8 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             return oldPost.getLikeCount() == newPost.getLikeCount() &&
                     (oldPost.getComments() != null ? oldPost.getComments().size() : 0) ==
                             (newPost.getComments() != null ? newPost.getComments().size() : 0) &&
-                    oldPost.getContent().equals(newPost.getContent());
+                    oldPost.getContent().equals(newPost.getContent()) &&
+                    oldPost.isLikedByUser() == newPost.isLikedByUser();
         }
     }
 }

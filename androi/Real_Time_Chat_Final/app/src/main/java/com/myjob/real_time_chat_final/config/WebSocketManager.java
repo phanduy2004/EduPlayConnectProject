@@ -35,7 +35,7 @@ public class WebSocketManager {
     }
 
     private void initWebSocket() {
-        stompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://http://10.0.2.2:8686/ws/websocket");
+        stompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://10.0.2.2:8686/ws/websocket");
         compositeDisposable.add(stompClient.lifecycle()
                 .subscribe(lifecycleEvent -> {
                     switch (lifecycleEvent.getType()) {

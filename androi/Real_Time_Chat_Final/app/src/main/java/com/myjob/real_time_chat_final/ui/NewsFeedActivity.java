@@ -18,6 +18,7 @@ import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -54,10 +55,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.myjob.real_time_chat_final.OnCommentInteractionListener;
 import com.myjob.real_time_chat_final.R;
+import com.myjob.real_time_chat_final.adapter.NotificationAdapter;
 import com.myjob.real_time_chat_final.adapter.PostAdapter;
 import com.myjob.real_time_chat_final.adapter.SelectedImagesAdapter;
 import com.myjob.real_time_chat_final.adapter.StoryAdapter;
-
 import com.myjob.real_time_chat_final.api.CommentService;
 import com.myjob.real_time_chat_final.api.PostService;
 import com.myjob.real_time_chat_final.api.UserService;
@@ -66,16 +67,15 @@ import com.myjob.real_time_chat_final.model.ImageResponse;
 import com.myjob.real_time_chat_final.model.Story;
 import com.myjob.real_time_chat_final.model.User;
 import com.myjob.real_time_chat_final.modelDTO.CommentDTO;
-import com.myjob.real_time_chat_final.modelDTO.CommentNotificationDTO;
 import com.myjob.real_time_chat_final.modelDTO.CommentRequestDTO;
 import com.myjob.real_time_chat_final.modelDTO.LikeNotificationDTO;
+import com.myjob.real_time_chat_final.modelDTO.NotificationDTO;
 import com.myjob.real_time_chat_final.modelDTO.PostRequestDTO;
 import com.myjob.real_time_chat_final.modelDTO.PostResponseDTO;
 import com.myjob.real_time_chat_final.retrofit.RetrofitClient;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -97,13 +97,12 @@ public class NewsFeedActivity extends AppCompatActivity {
     private RecyclerView postsRecyclerView;
     private PostAdapter postAdapter;
     private List<PostResponseDTO> postList;
-    private Dialog createPostDialog; // Biến để lưu trữ dialog tạo bài post
+    private Dialog createPostDialog;
     private RecyclerView storiesRecyclerView;
     private StoryAdapter storyAdapter;
     private List<Story> storyList;
     private List<Uri> selectedImageUris;
     private ActivityResultLauncher<Intent> imagePickerLauncher;
-    private ImageView selectedImagePreview;
     private int userid = LoginActivity.userid;
     private Button statusInput;
     private WebSocketManager webSocketManager;
@@ -113,7 +112,11 @@ public class NewsFeedActivity extends AppCompatActivity {
     private UserService userService;
     private User currentUser;
     private ImageView userAvatar;
-
+    private TextView notificationBadge;
+    private ImageButton notificationIcon;
+    private List<NotificationDTO> notifications = new ArrayList<>();
+    private NotificationAdapter notificationAdapter;
+    private Dialog notificationDialog;
     private int currentPage = 0;
     private int minPage = 0;
     private final int PAGE_SIZE = 10;
@@ -135,6 +138,10 @@ public class NewsFeedActivity extends AppCompatActivity {
             return insets;
         });
 
+        notificationIcon = findViewById(R.id.notification_icon);
+        notificationBadge = findViewById(R.id.notification_badge);
+        notificationIcon.setOnClickListener(v -> showNotificationDialog());
+
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Processing...");
         progressDialog.setCancelable(false);
@@ -146,7 +153,53 @@ public class NewsFeedActivity extends AppCompatActivity {
         webSocketManager = WebSocketManager.getInstance();
         webSocketManager.connect();
 
-        // Lắng nghe thông báo bình luận
+        // Subscribe to notifications
+        webSocketManager.subscribeToTopic("/topic/notifications/" + userid, message -> {
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            executor.execute(() -> {
+                try {
+                    Log.d("NewsFeedActivity", "Received WebSocket notification: " + message);
+                    Gson gson = new GsonBuilder()
+                            .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                            .create();
+                    NotificationDTO notification = gson.fromJson(message, NotificationDTO.class);
+
+                    // Validate notification
+                    if (notification.getUserId() == null || notification.getType() == null || notification.getContent() == null) {
+                        Log.w("NewsFeedActivity", "Invalid notification: " + message);
+                        return;
+                    }
+
+                    // Ignore notifications from self
+                    if (notification.getActorId() != null && notification.getActorId().equals((long) userid)) {
+                        Log.d("NewsFeedActivity", "Ignoring self-notification: " + notification.getContent());
+                        return;
+                    }
+
+                    runOnUiThread(() -> {
+                        // Add notification to list (newest first)
+                        notifications.add(0, notification);
+                        // Update badge if unread
+                        if (!notification.isRead()) {
+                            int unreadCount = getUnreadCount();
+                            updateNotificationBadge(unreadCount);
+                            Toast.makeText(NewsFeedActivity.this, notification.getContent(), Toast.LENGTH_SHORT).show();
+                        }
+                        // Update dialog if open
+                        if (notificationDialog != null && notificationDialog.isShowing() && notificationAdapter != null) {
+                            notificationAdapter.updateNotifications(notifications);
+                        }
+                    });
+                } catch (Exception e) {
+                    Log.e("NewsFeedActivity", "Error parsing notification: " + message, e);
+                    runOnUiThread(() -> Toast.makeText(NewsFeedActivity.this, "Error processing notification", Toast.LENGTH_SHORT).show());
+                } finally {
+                    executor.shutdown();
+                }
+            });
+        });
+
+        // Subscribe to comments
         webSocketManager.subscribeToTopic("/topic/comments", message -> {
             ExecutorService executor = Executors.newSingleThreadExecutor();
             executor.execute(() -> {
@@ -157,7 +210,6 @@ public class NewsFeedActivity extends AppCompatActivity {
                             .create();
                     CommentDTO notification = gson.fromJson(message, CommentDTO.class);
 
-                    // Kiểm tra dữ liệu nhận được
                     if (notification.getPostId() == null) {
                         Log.w("NewsFeedActivity", "Invalid comment notification: Missing postId: " + message);
                         return;
@@ -179,7 +231,6 @@ public class NewsFeedActivity extends AppCompatActivity {
                         return;
                     }
 
-                    // Khởi tạo replies để tránh null
                     if (notification.getReplies() == null) {
                         notification.setReplies(new ArrayList<>());
                     }
@@ -228,15 +279,14 @@ public class NewsFeedActivity extends AppCompatActivity {
                         }
                     });
                 } catch (Exception e) {
-                    Log.e("NewsFeedActivity", "Error parsing comment notification: " + e.getMessage() + ", message: " + message, e);
+                    Log.e("NewsFeedActivity", "Error parsing comment notification: " + message, e);
                 } finally {
                     executor.shutdown();
                 }
             });
         });
 
-
-
+        // Subscribe to likes
         webSocketManager.subscribeToTopic("/topic/likes", message -> {
             ExecutorService executor = Executors.newSingleThreadExecutor();
             executor.execute(() -> {
@@ -287,9 +337,8 @@ public class NewsFeedActivity extends AppCompatActivity {
             if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                 Intent data = result.getData();
                 List<Uri> newImageUris = new ArrayList<>();
-                int maxImages = 10; // Giới hạn tối đa 10 ảnh
+                int maxImages = 10;
 
-                // Xử lý nhiều ảnh
                 if (data.getClipData() != null) {
                     int count = data.getClipData().getItemCount();
                     for (int i = 0; i < count && (selectedImageUris.size() + newImageUris.size()) < maxImages; i++) {
@@ -297,7 +346,6 @@ public class NewsFeedActivity extends AppCompatActivity {
                         newImageUris.add(imageUri);
                     }
                 } else if (data.getData() != null && selectedImageUris.size() < maxImages) {
-                    // Xử lý một ảnh
                     newImageUris.add(data.getData());
                 }
 
@@ -305,7 +353,6 @@ public class NewsFeedActivity extends AppCompatActivity {
                     selectedImageUris.addAll(newImageUris);
                     Log.d("NewsFeedActivity", "Selected image URIs: " + selectedImageUris.size());
 
-                    // Cập nhật RecyclerView trong dialog nếu đang mở
                     if (createPostDialog != null && createPostDialog.isShowing()) {
                         RecyclerView selectedImagesRecyclerView = createPostDialog.findViewById(R.id.selected_images_recycler_view);
                         if (selectedImagesRecyclerView != null) {
@@ -346,18 +393,14 @@ public class NewsFeedActivity extends AppCompatActivity {
                 this::onCommentClick,
                 new OnCommentInteractionListener() {
                     @Override
-                    public void onLikeComment(CommentDTO comment) {
-                    }
-
+                    public void onLikeComment(CommentDTO comment) {}
                     @Override
                     public void onReplyComment(CommentDTO comment) {
                         showReplyDialog(comment);
                     }
-
                     @Override
-                    public void onShareComment(CommentDTO comment) {
-                    }
-                },currentUserAvatarUrl
+                    public void onShareComment(CommentDTO comment) {}
+                }, currentUserAvatarUrl
         );
         postAdapter.updatePosts(postList);
         postsRecyclerView.setAdapter(postAdapter);
@@ -396,8 +439,9 @@ public class NewsFeedActivity extends AppCompatActivity {
 
         loadUserData(userid);
         loadPosts();
+        loadNotifications();
     }
-    // Hàm tìm bình luận cha trong danh sách bình luận (bao gồm replies)
+
     private CommentDTO findParentComment(List<CommentDTO> comments, Long parentCommentId) {
         if (comments == null || parentCommentId == null) {
             return null;
@@ -415,6 +459,7 @@ public class NewsFeedActivity extends AppCompatActivity {
         }
         return null;
     }
+
     private boolean commentExists(List<CommentDTO> comments, Long commentId) {
         if (comments == null || commentId == null) return false;
         for (CommentDTO comment : comments) {
@@ -434,7 +479,7 @@ public class NewsFeedActivity extends AppCompatActivity {
             for (CommentDTO comment : comments) {
                 flatList.add(comment);
                 if (comment.getReplies() != null) {
-                    flatList.addAll(comment.getReplies());
+                    flatList.addAll(getAllCommentsFlat(comment.getReplies()));
                 }
             }
         }
@@ -473,6 +518,16 @@ public class NewsFeedActivity extends AppCompatActivity {
                                 if (status.equals("LIKED")) {
                                     targetPost.setLikedByUser(true);
                                     targetPost.setLikeCount(targetPost.getLikeCount() != 0 ? targetPost.getLikeCount() + 1 : 1);
+                                    if (!targetPost.getUserId().equals((long) userid)) {
+                                        createNotification(
+                                                targetPost.getUserId(),
+                                                (long) userid,
+                                                post.getId(),
+                                                "LIKE",
+                                                currentUser.getUsername() + " liked your post",
+                                                currentUserAvatarUrl
+                                        );
+                                    }
                                 } else if (status.equals("UNLIKED")) {
                                     targetPost.setLikedByUser(false);
                                     targetPost.setLikeCount(targetPost.getLikeCount() != 0 ? Math.max(0, targetPost.getLikeCount() - 1) : 0);
@@ -507,16 +562,17 @@ public class NewsFeedActivity extends AppCompatActivity {
             return;
         }
 
-
         CommentRequestDTO request = new CommentRequestDTO();
         request.setPostId(post.getId());
         request.setUserId((long) userid);
         request.setContent(content);
         request.setParentCommentId(parentCommentId);
 
+        progressDialog.show();
         commentApiService.createComment(request).enqueue(new Callback<CommentDTO>() {
             @Override
             public void onResponse(Call<CommentDTO> call, Response<CommentDTO> response) {
+                progressDialog.dismiss();
                 if (response.isSuccessful() && response.body() != null) {
                     CommentDTO newComment = response.body();
                     Log.d("NewsFeedActivity", "Successfully commented on post: postId=" + post.getId() + ", commentId=" + newComment.getId());
@@ -526,7 +582,6 @@ public class NewsFeedActivity extends AppCompatActivity {
                             if (targetPost.getComments() == null) {
                                 targetPost.setComments(new ArrayList<>());
                             }
-                            // Khởi tạo replies cho newComment
                             if (newComment.getReplies() == null) {
                                 newComment.setReplies(new ArrayList<>());
                             }
@@ -539,6 +594,16 @@ public class NewsFeedActivity extends AppCompatActivity {
                                     if (!commentExists(parent.getReplies(), newComment.getId())) {
                                         Log.d("NewsFeedActivity", "Adding reply via API: commentId=" + newComment.getId() + ", parentId=" + parentCommentId);
                                         parent.getReplies().add(newComment);
+                                        if (!parent.getUserId().equals((long) userid)) {
+                                            createNotification(
+                                                    parent.getUserId(),
+                                                    (long) userid,
+                                                    post.getId(),
+                                                    "REPLY",
+                                                    currentUser.getUsername() + " replied to your comment",
+                                                    currentUserAvatarUrl
+                                            );
+                                        }
                                     } else {
                                         Log.d("NewsFeedActivity", "Reply already exists via API: commentId=" + newComment.getId());
                                     }
@@ -549,6 +614,16 @@ public class NewsFeedActivity extends AppCompatActivity {
                                 if (!commentExists(targetPost.getComments(), newComment.getId())) {
                                     Log.d("NewsFeedActivity", "Adding comment via API: commentId=" + newComment.getId());
                                     targetPost.getComments().add(newComment);
+                                    if (!targetPost.getUserId().equals((long) userid)) {
+                                        createNotification(
+                                                targetPost.getUserId(),
+                                                (long) userid,
+                                                post.getId(),
+                                                "COMMENT",
+                                                currentUser.getUsername() + " commented on your post",
+                                                currentUserAvatarUrl
+                                        );
+                                    }
                                 } else {
                                     Log.d("NewsFeedActivity", "Comment already exists via API: commentId=" + newComment.getId());
                                 }
@@ -566,11 +641,147 @@ public class NewsFeedActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<CommentDTO> call, Throwable t) {
+                progressDialog.dismiss();
                 Log.e("NewsFeedActivity", "Error posting comment on post: postId=" + post.getId() + ", message: " + t.getMessage(), t);
                 Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
+
+    private void loadNotifications() {
+        postApiService.getNotifications((long) userid, 0, 20).enqueue(new Callback<List<NotificationDTO>>() {
+            @Override
+            public void onResponse(Call<List<NotificationDTO>> call, Response<List<NotificationDTO>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    notifications = response.body();
+                    int unreadCount = getUnreadCount();
+                    updateNotificationBadge(unreadCount);
+                } else {
+                    Log.e("NewsFeedActivity", "Failed to load notifications, code: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<NotificationDTO>> call, Throwable t) {
+                Log.e("NewsFeedActivity", "Error loading notifications: " + t.getMessage());
+            }
+        });
+    }
+
+    private int getUnreadCount() {
+        int unreadCount = 0;
+        for (NotificationDTO notification : notifications) {
+            if (!notification.isRead()) {
+                unreadCount++;
+            }
+        }
+        return unreadCount;
+    }
+
+    private void updateNotificationBadge(int unreadCount) {
+        if (notificationBadge != null) {
+            if (unreadCount > 0) {
+                notificationBadge.setText(String.valueOf(unreadCount));
+                notificationBadge.setVisibility(View.VISIBLE);
+            } else {
+                notificationBadge.setVisibility(View.GONE);
+            }
+        }
+    }
+
+    private void createNotification(Long userId, Long actorId, Long postId, String type, String content, String userAvatarUrl) {
+        NotificationDTO notification = new NotificationDTO();
+        notification.setUserId(userId);
+        notification.setActorId(actorId);
+        notification.setPostId(postId);
+        notification.setType(type);
+        notification.setContent(content);
+        notification.setUserAvatarUrl(userAvatarUrl);
+        notification.setRead(false);
+
+        postApiService.createNotification(notification).enqueue(new Callback<NotificationDTO>() {
+            @Override
+            public void onResponse(Call<NotificationDTO> call, Response<NotificationDTO> response) {
+                if (response.isSuccessful()) {
+                    Log.d("NewsFeedActivity", "Notification created for userId: " + userId + ", type: " + type);
+                } else {
+                    Log.e("NewsFeedActivity", "Failed to create notification: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<NotificationDTO> call, Throwable t) {
+                Log.e("NewsFeedActivity", "Error creating notification: " + t.getMessage());
+            }
+        });
+    }
+
+    private void showNotificationDialog() {
+        notificationDialog = new Dialog(this, R.style.DialogTheme);
+        notificationDialog.setContentView(R.layout.dialog_notifications);
+        notificationDialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        notificationDialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+
+        RecyclerView notificationsRecyclerView = notificationDialog.findViewById(R.id.notifications_recycler_view);
+        TextView noNotificationsText = notificationDialog.findViewById(R.id.no_notifications_text);
+        Button closeButton = notificationDialog.findViewById(R.id.close_button);
+
+        notificationsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        notificationAdapter = new NotificationAdapter(this, notification -> {
+            Toast.makeText(this, "Clicked: " + notification.getContent(), Toast.LENGTH_SHORT).show();
+        });
+        notificationsRecyclerView.setAdapter(notificationAdapter);
+
+        postApiService.getNotifications((long) userid, 0, 20).enqueue(new Callback<List<NotificationDTO>>() {
+            @Override
+            public void onResponse(Call<List<NotificationDTO>> call, Response<List<NotificationDTO>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    notifications = response.body();
+                    if (notifications.isEmpty()) {
+                        noNotificationsText.setVisibility(View.VISIBLE);
+                        notificationsRecyclerView.setVisibility(View.GONE);
+                    } else {
+                        noNotificationsText.setVisibility(View.GONE);
+                        notificationsRecyclerView.setVisibility(View.VISIBLE);
+                        notificationAdapter.updateNotifications(notifications);
+                        updateNotificationBadge(getUnreadCount());
+                    }
+                } else {
+                    Log.e("NewsFeedActivity", "Failed to load notifications, code: " + response.code());
+                    Toast.makeText(NewsFeedActivity.this, "Failed to load notifications", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<NotificationDTO>> call, Throwable t) {
+                Log.e("NewsFeedActivity", "Error loading notifications: " + t.getMessage());
+                Toast.makeText(NewsFeedActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        closeButton.setOnClickListener(v -> {
+            postApiService.markAllNotificationsAsRead(userid).enqueue(new Callback<Void>() {
+                @Override
+                public void onResponse(Call<Void> call, Response<Void> response) {
+                    if (response.isSuccessful()) {
+                        for (NotificationDTO notification : notifications) {
+                            notification.setRead(true);
+                        }
+                        notificationAdapter.updateNotifications(notifications);
+                        updateNotificationBadge(0);
+                    }
+                }
+                @Override
+                public void onFailure(Call<Void> call, Throwable t) {
+                    Log.e("NewsFeedActivity", "Error marking notifications as read: " + t.getMessage());
+                }
+            });
+            notificationDialog.dismiss();
+            notificationDialog = null;
+        });
+        notificationDialog.show();
+    }
+
     private void showReplyDialog(CommentDTO comment) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Reply to " + comment.getUsername());
@@ -593,7 +804,6 @@ public class NewsFeedActivity extends AppCompatActivity {
                 for (PostResponseDTO post : postList) {
                     List<CommentDTO> allComments = getAllCommentsFlat(post.getComments());
                     if (allComments.contains(comment)) {
-                        // Nếu comment là bình luận con, lấy parentCommentId của bình luận cha
                         Long parentId = comment.getParentCommentId() != null ? comment.getParentCommentId() : comment.getId();
                         onCommentClick(post, content, parentId);
                         dialog.dismiss();
@@ -617,7 +827,7 @@ public class NewsFeedActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(s.length() > 0);
+                _processorsAssistant: dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(s.length() > 0);
             }
 
             @Override
@@ -630,35 +840,30 @@ public class NewsFeedActivity extends AppCompatActivity {
         long createdAt = post.getCreatedAt().getTime();
         long timeDiff = currentTime - createdAt;
 
-        // Tính timeScore cơ bản
         double timeScore = 1.0 / (1 + timeDiff / (1000.0 * 60 * 60));
-
-        // Thêm boost cho bài đăng trong 5 phút đầu (300.000 ms)
         double boostScore = 0.0;
-        if (timeDiff <= 300_000) { // 5 phút = 300.000 ms
-            boostScore = 100.0; // Điểm thưởng lớn để ưu tiên bài đăng mới
-            Log.d("NewsFeedActivity", "Áp dụng boost cho bài đăng mới: id=" + post.getId() + ", timeDiff=" + timeDiff + "ms");
+        if (timeDiff <= 300_000) {
+            boostScore = 100.0;
+            Log.d("NewsFeedActivity", "Applying boost for new post: id=" + post.getId() + ", timeDiff=" + timeDiff + "ms");
         }
 
-        // Tính engagementScore
         double likes = post.getLikeCount() != 0 ? post.getLikeCount() : 0;
         double comments = (post.getComments() != null) ? post.getComments().size() : 0;
-        double shares = 0; // Hiện tại shares = 0
+        double shares = 0;
         double engagementScore = (likes * 0.4) + (comments * 0.4) + (shares * 0.2);
-
-        // Điểm affinity (giữ nguyên)
         double affinityScore = 0.1;
 
-        // Tổng điểm: tăng trọng số timeScore và thêm boostScore
         double totalScore = (timeScore * 0.3) + (engagementScore * 0.5) + (affinityScore * 0.2) + boostScore;
-
-        Log.d("NewsFeedActivity", "Tính điểm bài đăng: id=" + post.getId() + ", totalScore=" + totalScore +
+        Log.d("NewsFeedActivity", "Post score: id=" + post.getId() + ", totalScore=" + totalScore +
                 ", timeScore=" + timeScore + ", boostScore=" + boostScore + ", engagementScore=" + engagementScore);
         return totalScore;
     }
 
     private void sortPostsByScore() {
-        Collections.sort(postList, (p1, p2) -> Double.compare(p2.getScore(), p1.getScore()));
+        List<PostResponseDTO> sortedList = new ArrayList<>(postList);
+        Collections.sort(sortedList, (p1, p2) -> Double.compare(p2.getScore(), p1.getScore()));
+        postList.clear();
+        postList.addAll(sortedList);
     }
 
     private void loadUserData(int userId) {
@@ -671,7 +876,7 @@ public class NewsFeedActivity extends AppCompatActivity {
             public void onResponse(Call<User> call, Response<User> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     currentUser = response.body();
-                    currentUserAvatarUrl = currentUser.getAvatarUrl(); // Lưu avatarUrl
+                    currentUserAvatarUrl = currentUser.getAvatarUrl();
                     if (userAvatar != null) {
                         String avatarUrl = currentUser.getAvatarUrl() != null && !currentUser.getAvatarUrl().isEmpty()
                                 ? RetrofitClient.getBaseUrl() + currentUser.getAvatarUrl() : null;
@@ -707,29 +912,23 @@ public class NewsFeedActivity extends AppCompatActivity {
                     } else {
                         Log.e("NewsFeedActivity", "userAvatar is null");
                     }
-                    // Cập nhật PostAdapter với currentUserAvatarUrl
                     postAdapter = new PostAdapter(
                             getSupportFragmentManager(),
                             NewsFeedActivity.this::onLikeClick,
                             NewsFeedActivity.this::onCommentClick,
                             new OnCommentInteractionListener() {
                                 @Override
-                                public void onLikeComment(CommentDTO comment) {
-                                }
-
+                                public void onLikeComment(CommentDTO comment) {}
                                 @Override
                                 public void onReplyComment(CommentDTO comment) {
                                     showReplyDialog(comment);
                                 }
-
                                 @Override
-                                public void onShareComment(CommentDTO comment) {
-                                }
-                            },RetrofitClient.getBaseUrl() + currentUser.getAvatarUrl()
-
+                                public void onShareComment(CommentDTO comment) {}
+                            }, RetrofitClient.getBaseUrl() + currentUser.getAvatarUrl()
                     );
                     postsRecyclerView.setAdapter(postAdapter);
-                    postAdapter.updatePosts(postList); // Cập nhật lại danh sách bài viết
+                    postAdapter.updatePosts(postList);
                 } else {
                     Log.e("NewsFeedActivity", "Failed to load user info, code: " + response.code());
                     Toast.makeText(NewsFeedActivity.this, "Failed to load user info", Toast.LENGTH_SHORT).show();
@@ -750,14 +949,12 @@ public class NewsFeedActivity extends AppCompatActivity {
             dialog.setContentView(R.layout.dialog_create_post);
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
 
-            // Thiết lập kích thước dialog
             WindowManager.LayoutParams params = new WindowManager.LayoutParams();
             params.copyFrom(dialog.getWindow().getAttributes());
             params.width = WindowManager.LayoutParams.MATCH_PARENT;
             params.height = WindowManager.LayoutParams.WRAP_CONTENT;
             dialog.getWindow().setAttributes(params);
 
-            // Lấy các view từ layout
             EditText postContent = dialog.findViewById(R.id.post_input);
             Spinner privacySpinner = dialog.findViewById(R.id.privacy_spinner);
             Button postButton = dialog.findViewById(R.id.post_button);
@@ -773,20 +970,18 @@ public class NewsFeedActivity extends AppCompatActivity {
             TextView userName = dialog.findViewById(R.id.dialog_user_name);
             ProgressBar uploadProgress = dialog.findViewById(R.id.upload_progress);
 
-            // Kiểm tra null cho các view
             if (postContent == null || privacySpinner == null || postButton == null || closeButton == null ||
                     photoOptionLayout == null || selectedImagesRecyclerView == null ||
                     tagOptionLayout == null || feelingOptionLayout == null ||
                     checkinOptionLayout == null || liveOptionLayout == null ||
                     backgroundOptionLayout == null || userAvatar == null || userName == null || uploadProgress == null) {
-                Log.e("NewsFeedActivity", "Một hoặc nhiều view trong dialog không được tìm thấy");
-                Toast.makeText(this, "Lỗi tải giao diện dialog", Toast.LENGTH_SHORT).show();
+                Log.e("NewsFeedActivity", "One or more views in dialog not found");
+                Toast.makeText(this, "Error loading dialog UI", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // Hiển thị thông tin người dùng
             if (currentUser != null) {
-                userName.setText(currentUser.getUsername() != null ? currentUser.getUsername() : "Người dùng");
+                userName.setText(currentUser.getUsername() != null ? currentUser.getUsername() : "User");
                 String avataUrl = RetrofitClient.getBaseUrl() + currentUser.getAvatarUrl();
                 Glide.with(this)
                         .load(avataUrl)
@@ -795,13 +990,13 @@ public class NewsFeedActivity extends AppCompatActivity {
                         .error(R.drawable.ic_user)
                         .into(userAvatar);
             } else {
-                Log.w("NewsFeedActivity", "currentUser là null, hiển thị giá trị mặc định");
-                userName.setText("Người dùng");
+                Log.w("NewsFeedActivity", "currentUser is null, showing default values");
+                userName.setText("User");
                 Glide.with(this)
                         .load(R.drawable.ic_user)
                         .circleCrop()
                         .into(userAvatar);
-                Toast.makeText(this, "Không thể tải thông tin người dùng", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Unable to load user info", Toast.LENGTH_SHORT).show();
             }
 
             ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
@@ -812,15 +1007,12 @@ public class NewsFeedActivity extends AppCompatActivity {
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             privacySpinner.setAdapter(adapter);
 
-            // Khởi tạo RecyclerView cho ảnh preview
             if (selectedImageUris == null) {
                 selectedImageUris = new ArrayList<>();
             }
 
-            // Khởi tạo adapter mà không sử dụng imagesAdapter trong lambda
             SelectedImagesAdapter imagesAdapter = new SelectedImagesAdapter(this, selectedImageUris, position -> {
                 selectedImageUris.remove(position);
-                // Cập nhật RecyclerView trong dialog
                 RecyclerView recyclerView = dialog.findViewById(R.id.selected_images_recycler_view);
                 if (recyclerView != null) {
                     SelectedImagesAdapter adapterInstance = (SelectedImagesAdapter) recyclerView.getAdapter();
@@ -898,15 +1090,13 @@ public class NewsFeedActivity extends AppCompatActivity {
                 }
 
                 if (selectedImageUris != null && !selectedImageUris.isEmpty()) {
-                    Log.e("sai","dd");
                     uploadImagesForPost(content, mappedPrivacy, currentUser, dialog);
                 } else {
-                    Log.e("đúng","dd");
                     PostRequestDTO request = new PostRequestDTO();
                     request.setContent(content);
                     request.setUserId((long) userid);
                     request.setPrivacy(mappedPrivacy);
-                    request.setImageUrls(null); // Không có ảnh
+                    request.setImageUrls(null);
                     createPost(request, dialog);
                 }
             });
@@ -921,7 +1111,6 @@ public class NewsFeedActivity extends AppCompatActivity {
 
     private void uploadImagesForPost(String postContent, String selectedPrivacy, User currentUser, Dialog dialog) {
         if (!isNetworkAvailable()) {
-
             Toast.makeText(this, "No network connection", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -942,7 +1131,6 @@ public class NewsFeedActivity extends AppCompatActivity {
         }
 
         if (imageParts.isEmpty()) {
-
             if (uploadProgress != null) {
                 uploadProgress.setVisibility(View.GONE);
             }
@@ -960,11 +1148,7 @@ public class NewsFeedActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     List<String> imageUrls = response.body().stream()
                             .filter(img -> img.getImageUrl() != null)
-                            .map(img -> {
-                                // Nối BASE_URL vào URL tương đối
-                                String relativeUrl = img.getImageUrl();
-                                return relativeUrl;
-                            })
+                            .map(img -> img.getImageUrl())
                             .collect(Collectors.toList());
                     if (imageUrls.isEmpty()) {
                         Toast.makeText(NewsFeedActivity.this, "No images uploaded", Toast.LENGTH_SHORT).show();
@@ -988,7 +1172,6 @@ public class NewsFeedActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<List<ImageResponse>> call, Throwable t) {
                 Log.e("NewsFeedActivity", "Error uploading images, URL: " + call.request().url() + ", message: " + t.getMessage(), t);
-
                 if (uploadProgress != null) {
                     uploadProgress.setVisibility(View.GONE);
                 }
@@ -1028,7 +1211,7 @@ public class NewsFeedActivity extends AppCompatActivity {
                     request.setContent(postContent);
                     request.setUserId((long) userid);
                     request.setPrivacy(selectedPrivacy);
-                    request.setImageUrls(imageUrls.isEmpty() ? null : imageUrls); // Sử dụng setImageUrls
+                    request.setImageUrls(imageUrls.isEmpty() ? null : imageUrls);
                     createPost(request, dialog);
                 }
             });
@@ -1037,7 +1220,6 @@ public class NewsFeedActivity extends AppCompatActivity {
 
     private void createPost(PostRequestDTO request, Dialog dialog) {
         if (!isNetworkAvailable()) {
-
             ProgressBar uploadProgress = dialog.findViewById(R.id.upload_progress);
             if (uploadProgress != null) {
                 uploadProgress.setVisibility(View.GONE);
@@ -1064,7 +1246,6 @@ public class NewsFeedActivity extends AppCompatActivity {
                         Toast.makeText(NewsFeedActivity.this, "Lỗi: Thiếu ID bài viết", Toast.LENGTH_LONG).show();
                         return;
                     }
-                    // Khởi tạo các trường
                     if (newPost.getComments() == null) {
                         newPost.setComments(new ArrayList<>());
                     }
@@ -1075,7 +1256,7 @@ public class NewsFeedActivity extends AppCompatActivity {
                         newPost.setImageUrl(new ArrayList<>());
                     }
                     newPost.setScore(calculatePostScore(newPost));
-                    postList.add(0, newPost); // Thêm vào postList
+                    postList.add(0, newPost);
                     postAdapter.addNewPost(newPost);
                     Log.d("NewsFeedActivity", "Danh sách bài viết sau khi thêm: " +
                             postList.stream().map(p -> String.valueOf(p.getId())).collect(Collectors.joining(", ")));
@@ -1094,7 +1275,13 @@ public class NewsFeedActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<PostResponseDTO> call, Throwable t) {
-
+                progressDialog.dismiss();
+                ProgressBar uploadProgress = dialog.findViewById(R.id.upload_progress);
+                if (uploadProgress != null) {
+                    uploadProgress.setVisibility(View.GONE);
+                }
+                Log.e("NewsFeedActivity", "Error creating post: " + t.getMessage(), t);
+                Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -1142,7 +1329,7 @@ public class NewsFeedActivity extends AppCompatActivity {
     private void openGallery() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("image/*");
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true); // Cho phép chọn nhiều ảnh
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         imagePickerLauncher.launch(intent);
     }
 
@@ -1151,8 +1338,6 @@ public class NewsFeedActivity extends AppCompatActivity {
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
-
-
 
     private void loadPosts() {
         if (!isNetworkAvailable()) {
@@ -1259,5 +1444,12 @@ public class NewsFeedActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        webSocketManager.disconnect();
+        if (createPostDialog != null && createPostDialog.isShowing()) {
+            createPostDialog.dismiss();
+        }
+        if (notificationDialog != null && notificationDialog.isShowing()) {
+            notificationDialog.dismiss();
+        }
     }
 }
