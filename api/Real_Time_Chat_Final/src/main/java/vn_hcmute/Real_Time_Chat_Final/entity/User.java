@@ -11,9 +11,8 @@ import java.sql.Timestamp;
 @Table(name = "user")
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
+@AllArgsConstructor
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class User implements Serializable {
 
@@ -45,6 +44,10 @@ public class User implements Serializable {
     private String avatarUrl;
 
     private boolean isReady;
+
+    public User() {
+
+    }
 
     @Override
     public String toString() {

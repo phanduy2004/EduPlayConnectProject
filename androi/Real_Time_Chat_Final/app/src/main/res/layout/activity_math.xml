@@ -1,86 +1,183 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#F2F2F7"
     tools:context=".ui.MathActivity">
 
-    <!-- Câu hỏi (hiển thị phép tính ở giữa màn hình) -->
-
-    <TextView
-        android:id="@+id/questionText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="284dp"
-        android:text="5 + 3"
-        android:textAlignment="center"
-        android:textSize="36sp"
-        app:layout_constraintEnd_toEndOf="parent"
+    <!-- Toolbar -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="0dp"
+        android:layout_height="?attr/actionBarSize"
+        android:background="#FFFFFF"
+        android:elevation="4dp"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <GridLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="164dp"
-        android:columnCount="2"
-        android:orientation="horizontal"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/questionText">
-
-        <Button
-            android:id="@+id/answerButton1"
-            android:layout_width="0dp"
+        <!-- Back Button -->
+        <ImageButton
+            android:id="@+id/backButton"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_columnWeight="1"
-            android:layout_margin="8dp"
-            android:text="8"
-            android:textSize="18sp" />
+            android:src="@drawable/ic_back_ios"
+            android:background="@android:color/transparent"
+            android:padding="12dp"
+            android:layout_gravity="start"
+            app:tint="#007AFF" />
 
-        <Button
-            android:id="@+id/answerButton2"
-            android:layout_width="0dp"
+        <!-- Title -->
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_columnWeight="1"
-            android:layout_margin="8dp"
-            android:text="6"
-            android:textSize="18sp" />
+            android:text="Math Quiz"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#000000"
+            android:fontFamily="sans-serif-medium"
+            android:layout_gravity="center"/>
+    </androidx.appcompat.widget.Toolbar>
 
-        <Button
-            android:id="@+id/answerButton3"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_columnWeight="1"
-            android:layout_margin="8dp"
-            android:text="7"
-            android:textSize="18sp" />
-
-        <Button
-            android:id="@+id/answerButton4"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_columnWeight="1"
-            android:layout_margin="8dp"
-            android:text="9"
-            android:textSize="18sp" />
-    </GridLayout>
-
-    <!-- Khu vực hiển thị kết quả -->
-    <TextView
-        android:id="@+id/resultText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text=""
-        android:textSize="20sp"
-        android:textColor="@android:color/holo_green_dark"
-        android:layout_marginTop="32dp"
+    <!-- Container chính để căn giữa các thành phần -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/contentContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginHorizontal="16dp"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/answerButton4"
-        tools:ignore="NotSibling" />
+        app:layout_constraintVertical_bias="0.5">
+
+        <!-- Câu hỏi -->
+        <TextView
+            android:id="@+id/questionText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="5 + 3"
+            android:textAlignment="center"
+            android:textSize="48sp"
+            android:textStyle="bold"
+            android:textColor="#000000"
+            android:fontFamily="sans-serif-medium"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <!-- GridLayout cho các nút đáp án -->
+        <GridLayout
+            android:id="@+id/answerGrid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dp"
+            android:columnCount="2"
+            android:rowCount="2"
+            android:alignmentMode="alignMargins"
+            app:layout_constraintTop_toBottomOf="@id/questionText"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:layout_margin="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="#007AFF">
+                <Button
+                    android:id="@+id/answerButton1"
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:text="8"
+                    android:textSize="20sp"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/rounded_button_ripple"
+                    android:backgroundTint="#007AFF"
+                    android:fontFamily="sans-serif-medium"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:layout_margin="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="#007AFF">
+                <Button
+                    android:id="@+id/answerButton2"
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:text="6"
+                    android:textSize="20sp"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/rounded_button_ripple"
+                    android:backgroundTint="#007AFF"
+                    android:fontFamily="sans-serif-medium"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:layout_margin="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="#007AFF">
+                <Button
+                    android:id="@+id/answerButton3"
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:text="7"
+                    android:textSize="20sp"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/rounded_button_ripple"
+                    android:backgroundTint="#007AFF"
+                    android:fontFamily="sans-serif-medium"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:layout_margin="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="#007AFF">
+                <Button
+                    android:id="@+id/answerButton4"
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:text="9"
+                    android:textSize="20sp"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/rounded_button_ripple"
+                    android:backgroundTint="#007AFF"
+                    android:fontFamily="sans-serif-medium"/>
+            </androidx.cardview.widget.CardView>
+        </GridLayout>
+
+        <!-- Khu vực hiển thị kết quả -->
+        <TextView
+            android:id="@+id/resultText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dp"
+            android:text=""
+            android:textSize="24sp"
+            android:textColor="@android:color/holo_green_dark"
+            android:fontFamily="sans-serif"
+            app:layout_constraintTop_toBottomOf="@id/answerGrid"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

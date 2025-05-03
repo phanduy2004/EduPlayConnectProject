@@ -4,8 +4,11 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.GridLayout;
+import android.widget.ImageButton;
 import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 
 import com.myjob.real_time_chat_final.R;
 
@@ -16,7 +19,6 @@ public class MathActivity extends AppCompatActivity {
     private TextView questionText;
     private Button answerButton1, answerButton2, answerButton3, answerButton4;
     private TextView resultText;
-
     private int correctAnswer;
 
     @Override
@@ -32,10 +34,21 @@ public class MathActivity extends AppCompatActivity {
         answerButton4 = findViewById(R.id.answerButton4);
         resultText = findViewById(R.id.resultText);
 
+        // Cấu hình toolbar
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
+
+        // Xử lý nút back
+        ImageButton backButton = findViewById(R.id.backButton);
+        backButton.setOnClickListener(v -> finish());
+
         // Tạo phép tính ngẫu nhiên
         generateQuestion();
 
-        // Gán sự kiện nhấn cho các nút đáp án để kiểm tra ngay lập tức khi nhấn
+        // Gán sự kiện nhấn cho các nút đáp án
         setAnswerButtonClickListener(answerButton1);
         setAnswerButtonClickListener(answerButton2);
         setAnswerButtonClickListener(answerButton3);
@@ -43,7 +56,6 @@ public class MathActivity extends AppCompatActivity {
     }
 
     private void generateQuestion() {
-        // Chọn mức độ khó (Dễ, Trung bình, Khó)
         String difficulty = "medium"; // "easy", "medium", "hard"
 
         Random random = new Random();
@@ -54,15 +66,15 @@ public class MathActivity extends AppCompatActivity {
         // Chọn số ngẫu nhiên và phép toán tùy theo độ khó
         switch (difficulty) {
             case "easy":
-                num1 = random.nextInt(10) + 1; // Số ngẫu nhiên từ 1 đến 10
+                num1 = random.nextInt(10) + 1;
                 num2 = random.nextInt(10) + 1;
                 break;
             case "medium":
-                num1 = random.nextInt(50) + 1; // Số ngẫu nhiên từ 1 đến 50
+                num1 = random.nextInt(50) + 1;
                 num2 = random.nextInt(50) + 1;
                 break;
             case "hard":
-                num1 = random.nextInt(100) + 1; // Số ngẫu nhiên từ 1 đến 100
+                num1 = random.nextInt(100) + 1;
                 num2 = random.nextInt(100) + 1;
                 break;
         }
@@ -83,11 +95,8 @@ public class MathActivity extends AppCompatActivity {
                 operationSymbol = " * ";
                 break;
             case 3: // Chia (với điều kiện chia hết)
-                if (num2 == 0) num2 = 1; // Tránh chia cho 0
-
-                // Đảm bảo num1 chia hết cho num2
-                num1 = num2 * (random.nextInt(10) + 1);  // Đảm bảo num1 chia hết cho num2
-
+                if (num2 == 0) num2 = 1;
+                num1 = num2 * (random.nextInt(10) + 1);
                 result = num1 / num2;
                 operationSymbol = " / ";
                 break;
@@ -104,7 +113,6 @@ public class MathActivity extends AppCompatActivity {
 
         // Đảm bảo một trong các đáp án là đúng
         int[] answers = {correctAnswer, wrongAnswer1, wrongAnswer2, wrongAnswer3};
-        // Shuffle đáp án để trộn vị trí
         for (int i = 0; i < answers.length; i++) {
             int randomIndex = random.nextInt(answers.length);
             int temp = answers[i];
@@ -119,12 +127,10 @@ public class MathActivity extends AppCompatActivity {
         answerButton4.setText(String.valueOf(answers[3]));
     }
 
-
     private void setAnswerButtonClickListener(Button answerButton) {
         answerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Lấy giá trị của đáp án đã chọn từ nút nhấn
                 int selectedAnswer = Integer.parseInt(((Button) v).getText().toString());
 
                 // Kiểm tra kết quả

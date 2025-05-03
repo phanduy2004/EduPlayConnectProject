@@ -14,13 +14,13 @@ import java.util.List;
 public class AlphabetAdapter extends RecyclerView.Adapter<AlphabetAdapter.ViewHolder> {
 
     private final List<String> alphabetList;
-    private final OnLetterClickListener listener;
+    private final OnItemClickListener listener;
 
-    public interface OnLetterClickListener {
-        void onLetterClick(String letter);
+    public interface OnItemClickListener {
+        void onItemClick(String letter);
     }
 
-    public AlphabetAdapter(List<String> alphabetList, OnLetterClickListener listener) {
+    public AlphabetAdapter(List<String> alphabetList, OnItemClickListener listener) {
         this.alphabetList = alphabetList;
         this.listener = listener;
     }
@@ -41,7 +41,7 @@ public class AlphabetAdapter extends RecyclerView.Adapter<AlphabetAdapter.ViewHo
             holder.textView.animate().scaleX(1.2f).scaleY(1.2f).setDuration(200).withEndAction(() ->
                     holder.textView.animate().scaleX(1f).scaleY(1f).setDuration(200)
             );
-            listener.onLetterClick(letter);
+            listener.onItemClick(letter);
         });
     }
 

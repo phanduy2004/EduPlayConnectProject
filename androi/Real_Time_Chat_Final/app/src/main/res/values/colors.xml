@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:android="http://schemas.android.com/apk/res/android">
+<resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="primary">#6200EE</color> <!-- Màu chính, có thể thay bằng màu bạn muốn -->
+    <color name="primary">#6200EE</color> <!-- Màu chính -->
     <color name="gray">#808080</color>
     <color name="cream_white">#FFF5E1</color> <!-- Màu trắng kem -->
     <color name="purple_light">#E1BEE7</color>
@@ -10,10 +10,12 @@
     <color name="purple_dark">#8E24AA</color>
     <color name="purple_deep">#4A148C</color>
     <color name="grey_600">#757575</color>
-    <!-- Thêm màu đỏ và xanh -->
     <color name="red">#FF0000</color> <!-- Màu đỏ -->
     <color name="red_500">#F44336</color> <!-- Màu đỏ -->
     <color name="green">#008000</color> <!-- Màu xanh -->
     <color name="my_primary">#EF6C00</color>
     <color name="grey">#898989</color>
+    <color name="like_button_liked">#FF3B82F6</color> <!-- Màu xanh dương khi đã Like -->
+    <color name="like_button_unliked">#FF6B7280</color> <!-- Màu xám khi chưa Like -->
+    <color name="like_button_color">@color/like_button_unliked</color> <!-- Màu mặc định -->
 </resources>

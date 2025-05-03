@@ -159,9 +159,6 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             if (message.getSender() != null && message.getSender().getAvatarUrl() != null && !message.getSender().getAvatarUrl().isEmpty()) {
                 String baseUrl = RetrofitClient.getBaseUrl(); // Ví dụ: http://10.0.2.2:8686/
                 String avatarUrl = message.getSender().getAvatarUrl();
-                if (avatarUrl.startsWith("/")) {
-                    avatarUrl = avatarUrl.substring(1);
-                }
                 String fullAvatarUrl = baseUrl + avatarUrl;
                 Log.d("MessageAdapter", "Loading avatar URL: " + fullAvatarUrl);
                 Glide.with(itemView.getContext())

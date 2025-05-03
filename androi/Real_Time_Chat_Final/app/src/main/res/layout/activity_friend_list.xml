@@ -60,28 +60,35 @@
         android:layout_marginTop="8dp" />
 
     <!-- ViewPager2 -->
+
+    <!-- Thanh điều hướng dưới (BottomNavigationView) -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@id/tabLayout"
         app:layout_constraintBottom_toTopOf="@id/navBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/tabLayout"
+        app:layout_constraintVertical_bias="0.0" />
 
-    <!-- Bottom Navigation -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/navBar"
-        android:layout_width="match_parent"
-        android:layout_height="64dp"
-        android:background="@android:color/white"
+        android:layout_width="0dp"
+        android:layout_height="80dp"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/bg_bottom_nav"
+        android:elevation="10dp"
+        app:itemIconTint="@color/bottom_nav_item_tint"
+        app:itemTextColor="@color/bottom_nav_item_tint"
         app:labelVisibilityMode="labeled"
-        app:itemIconSize="32dp"
-        app:itemPaddingTop="4dp"
-        app:itemPaddingBottom="0dp"
-        app:itemHorizontalTranslationEnabled="false"
+        app:itemIconSize="28dp"
+        app:itemPaddingTop="10dp"
+        app:itemPaddingBottom="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:menu="@menu/bottom_navigation_menu"
-        android:elevation="8dp" />
-
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:menu="@menu/bottom_navigation_menu" />
 </androidx.constraintlayout.widget.ConstraintLayout>

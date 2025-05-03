@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?android:attr/selectableItemBackground"
+    android:paddingVertical="12dp"
+    android:paddingHorizontal="16dp">
+
+    <ImageView
+        android:id="@+id/user_avatar"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_user"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/notification_icon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginStart="12dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_notifications"
+        app:layout_constraintBottom_toBottomOf="@id/user_avatar"
+        app:layout_constraintStart_toEndOf="@id/user_avatar"
+        app:layout_constraintTop_toTopOf="@id/user_avatar"
+        app:tint="#007AFF" />
+
+    <TextView
+        android:id="@+id/notification_content"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:fontFamily="sans-serif"
+        android:text="Notification content"
+        android:textColor="#1F2937"
+        android:textSize="15sp"
+        app:layout_constraintEnd_toStartOf="@id/notification_time"
+        app:layout_constraintStart_toEndOf="@id/notification_icon"
+        app:layout_constraintTop_toTopOf="@id/user_avatar" />
+
+    <TextView
+        android:id="@+id/notification_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif"
+        android:text="Just now"
+        android:textColor="#6B7280"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/notification_content" />
+
+    <View
+        android:id="@+id/unread_indicator"
+        android:layout_width="10dp"
+        android:layout_height="10dp"
+        android:background="@drawable/circle_background_red"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/notification_icon"
+        app:layout_constraintStart_toStartOf="@id/notification_icon" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

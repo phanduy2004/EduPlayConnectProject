@@ -2,7 +2,13 @@
     <string name="app_name">Real_Time_Chat_Final</string>
     <string name="alphabet">Alphabet</string>
     <string name="math">Math</string>
+    <string name="quiz">Quiz</string>
+    <string name="dictionary">Dictionary</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
-
+    <string-array name="privacy_options">
+        <item>Public</item>
+        <item>Friends</item>
+        <item>Only me</item>
+    </string-array>
 </resources>

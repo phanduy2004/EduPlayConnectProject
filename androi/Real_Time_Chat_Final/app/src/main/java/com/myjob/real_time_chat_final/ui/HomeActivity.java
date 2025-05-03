@@ -1,5 +1,6 @@
 package com.myjob.real_time_chat_final.ui;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
@@ -14,8 +15,9 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.myjob.real_time_chat_final.R;
 
 public class HomeActivity extends AppCompatActivity {
-    ImageButton alphabet, math, qizz, dictionary,topic;
+    ImageButton alphabet, math, qizz, dictionary,findroom,topic;
     private final int userid = LoginActivity.userid;
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -32,6 +34,8 @@ public class HomeActivity extends AppCompatActivity {
         qizz = findViewById(R.id.quizzBtn);
         dictionary = findViewById(R.id.dictionaryBtn);
         topic = findViewById(R.id.topicStudy);
+        findroom = findViewById(R.id.findRoomBtn);
+
         BottomNavigationView bottomNavigationView = findViewById(R.id.navBar);
         // Xử lý sự kiện click vào item trên BottomNavigationView
         bottomNavigationView.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
@@ -50,8 +54,8 @@ public class HomeActivity extends AppCompatActivity {
                     startActivity(intent);
                     return true;
                 }
-                else if(item.getItemId()== R.id.nav_findRoom){
-                    Intent intent = new Intent(HomeActivity.this, JoinRoomActivity.class);
+                else if(item.getItemId()== R.id.nav_newsfeed){
+                    Intent intent = new Intent(HomeActivity.this, NewsFeedActivity.class);
                     intent.putExtra("USER_ID", userid); // Gửi userId sang MessListActivity
                     startActivity(intent);
                     return true;
@@ -66,6 +70,10 @@ public class HomeActivity extends AppCompatActivity {
                 else
                     return false;
             }
+        });
+        findroom.setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, JoinRoomActivity.class);
+            startActivity(intent);
         });
         alphabet.setOnClickListener(v -> {
             Intent intent  = new Intent(HomeActivity.this, AlphabetActivity.class);

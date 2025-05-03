@@ -36,7 +36,6 @@ public class JoinRoomActivity extends AppCompatActivity {
 
         initViews();
         setupToolbar();
-        setupBottomNavigation();
         setupListeners();
     }
 
@@ -61,34 +60,7 @@ public class JoinRoomActivity extends AppCompatActivity {
         toolbar.setNavigationOnClickListener(v -> onBackPressed());
     }
 
-    private void setupBottomNavigation() {
-        navBar.setOnNavigationItemSelectedListener(item -> {
-            int itemId = item.getItemId();
-            if (itemId == R.id.nav_findRoom) {
-                return true;
-            } else if (itemId == R.id.nav_home) {
-                Intent intent = new Intent(JoinRoomActivity.this, HomeActivity.class);
-                startActivity(intent);
-                return true;
-            } else if (itemId == R.id.nav_userhome) {
-                Intent intent = new Intent(JoinRoomActivity.this, UserActivity.class);
-                startActivity(intent);
-                return true;
-            } else if (itemId == R.id.nav_addFriend) {
-                Intent intent = new Intent(JoinRoomActivity.this, FriendListActivity.class);
-                startActivity(intent);
-                return true;
-            } else if (itemId == R.id.nav_chatmessage) {
-                Intent intent = new Intent(JoinRoomActivity.this, MessageListActivity.class);
-                intent.putExtra("USER_ID", getIntent().getIntExtra("USER_ID", -1));
-                startActivity(intent);
-                return true;
-            }
-            return false;
-        });
 
-        navBar.setSelectedItemId(R.id.nav_findRoom);
-    }
 
     private void setupListeners() {
         btnJoinRoom.setOnClickListener(v -> attemptToJoinRoom());

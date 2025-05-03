@@ -35,5 +35,7 @@ public interface UserService {
     @Multipart
     @POST("api/users/{userId}/avatar")
     Call<User> uploadAvatar(@Path("userId") long userId, @Part MultipartBody.Part avatar);
+    @POST("api/users/{userId}/change-password")
+    Call<Map<String, Object>> changePassword(@Path("userId") long userId, @Body Map<String, String> request);
 
 }

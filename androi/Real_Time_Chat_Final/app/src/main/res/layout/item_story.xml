@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="80dp"
+    android:layout_height="120dp"
+    android:layout_marginEnd="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@android:color/white">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- Story Image (for friend's story) -->
+        <ImageView
+            android:id="@+id/story_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_user"
+            android:visibility="gone" />
+
+        <!-- Gradient Border -->
+        <ImageView
+            android:id="@+id/story_border"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitCenter"
+            android:src="@drawable/story_border"
+            android:visibility="gone" />
+
+        <!-- Avatar (for friend's story) -->
+        <ImageView
+            android:id="@+id/story_avatar"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="8dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_user"
+            android:visibility="gone" />
+
+        <!-- Create Story Layout -->
+        <LinearLayout
+            android:id="@+id/create_story_layout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="#F5F5F5"
+            android:visibility="visible">
+
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_add"
+                app:tint="#007AFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Create Story"
+                android:textSize="12sp"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="#000000" />
+        </LinearLayout>
+
+        <!-- Username (for friend's story) -->
+        <TextView
+            android:id="@+id/story_username"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_margin="8dp"
+            android:background="#80000000"
+            android:padding="4dp"
+            android:text="Username"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:fontFamily="sans-serif"
+            android:visibility="gone" />
+    </FrameLayout>
+</androidx.cardview.widget.CardView>

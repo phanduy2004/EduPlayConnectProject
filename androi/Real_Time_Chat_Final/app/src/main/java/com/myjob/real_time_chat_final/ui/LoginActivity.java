@@ -3,8 +3,8 @@ package com.myjob.real_time_chat_final.ui;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -26,10 +26,10 @@ import retrofit2.Response;
 
 public class LoginActivity extends AppCompatActivity {
     public static int userid = 0;
-    private static final String TAG = "LoginActivity"; // Biến TAG để log
+    private static final String TAG = "LoginActivity";
     private EditText usernameEditText, passwordEditText;
-    TextView signupText;
-    private ImageButton loginButton;
+    private TextView signupText;
+    private Button loginButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +41,7 @@ public class LoginActivity extends AppCompatActivity {
         passwordEditText = findViewById(R.id.passwordEditText);
         loginButton = findViewById(R.id.loginButton);
         signupText = findViewById(R.id.signUpTextView);
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -53,7 +54,6 @@ public class LoginActivity extends AppCompatActivity {
             Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
             startActivity(intent);
         });
-
     }
 
     private void loginUser() {
@@ -82,9 +82,9 @@ public class LoginActivity extends AppCompatActivity {
                         int userId = ((Number) response.body().get("userId")).intValue();
                         userid = userId; // Lưu userId vào biến global
                         Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-                        intent.putExtra("USER_ID", userId); // Gửi userId sang MessListActivity
+                        intent.putExtra("USER_ID", userId); // Gửi userId sang HomeActivity
                         startActivity(intent);
-                        finish(); // Kết thúc LoginActivity để không quay lại được
+                        finish(); // Kết thúc LoginActivity
                         Toast.makeText(LoginActivity.this, "Đăng nhập thành công! ID: " + userId, Toast.LENGTH_SHORT).show();
                     } else {
                         Log.e(TAG, "Lỗi đăng nhập: " + message);
