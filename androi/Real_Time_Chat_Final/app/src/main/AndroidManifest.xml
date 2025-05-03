@@ -73,6 +73,15 @@
             android:name=".ui.HomeActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.TopicStudyActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.VideoActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.FullScreenVideoActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.MainActivity"
             android:exported="true">
             <intent-filter>
