@@ -56,7 +56,7 @@
         android:paddingHorizontal="24dp"
         android:paddingVertical="8dp"
         android:text="Close"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/black"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/notifications_recycler_view" />
 

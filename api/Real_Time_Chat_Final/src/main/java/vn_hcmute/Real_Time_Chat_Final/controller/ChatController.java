@@ -2,14 +2,15 @@ package vn_hcmute.Real_Time_Chat_Final.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import vn_hcmute.Real_Time_Chat_Final.entity.Conversation;
 import vn_hcmute.Real_Time_Chat_Final.entity.Message;
 import vn_hcmute.Real_Time_Chat_Final.entity.User;
@@ -93,8 +94,17 @@ public class ChatController {
      * ✅ API: Lấy thông tin cuộc trò chuyện với conversationId
      */
     @GetMapping("/conversation/{conversationId}")
-    public List<Message> getMessagesByConversationId(@PathVariable String conversationId) {
-        int convId = Integer.parseInt(conversationId.trim()); // Loại bỏ khoảng trắng hoặc ký tự xuống dòng
-        return chatMessageService.findChatMessagesByConversationId(convId);
+    public ResponseEntity<Page<Message>> getMessagesByConversationId(
+            @PathVariable String conversationId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            int convId = Integer.parseInt(conversationId.trim());
+            Pageable pageable = PageRequest.of(page, size, Sort.by("timestamp").descending());
+            Page<Message> messages = chatMessageService.findChatMessagesByConversationId(convId, pageable);
+            return ResponseEntity.ok(messages);
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 }

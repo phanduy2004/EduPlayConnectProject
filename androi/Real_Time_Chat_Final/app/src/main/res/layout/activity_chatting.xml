@@ -1,17 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="#F0F2F5"> <!-- Màu xám nhạt sang trọng -->
 
-    <!-- Thanh tiêu đề -->
+    <!-- Thanh tiêu đề (Toolbar) -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/chatToolbar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?attr/colorPrimary"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-        android:elevation="4dp" />
+        android:layout_height="?attr/actionBarSize"
+        android:background="@drawable/rounded_background"
+        android:elevation="6dp"
+        app:navigationIcon="@drawable/ic_back_ios"
+        app:titleTextColor="#000000"
+        app:titleTextAppearance="@style/TextAppearance.AppCompat.Title">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="12dp">
+
+            <!-- Tên người dùng -->
+            <TextView
+                android:id="@+id/tvUserName"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Tên người dùng"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#1A1A1A"
+                android:gravity="center_vertical" />
+
+            <!-- Biểu tượng hành động (gọi điện, video call) -->
+            <ImageButton
+                android:id="@+id/btnCall"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_call"
+                android:contentDescription="Gọi điện"
+                android:padding="4dp" />
+
+            <ImageButton
+                android:id="@+id/btnVideoCall"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_video_call"
+                android:layout_marginStart="12dp"
+                android:contentDescription="Gọi video"
+                android:padding="4dp" />
+        </LinearLayout>
+    </androidx.appcompat.widget.Toolbar>
 
     <!-- Danh sách tin nhắn -->
     <androidx.recyclerview.widget.RecyclerView
@@ -19,26 +64,65 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:padding="8dp" />
+        android:padding="12dp"
+        android:background="#FFFFFF"
+        android:clipToPadding="false"
+        android:scrollbars="vertical"
+        android:overScrollMode="never" />
 
     <!-- Ô nhập tin nhắn -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="8dp">
+        android:background="#FFFFFF"
+        android:padding="12dp"
+        android:elevation="4dp">
 
+        <!-- Biểu tượng thêm (ảnh, sticker, v.v.) -->
+        <ImageButton
+            android:id="@+id/btnAddMedia"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_add"
+            android:contentDescription="Thêm media"
+            android:padding="4dp" />
+
+        <!-- Ô nhập tin nhắn -->
         <EditText
             android:id="@+id/edtMessage"
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:hint="Nhập tin nhắn..." />
+            android:layout_height="48dp"
+            android:hint="Nhắn tin..."
+            android:background="@drawable/edit_text_background"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textSize="16sp"
+            android:textColor="#1A1A1A"
+            android:textColorHint="#606060"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp" />
 
+        <!-- Biểu tượng emoji -->
+        <ImageButton
+            android:id="@+id/btnEmoji"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_emoji"
+            android:contentDescription="Emoji"
+            android:padding="4dp" />
+
+        <!-- Nút gửi -->
         <ImageButton
             android:id="@+id/btnSend"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@android:drawable/ic_menu_send" />
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_send"
+            android:contentDescription="Gửi tin nhắn"
+            android:padding="4dp" />
     </LinearLayout>
 </LinearLayout>

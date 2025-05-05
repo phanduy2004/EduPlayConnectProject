@@ -299,28 +299,25 @@ public class NewsFeedActivity extends AppCompatActivity {
                         Log.w("NewsFeedActivity", "Invalid like notification: " + message);
                         return;
                     }
+                    // Bỏ qua thông báo từ chính người dùng hiện tại
+                    if (notification.getUserId().equals((long) userid)) {
+                        Log.d("NewsFeedActivity", "Ignoring self-like notification: postId=" + notification.getPostId() + ", action=" + notification.getAction());
+                        return;
+                    }
                     runOnUiThread(() -> {
                         for (int i = 0; i < postList.size(); i++) {
                             PostResponseDTO post = postList.get(i);
-                            if (post.getId() != null && post.getId().equals(notification.getPostId())) {
+                            if (post.getId().equals(notification.getPostId())) {
                                 int currentLikeCount = post.getLikeCount() != 0 ? post.getLikeCount() : 0;
                                 if (notification.getAction().equals("LIKED")) {
                                     post.setLikeCount(currentLikeCount + 1);
-                                    if (notification.getUserId().equals((long) userid)) {
-                                        post.setLikedByUser(true);
-                                    }
                                 } else if (notification.getAction().equals("UNLIKED")) {
                                     post.setLikeCount(Math.max(0, currentLikeCount - 1));
-                                    if (notification.getUserId().equals((long) userid)) {
-                                        post.setLikedByUser(false);
-                                    }
                                 }
                                 post.setScore(calculatePostScore(post));
                                 postAdapter.notifyItemChanged(i);
-                                if (!notification.getUserId().equals((long) userid)) {
-                                    Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " " +
-                                            (notification.getAction().equals("LIKED") ? "liked" : "unliked") + " the post", Toast.LENGTH_SHORT).show();
-                                }
+                                Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " " +
+                                        (notification.getAction().equals("LIKED") ? "liked" : "unliked") + " the post", Toast.LENGTH_SHORT).show();
                                 break;
                             }
                         }
