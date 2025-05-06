@@ -194,6 +194,49 @@ public class UserController {
             return ResponseEntity.status(500).body(response);
         }
     }
+    @PostMapping("/{userId}/reset-password")
+    public ResponseEntity<Map<String, Object>> resetPassword(
+            @PathVariable Long userId,
+            @RequestBody Map<String, String> request) {
+        Map<String, Object> response = new HashMap<>();
+        String newPassword = request.get("newPassword");
+        String confirmPassword = request.get("confirmPassword");
+        if(newPassword == null || confirmPassword == null) {
+            response.put("status", "error");
+            response.put("message", "Vui lòng nhập đầy đủ");
+            return ResponseEntity.badRequest().body(response);
+        }
+        if(!newPassword.equals(confirmPassword)) {
+            response.put("status", "error");
+            response.put("message", "Mật khẩu mới và xác nhận mật khẩu không khớp");
+            return ResponseEntity.badRequest().body(response);
+        }
+        try {
+            // Tìm user theo userId
+            Optional<User> optionalUser = userService.findByUserId(userId);
+            if (!optionalUser.isPresent()) {
+                response.put("status", "error");
+                response.put("message", "Không tìm thấy người dùng");
+                return ResponseEntity.status(404).body(response);
+            }
+
+            User user = optionalUser.get();
+            // Cập nhật mật khẩu mới
+            user.setPassword(newPassword);
+            userServiceImpl.updateUser(Math.toIntExact(userId), user);
+
+            response.put("status", "success");
+            response.put("message", "Thay đổi mật khẩu thành công");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("status", "error");
+            response.put("message", "Lỗi server: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+
+    }
+
 
 }
 
