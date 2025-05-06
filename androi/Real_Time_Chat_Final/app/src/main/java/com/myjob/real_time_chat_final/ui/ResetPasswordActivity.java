@@ -13,12 +13,8 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.myjob.real_time_chat_final.R;
-import com.myjob.real_time_chat_final.api.UserService;
 import com.myjob.real_time_chat_final.retrofit.RetrofitClient;
 
 import java.util.HashMap;
@@ -39,8 +35,8 @@ public class ResetPasswordActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_reset_password);
         anhxa();
-        eventTogglePasswordVisibility(edtNewPassword,R.drawable.baseline_lock_24, R.drawable.baseline_remove_red_eye_24, R.drawable.icons8_closed_eye_50);
-        eventTogglePasswordVisibility(edtConfirmPassword,R.drawable.baseline_lock_open_24, R.drawable.baseline_remove_red_eye_24, R.drawable.icons8_closed_eye_50);
+        eventTogglePasswordVisibility(edtNewPassword, R.drawable.baseline_lock_24, R.drawable.baseline_remove_red_eye_24, R.drawable.icons8_closed_eye_50);
+        eventTogglePasswordVisibility(edtConfirmPassword, R.drawable.baseline_lock_open_24, R.drawable.baseline_remove_red_eye_24, R.drawable.icons8_closed_eye_50);
         Intent intent = getIntent();
         Long userId;
         String id = intent.getStringExtra("userId");

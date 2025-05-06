@@ -86,6 +86,26 @@ public class AuthController {
             return ResponseEntity.badRequest().body(response);
         }
     }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> sendOTPForgotPassword(@RequestParam String user_email) {
+        Map<String, String> response = new HashMap<>();
+
+        // Kiểm tra nếu email không tìm thấy
+        if (userService.findByEmail(user_email).isEmpty()) {
+            response.put("message", "Email not exists");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        User user = userService.findByEmail(user_email).get();
+        String randomCode = email.getRandom();
+        user.setOtp(randomCode);
+        email.sendEmail(user);
+        userService.saveUser(user);
+
+        response.put("message", "OTP sent. Please verify.");
+        response.put("userid", String.valueOf(user.getId()));
+        return ResponseEntity.ok(response);
+    }
 
 
 
