@@ -8,7 +8,6 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,7 +18,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.myjob.real_time_chat_final.OnCommentInteractionListener;
@@ -43,12 +41,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     private final OnCommentInteractionListener commentInteractionListener;
     private static final SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
     private static final String TAG = "PostAdapter";
-    private static final int INITIAL_COMMENT_COUNT = 3;
-    private static final RequestOptions glideOptions = new RequestOptions()
-            .diskCacheStrategy(DiskCacheStrategy.ALL)
-            .placeholder(R.drawable.ic_user)
-            .error(R.drawable.ic_user)
-            .circleCrop();
 
     public interface OnLikeClickListener {
         void onLikeClick(PostResponseDTO post);
@@ -82,19 +74,20 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         String avatarUrl = post.getAvatarUrl() != null && !post.getAvatarUrl().isEmpty()
                 ? RetrofitClient.getBaseUrl() + post.getAvatarUrl() : null;
         Log.d(TAG, "Loading avatar URL: " + avatarUrl);
-        holder.avatarProgressBar.setVisibility(View.VISIBLE);
         if (avatarUrl != null && avatarUrl.contains("/uploads/")) {
             Glide.with(holder.itemView.getContext())
                     .load(avatarUrl)
                     .thumbnail(0.25f)
-                    .apply(glideOptions)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .placeholder(R.drawable.ic_user)
+                    .circleCrop()
                     .override(100, 100)
+                    .error(R.drawable.ic_user)
                     .listener(new RequestListener<Drawable>() {
                         @Override
                         public boolean onLoadFailed(@Nullable com.bumptech.glide.load.engine.GlideException e,
                                                     Object model, Target<Drawable> target, boolean isFirstResource) {
                             Log.e(TAG, "Glide load failed for avatar: " + avatarUrl, e);
-                            holder.avatarProgressBar.setVisibility(View.GONE);
                             return false;
                         }
 
@@ -102,7 +95,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                         public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target,
                                                        com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
                             Log.d(TAG, "Glide load successful for avatar: " + avatarUrl);
-                            holder.avatarProgressBar.setVisibility(View.GONE);
                             return false;
                         }
                     })
@@ -110,23 +102,23 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         } else {
             Log.w(TAG, "Invalid avatar URL: " + avatarUrl);
             holder.avatarImageView.setImageResource(R.drawable.ic_user);
-            holder.avatarProgressBar.setVisibility(View.GONE);
         }
 
         // Hiển thị avatar trong ô nhập bình luận
-        holder.commentAvatarProgressBar.setVisibility(View.VISIBLE);
         if (avatarUrl != null && avatarUrl.contains("/uploads/")) {
             Glide.with(holder.itemView.getContext())
                     .load(avatarUrl)
                     .thumbnail(0.25f)
-                    .apply(glideOptions)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .placeholder(R.drawable.ic_user)
+                    .circleCrop()
                     .override(80, 80)
+                    .error(R.drawable.ic_user)
                     .listener(new RequestListener<Drawable>() {
                         @Override
                         public boolean onLoadFailed(@Nullable com.bumptech.glide.load.engine.GlideException e,
                                                     Object model, Target<Drawable> target, boolean isFirstResource) {
                             Log.e(TAG, "Glide load failed for comment avatar: " + avatarUrl, e);
-                            holder.commentAvatarProgressBar.setVisibility(View.GONE);
                             return false;
                         }
 
@@ -134,7 +126,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                         public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target,
                                                        com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
                             Log.d(TAG, "Glide load successful for comment avatar: " + avatarUrl);
-                            holder.commentAvatarProgressBar.setVisibility(View.GONE);
                             return false;
                         }
                     })
@@ -142,7 +133,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         } else {
             Log.w(TAG, "Invalid comment avatar URL: " + avatarUrl);
             holder.commentAvatarInput.setImageResource(R.drawable.ic_user);
-            holder.commentAvatarProgressBar.setVisibility(View.GONE);
         }
 
         // Hiển thị thời gian và quyền riêng tư
@@ -153,40 +143,40 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         // Hiển thị nội dung bài đăng
         holder.contentTextView.setText(post.getContent() != null ? post.getContent() : "");
 
-        // Hiển thị media (ảnh và video)
-        List<String> mediaUrls = post.getImageUrl();
-        List<String> validMediaUrls = new ArrayList<>();
-        if (mediaUrls != null && !mediaUrls.isEmpty()) {
-            for (String url : mediaUrls) {
+        // Hiển thị ảnh
+        List<String> imageUrls = post.getImageUrl();
+        List<String> validImageUrls = new ArrayList<>();
+        if (imageUrls != null && !imageUrls.isEmpty()) {
+            for (String url : imageUrls) {
                 if (url != null && !url.isEmpty() && url.contains("/uploads/")) {
-                    validMediaUrls.add(url);
+                    validImageUrls.add(url);
                 } else {
-                    Log.w(TAG, "Invalid media URL for post " + post.getId() + ": " + url);
+                    Log.w(TAG, "Invalid image URL for post " + post.getId() + ": " + url);
                 }
             }
         }
 
-        if (!validMediaUrls.isEmpty()) {
-            Log.d(TAG, "Loading media: " + validMediaUrls);
+        if (!validImageUrls.isEmpty()) {
+            Log.d(TAG, "Loading images: " + validImageUrls);
             holder.imagesRecyclerView.setVisibility(View.VISIBLE);
             Log.d(TAG, "imagesRecyclerView visibility: " + (holder.imagesRecyclerView.getVisibility() == View.VISIBLE ? "VISIBLE" : "GONE"));
 
-            int mediaCount = validMediaUrls.size();
+            int imageCount = validImageUrls.size();
             if (!(holder.imagesRecyclerView.getLayoutManager() instanceof GridLayoutManager)) {
                 GridLayoutManager newLayoutManager = new GridLayoutManager(holder.itemView.getContext(), 3);
                 holder.imagesRecyclerView.setLayoutManager(newLayoutManager);
             }
             GridLayoutManager layoutManager = (GridLayoutManager) holder.imagesRecyclerView.getLayoutManager();
-            if (mediaCount == 1 || mediaCount == 2 || mediaCount >= 4) {
-                layoutManager.setSpanCount(mediaCount == 1 ? 1 : 2);
-            } else if (mediaCount == 3) {
+            if (imageCount == 1 || imageCount == 2 || imageCount >= 4) {
+                layoutManager.setSpanCount(imageCount == 1 ? 1 : 2);
+            } else if (imageCount == 3) {
                 layoutManager.setSpanCount(3);
             }
 
             layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
                 @Override
                 public int getSpanSize(int position) {
-                    if (mediaCount == 3) {
+                    if (imageCount == 3) {
                         if (position == 0) {
                             return 2;
                         } else {
@@ -198,30 +188,22 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             });
 
             if (holder.imageAdapter == null) {
-                holder.imageAdapter = new PostImagesAdapter(validMediaUrls, () -> {
+                holder.imageAdapter = new PostImagesAdapter(validImageUrls, () -> {
                     Log.d(TAG, "See more clicked for post: " + post.getId());
                     try {
-                        ImageGalleryDialog dialog = ImageGalleryDialog.newInstance(new ArrayList<>(validMediaUrls));
+                        ImageGalleryDialog dialog = ImageGalleryDialog.newInstance(new ArrayList<>(validImageUrls));
                         dialog.show(fragmentManager, "ImageGalleryDialog");
                     } catch (Exception e) {
                         Log.e(TAG, "Failed to show ImageGalleryDialog", e);
                     }
-                }, position -> {
-                    Log.d(TAG, "Image clicked at position: " + position);
-                    try {
-                        ImageGalleryDialog dialog = ImageGalleryDialog.newInstance(new ArrayList<>(validMediaUrls));
-                        dialog.show(fragmentManager, "ImageGalleryDialog");
-                    } catch (Exception e) {
-                        Log.e(TAG, "Failed to show ImageGalleryDialog", e);
-                    }
-                }, fragmentManager);
+                });
                 holder.imagesRecyclerView.setAdapter(holder.imageAdapter);
             } else {
-                holder.imageAdapter.updateMedia(validMediaUrls);
+                holder.imageAdapter.updateImages(validImageUrls); // Cập nhật danh sách ảnh
             }
             holder.imagesRecyclerView.requestLayout();
         } else {
-            Log.d(TAG, "No valid media for post: " + post.getId());
+            Log.d(TAG, "No valid images for post: " + post.getId());
             holder.imagesRecyclerView.setVisibility(View.GONE);
         }
 
@@ -231,7 +213,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         holder.commentCountTextView.setText(commentCount + " Comments");
         Log.d(TAG, "Post " + post.getId() + " has " + commentCount + " comments");
 
-        // Comment recycler view với phân trang
+        // Comment recycler view
         if (holder.commentAdapter == null) {
             holder.commentAdapter = new CommentAdapter(commentInteractionListener);
             holder.commentsRecyclerView.setAdapter(holder.commentAdapter);
@@ -239,21 +221,10 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             holder.commentsRecyclerView.setNestedScrollingEnabled(false);
         }
 
+        // Hiển thị tất cả bình luận
         List<CommentDTO> comments = post.getComments() != null ? post.getComments() : new ArrayList<>();
-        List<CommentDTO> displayedComments = new ArrayList<>();
-        if (comments.size() > INITIAL_COMMENT_COUNT) {
-            displayedComments.addAll(comments.subList(0, INITIAL_COMMENT_COUNT));
-            holder.seeMoreComments.setVisibility(View.VISIBLE);
-            holder.seeMoreComments.setText("Xem thêm " + (comments.size() - INITIAL_COMMENT_COUNT) + " bình luận");
-            holder.seeMoreComments.setOnClickListener(v -> {
-                holder.commentAdapter.updateComments(comments);
-                holder.seeMoreComments.setVisibility(View.GONE);
-            });
-        } else {
-            displayedComments.addAll(comments);
-            holder.seeMoreComments.setVisibility(View.GONE);
-        }
-        holder.commentAdapter.updateComments(displayedComments);
+        holder.commentAdapter.updateComments(comments);
+        holder.seeMoreComments.setVisibility(View.GONE);
 
         // Xử lý sự kiện
         holder.commentSendButton.setOnClickListener(v -> {
@@ -272,7 +243,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             Intent shareIntent = new Intent(Intent.ACTION_SEND);
             shareIntent.setType("text/plain");
             shareIntent.putExtra(Intent.EXTRA_TEXT, post.getContent() != null ? post.getContent() : "");
-            holder.itemView.getContext().startActivity(Intent.createChooser(shareIntent, "Chia sẻ bài đăng"));
+            holder.itemView.getContext().startActivity(Intent.createChooser(shareIntent, "Share Post"));
         });
     }
 
@@ -322,7 +293,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
 
     static class PostViewHolder extends RecyclerView.ViewHolder {
         ImageView avatarImageView, commentAvatarInput;
-        ProgressBar avatarProgressBar, commentAvatarProgressBar;
         TextView usernameTextView, timeTextView, privacyTextView, contentTextView,
                 likeCountTextView, commentCountTextView, likeButton, commentToggleButton, shareButton,
                 seeMoreComments;
@@ -335,7 +305,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         public PostViewHolder(@NonNull View itemView) {
             super(itemView);
             avatarImageView = itemView.findViewById(R.id.post_avatar);
-            avatarProgressBar = itemView.findViewById(R.id.avatar_progress_bar);
             usernameTextView = itemView.findViewById(R.id.post_username);
             timeTextView = itemView.findViewById(R.id.post_time);
             privacyTextView = itemView.findViewById(R.id.post_privacy);
@@ -346,7 +315,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             commentsRecyclerView = itemView.findViewById(R.id.comments_recycler_view);
             commentInput = itemView.findViewById(R.id.comment_input);
             commentAvatarInput = itemView.findViewById(R.id.comment_avatar_input);
-            commentAvatarProgressBar = itemView.findViewById(R.id.comment_avatar_progress_bar);
             likeButton = itemView.findViewById(R.id.btn_like);
             commentToggleButton = itemView.findViewById(R.id.btn_comment_toggle);
             commentSendButton = itemView.findViewById(R.id.btn_comment_send);
