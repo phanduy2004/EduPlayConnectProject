@@ -1,5 +1,6 @@
 package com.myjob.real_time_chat_final.adapter;
 
+import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -8,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -19,9 +21,10 @@ import com.myjob.real_time_chat_final.modelDTO.CommentDTO;
 import com.myjob.real_time_chat_final.retrofit.RetrofitClient;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import android.graphics.drawable.Drawable;
+import java.util.Set;
 
 public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentViewHolder> {
 
@@ -46,7 +49,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
         CommentDTO comment = commentList.get(position);
         int indentLevel = calculateIndentLevel(comment);
 
-        // Thụt vào dựa trên mức độ phân cấp (0 cho cha, 1 cho con)
+        // Thụt vào dựa trên mức độ phân cấp
         holder.itemView.setPadding(indentLevel * 32, 4, 8, 4);
 
         // Avatar
@@ -98,33 +101,41 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
     }
 
     private int calculateIndentLevel(CommentDTO comment) {
-        // Chỉ có 2 cấp: 0 cho bình luận cha, 1 cho bình luận con
         return comment.getParentCommentId() == null ? 0 : 1;
     }
 
-    private CommentDTO findCommentById(Long id) {
-        if (id == null) return null;
-        for (CommentDTO comment : commentList) {
-            if (comment.getId() != null && comment.getId().equals(id)) {
-                return comment;
-            }
-        }
-        return null;
-    }
-
     public void updateComments(List<CommentDTO> newComments) {
+        List<CommentDTO> flatList = getFlatCommentList(newComments);
+        DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(new CommentDiffCallback(commentList, flatList));
         commentList.clear();
-        flattenComments(newComments);
-        notifyDataSetChanged();
+        commentList.addAll(flatList);
+        diffResult.dispatchUpdatesTo(this);
     }
 
-    private void flattenComments(List<CommentDTO> comments) {
-        for (CommentDTO comment : comments) {
-            commentList.add(comment);
-            if (comment.getReplies() != null && !comment.getReplies().isEmpty()) {
-                commentList.addAll(comment.getReplies());
+    private List<CommentDTO> getFlatCommentList(List<CommentDTO> comments) {
+        List<CommentDTO> flatList = new ArrayList<>();
+        Set<Long> seenCommentIds = new HashSet<>(); // Theo dõi commentId để tránh trùng lặp
+        if (comments != null) {
+            for (CommentDTO comment : comments) {
+                if (comment.getId() != null && !seenCommentIds.contains(comment.getId())) {
+                    flatList.add(comment);
+                    seenCommentIds.add(comment.getId());
+                } else if (comment.getId() != null) {
+                    Log.d(TAG, "Duplicate comment ignored: commentId=" + comment.getId());
+                }
+                if (comment.getReplies() != null && !comment.getReplies().isEmpty()) {
+                    for (CommentDTO reply : comment.getReplies()) {
+                        if (reply.getId() != null && !seenCommentIds.contains(reply.getId())) {
+                            flatList.add(reply);
+                            seenCommentIds.add(reply.getId());
+                        } else if (reply.getId() != null) {
+                            Log.d(TAG, "Duplicate reply ignored: commentId=" + reply.getId());
+                        }
+                    }
+                }
             }
         }
+        return flatList;
     }
 
     static class CommentViewHolder extends RecyclerView.ViewHolder {
@@ -140,6 +151,42 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
             likeButton = itemView.findViewById(R.id.comment_like);
             replyButton = itemView.findViewById(R.id.comment_reply);
             shareButton = itemView.findViewById(R.id.comment_share);
+        }
+    }
+
+    static class CommentDiffCallback extends DiffUtil.Callback {
+        private final List<CommentDTO> oldList;
+        private final List<CommentDTO> newList;
+
+        public CommentDiffCallback(List<CommentDTO> oldList, List<CommentDTO> newList) {
+            this.oldList = oldList;
+            this.newList = newList;
+        }
+
+        @Override
+        public int getOldListSize() {
+            return oldList.size();
+        }
+
+        @Override
+        public int getNewListSize() {
+            return newList.size();
+        }
+
+        @Override
+        public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+            CommentDTO oldComment = oldList.get(oldItemPosition);
+            CommentDTO newComment = newList.get(newItemPosition);
+            return oldComment.getId() != null && oldComment.getId().equals(newComment.getId());
+        }
+
+        @Override
+        public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+            CommentDTO oldComment = oldList.get(oldItemPosition);
+            CommentDTO newComment = newList.get(newItemPosition);
+            return oldComment.getContent().equals(newComment.getContent()) &&
+                    oldComment.getUsername().equals(newComment.getUsername()) &&
+                    oldComment.getCreatedAt().equals(newComment.getCreatedAt());
         }
     }
 }

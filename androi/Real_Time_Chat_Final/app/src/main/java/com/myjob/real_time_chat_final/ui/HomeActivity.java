@@ -15,7 +15,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.myjob.real_time_chat_final.R;
 
 public class HomeActivity extends AppCompatActivity {
-    ImageButton alphabet, math, qizz, dictionary,findroom;
+    ImageButton alphabet, math, qizz, dictionary,findroom,topic;
     private final int userid = LoginActivity.userid;
     @SuppressLint("MissingInflatedId")
     @Override
@@ -33,6 +33,7 @@ public class HomeActivity extends AppCompatActivity {
         math = findViewById(R.id.mathBtn);
         qizz = findViewById(R.id.quizzBtn);
         dictionary = findViewById(R.id.dictionaryBtn);
+        topic = findViewById(R.id.topicStudy);
         findroom = findViewById(R.id.findRoomBtn);
 
         BottomNavigationView bottomNavigationView = findViewById(R.id.navBar);
@@ -53,7 +54,7 @@ public class HomeActivity extends AppCompatActivity {
                     startActivity(intent);
                     return true;
                 }
-                else if(item.getItemId()== R.id.nav_findRoom){
+                else if(item.getItemId()== R.id.nav_newsfeed){
                     Intent intent = new Intent(HomeActivity.this, NewsFeedActivity.class);
                     intent.putExtra("USER_ID", userid); // Gửi userId sang MessListActivity
                     startActivity(intent);
@@ -65,6 +66,7 @@ public class HomeActivity extends AppCompatActivity {
                     startActivity(intent);
                     return true;
                 }
+
                 else
                     return false;
             }
@@ -90,5 +92,10 @@ public class HomeActivity extends AppCompatActivity {
             Intent intent = new Intent(HomeActivity.this, DictionaryActivity.class);
             startActivity(intent);
         });
+        topic.setOnClickListener(v->{
+            Intent intent = new Intent(HomeActivity.this, TopicStudyActivity.class);
+            startActivity(intent);
+        });
+
     }
 }

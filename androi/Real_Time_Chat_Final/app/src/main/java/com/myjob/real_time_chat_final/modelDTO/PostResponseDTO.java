@@ -19,6 +19,17 @@ public class PostResponseDTO {
     private List<CommentDTO> comments;  // Danh sách bình luận
     private double score;               // Điểm số (dùng để sắp xếp bài đăng)
 
+    @SerializedName("likedByUser")
+    private boolean isLikedByUser;      // Trạng thái: người dùng hiện tại đã thích bài viết chưa
+
+    public boolean isLikedByUser() {
+        return isLikedByUser;
+    }
+
+    public void setLikedByUser(boolean likedByUser) {
+        isLikedByUser = likedByUser;
+    }
+
     // Getter và Setter
     public Long getId() {
         return id;
