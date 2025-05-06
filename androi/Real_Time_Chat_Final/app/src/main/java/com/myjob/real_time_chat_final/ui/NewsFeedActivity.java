@@ -299,28 +299,25 @@ public class NewsFeedActivity extends AppCompatActivity {
                         Log.w("NewsFeedActivity", "Invalid like notification: " + message);
                         return;
                     }
+                    // Bỏ qua thông báo từ chính người dùng hiện tại
+                    if (notification.getUserId().equals((long) userid)) {
+                        Log.d("NewsFeedActivity", "Ignoring self-like notification: postId=" + notification.getPostId() + ", action=" + notification.getAction());
+                        return;
+                    }
                     runOnUiThread(() -> {
                         for (int i = 0; i < postList.size(); i++) {
                             PostResponseDTO post = postList.get(i);
-                            if (post.getId() != null && post.getId().equals(notification.getPostId())) {
+                            if (post.getId().equals(notification.getPostId())) {
                                 int currentLikeCount = post.getLikeCount() != 0 ? post.getLikeCount() : 0;
                                 if (notification.getAction().equals("LIKED")) {
                                     post.setLikeCount(currentLikeCount + 1);
-                                    if (notification.getUserId().equals((long) userid)) {
-                                        post.setLikedByUser(true);
-                                    }
                                 } else if (notification.getAction().equals("UNLIKED")) {
                                     post.setLikeCount(Math.max(0, currentLikeCount - 1));
-                                    if (notification.getUserId().equals((long) userid)) {
-                                        post.setLikedByUser(false);
-                                    }
                                 }
                                 post.setScore(calculatePostScore(post));
                                 postAdapter.notifyItemChanged(i);
-                                if (!notification.getUserId().equals((long) userid)) {
-                                    Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " " +
-                                            (notification.getAction().equals("LIKED") ? "liked" : "unliked") + " the post", Toast.LENGTH_SHORT).show();
-                                }
+                                Toast.makeText(NewsFeedActivity.this, notification.getUsername() + " " +
+                                        (notification.getAction().equals("LIKED") ? "liked" : "unliked") + " the post", Toast.LENGTH_SHORT).show();
                                 break;
                             }
                         }
@@ -503,11 +500,10 @@ public class NewsFeedActivity extends AppCompatActivity {
             return;
         }
 
-        progressDialog.show();
         postApiService.likePost(post.getId(), (long) userid).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                progressDialog.dismiss();
+
                 if (response.isSuccessful() && response.body() != null) {
                     try {
                         String status = response.body().string().trim();
@@ -549,7 +545,7 @@ public class NewsFeedActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                progressDialog.dismiss();
+
                 Log.e("NewsFeedActivity", "Error liking post: " + post.getId() + ", message: " + t.getMessage(), t);
                 Toast.makeText(NewsFeedActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
             }
@@ -568,11 +564,9 @@ public class NewsFeedActivity extends AppCompatActivity {
         request.setContent(content);
         request.setParentCommentId(parentCommentId);
 
-        progressDialog.show();
         commentApiService.createComment(request).enqueue(new Callback<CommentDTO>() {
             @Override
             public void onResponse(Call<CommentDTO> call, Response<CommentDTO> response) {
-                progressDialog.dismiss();
                 if (response.isSuccessful() && response.body() != null) {
                     CommentDTO newComment = response.body();
                     Log.d("NewsFeedActivity", "Successfully commented on post: postId=" + post.getId() + ", commentId=" + newComment.getId());
@@ -641,7 +635,7 @@ public class NewsFeedActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<CommentDTO> call, Throwable t) {
-                progressDialog.dismiss();
+
                 Log.e("NewsFeedActivity", "Error posting comment on post: postId=" + post.getId() + ", message: " + t.getMessage(), t);
                 Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
@@ -1231,7 +1225,7 @@ public class NewsFeedActivity extends AppCompatActivity {
         postApiService.createPost(request).enqueue(new Callback<PostResponseDTO>() {
             @Override
             public void onResponse(Call<PostResponseDTO> call, Response<PostResponseDTO> response) {
-                progressDialog.dismiss();
+
                 ProgressBar uploadProgress = dialog.findViewById(R.id.upload_progress);
                 if (uploadProgress != null) {
                     uploadProgress.setVisibility(View.GONE);
@@ -1275,7 +1269,7 @@ public class NewsFeedActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<PostResponseDTO> call, Throwable t) {
-                progressDialog.dismiss();
+
                 ProgressBar uploadProgress = dialog.findViewById(R.id.upload_progress);
                 if (uploadProgress != null) {
                     uploadProgress.setVisibility(View.GONE);
@@ -1444,12 +1438,6 @@ public class NewsFeedActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        webSocketManager.disconnect();
-        if (createPostDialog != null && createPostDialog.isShowing()) {
-            createPostDialog.dismiss();
-        }
-        if (notificationDialog != null && notificationDialog.isShowing()) {
-            notificationDialog.dismiss();
-        }
+
     }
 }

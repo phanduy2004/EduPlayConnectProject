@@ -1,6 +1,8 @@
 package vn_hcmute.Real_Time_Chat_Final.service.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import vn_hcmute.Real_Time_Chat_Final.entity.Conversation;
 import vn_hcmute.Real_Time_Chat_Final.entity.Message;
@@ -28,10 +30,9 @@ public class ChatMessageService implements IChatMessageService {
     }
 
     @Override
-    public List<Message> findChatMessagesByConversationId(int conversationId) {
-        return chatMessageRepository.findByConversationId(conversationId);
+    public Page<Message> findChatMessagesByConversationId(int conversationId, Pageable pageable) {
+        return chatMessageRepository.findByConversationId((long) conversationId, pageable);
     }
-
     @Override
     public List<Message> findChatMessagesBySender(int conversationId, int senderId) {
         return chatMessageRepository.findByConversationIdAndSenderId(conversationId, senderId);

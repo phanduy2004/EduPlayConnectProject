@@ -2,11 +2,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="SelectedPhotoAccess">
-
+    <!-- Quyền truy cập -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" /> <!-- Tính năng phần cứng (không bắt buộc) -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
 
     <application
         android:allowBackup="true"
@@ -20,6 +28,9 @@
         android:theme="@style/Theme.Real_Time_Chat_Final"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+        <activity
+            android:name=".ui.VideoCallActivity"
+            android:exported="false" />
         <activity
             android:name=".ui.NewsFeedActivity"
             android:exported="false" />
@@ -75,7 +86,7 @@
         <activity
             android:name=".ui.HomeActivity"
             android:exported="false" />
-		<activity
+        <activity
             android:name=".ui.TopicStudyActivity"
             android:exported="false" />
         <activity
@@ -85,7 +96,6 @@
             android:name=".ui.FullScreenVideoActivity"
             android:exported="false" />
         <activity
-           
             android:name=".ui.LoginActivity"
             android:exported="true">
             <intent-filter>
