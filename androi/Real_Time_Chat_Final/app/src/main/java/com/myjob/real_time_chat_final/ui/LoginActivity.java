@@ -28,7 +28,7 @@ public class LoginActivity extends AppCompatActivity {
     public static int userid = 0;
     private static final String TAG = "LoginActivity";
     private EditText usernameEditText, passwordEditText;
-    private TextView signupText;
+    private TextView signupText,forgetText;
     private Button loginButton;
 
     @Override
@@ -41,13 +41,16 @@ public class LoginActivity extends AppCompatActivity {
         passwordEditText = findViewById(R.id.passwordEditText);
         loginButton = findViewById(R.id.loginButton);
         signupText = findViewById(R.id.signUpTextView);
-
+        forgetText = findViewById(R.id.forgotPasswordTextView);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-
+        forgetText.setOnClickListener(v ->{
+            Intent intent = new Intent(LoginActivity.this,ForgotPasswordActivity.class);
+            startActivity(intent);
+        });
         // Sự kiện khi nhấn nút đăng nhập
         loginButton.setOnClickListener(v -> loginUser());
         signupText.setOnClickListener(v -> {
