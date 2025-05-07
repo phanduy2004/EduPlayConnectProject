@@ -57,6 +57,16 @@
             android:name=".ui.FriendListActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.ForgotPasswordActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.VerifyCodeResetPassActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.ResetPasswordActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.MathActivity"
             android:exported="false" />
         <activity

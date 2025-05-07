@@ -39,6 +39,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
+    implementation(libs.pinview)
 
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
@@ -62,7 +63,7 @@ dependencies {
     implementation ("androidx.viewpager2:viewpager2:1.0.0")
     implementation ("de.hdodenhof:circleimageview:3.1.0") // Phiên bản mới nhất
     implementation ("androidx.activity:activity:1.8.0") // Cho Activity Result API
-
+    implementation ("io.github.chaosleung:pinview:1.4.4")
     //Media3
     implementation ("androidx.media3:media3-exoplayer:1.2.0")
     implementation ("androidx.media3:media3-exoplayer-dash:1.2.0")

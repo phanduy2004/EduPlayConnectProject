@@ -30,7 +30,6 @@ rxjava = { group = "io.reactivex.rxjava2", name = "rxjava", version.ref = "rxjav
 rxandroid = { group = "io.reactivex.rxjava2", name = "rxandroid", version.ref = "rxandroid" }
 stomp = { group = "com.github.NaikSoftware", name = "StompProtocolAndroid", version.ref = "stomp" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
-
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 

@@ -37,5 +37,8 @@ public interface UserService {
     Call<User> uploadAvatar(@Path("userId") long userId, @Part MultipartBody.Part avatar);
     @POST("api/users/{userId}/change-password")
     Call<Map<String, Object>> changePassword(@Path("userId") long userId, @Body Map<String, String> request);
-
+    @POST("/auth/forgot-password")
+    Call<Map<String, String>> sendOTPForgotPassword(@Query("user_email") String user_email);
+    @POST("api/users/{userId}/reset-password")
+    Call<Map<String, Object>> resetPassword(@Path("userId") long userId, @Body Map<String, String> request);
 }
