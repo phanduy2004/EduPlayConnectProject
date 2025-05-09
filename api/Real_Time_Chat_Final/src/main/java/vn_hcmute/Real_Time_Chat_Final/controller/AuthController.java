@@ -1,25 +1,16 @@
 package vn_hcmute.Real_Time_Chat_Final.controller;
 
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import vn_hcmute.Real_Time_Chat_Final.entity.User;
-import vn_hcmute.Real_Time_Chat_Final.model.OTPCodeModel;
 import vn_hcmute.Real_Time_Chat_Final.service.IUserService;
-import vn_hcmute.Real_Time_Chat_Final.service.impl.UserServiceImpl;
 import vn_hcmute.Real_Time_Chat_Final.utils.Email;
 
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 @RequiredArgsConstructor
 @RestController
