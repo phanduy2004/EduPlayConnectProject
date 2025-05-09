@@ -1,25 +1,16 @@
 package vn_hcmute.Real_Time_Chat_Final.controller;
 
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import vn_hcmute.Real_Time_Chat_Final.entity.User;
-import vn_hcmute.Real_Time_Chat_Final.model.OTPCodeModel;
 import vn_hcmute.Real_Time_Chat_Final.service.IUserService;
-import vn_hcmute.Real_Time_Chat_Final.service.impl.UserServiceImpl;
 import vn_hcmute.Real_Time_Chat_Final.utils.Email;
 
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 @RequiredArgsConstructor
 @RestController
@@ -85,6 +76,26 @@ public class AuthController {
             response.put("message", "failed");
             return ResponseEntity.badRequest().body(response);
         }
+    }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> sendOTPForgotPassword(@RequestParam String user_email) {
+        Map<String, String> response = new HashMap<>();
+
+        // Kiểm tra nếu email không tìm thấy
+        if (userService.findByEmail(user_email).isEmpty()) {
+            response.put("message", "Email not exists");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        User user = userService.findByEmail(user_email).get();
+        String randomCode = email.getRandom();
+        user.setOtp(randomCode);
+        email.sendEmail(user);
+        userService.saveUser(user);
+
+        response.put("message", "OTP sent. Please verify.");
+        response.put("userid", String.valueOf(user.getId()));
+        return ResponseEntity.ok(response);
     }
 
 

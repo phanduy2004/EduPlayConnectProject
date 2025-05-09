@@ -500,11 +500,10 @@ public class NewsFeedActivity extends AppCompatActivity {
             return;
         }
 
-        progressDialog.show();
         postApiService.likePost(post.getId(), (long) userid).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                progressDialog.dismiss();
+
                 if (response.isSuccessful() && response.body() != null) {
                     try {
                         String status = response.body().string().trim();
@@ -546,7 +545,7 @@ public class NewsFeedActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                progressDialog.dismiss();
+
                 Log.e("NewsFeedActivity", "Error liking post: " + post.getId() + ", message: " + t.getMessage(), t);
                 Toast.makeText(NewsFeedActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
             }
@@ -565,11 +564,9 @@ public class NewsFeedActivity extends AppCompatActivity {
         request.setContent(content);
         request.setParentCommentId(parentCommentId);
 
-        progressDialog.show();
         commentApiService.createComment(request).enqueue(new Callback<CommentDTO>() {
             @Override
             public void onResponse(Call<CommentDTO> call, Response<CommentDTO> response) {
-                progressDialog.dismiss();
                 if (response.isSuccessful() && response.body() != null) {
                     CommentDTO newComment = response.body();
                     Log.d("NewsFeedActivity", "Successfully commented on post: postId=" + post.getId() + ", commentId=" + newComment.getId());
@@ -638,7 +635,7 @@ public class NewsFeedActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<CommentDTO> call, Throwable t) {
-                progressDialog.dismiss();
+
                 Log.e("NewsFeedActivity", "Error posting comment on post: postId=" + post.getId() + ", message: " + t.getMessage(), t);
                 Toast.makeText(NewsFeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
@@ -1228,7 +1225,7 @@ public class NewsFeedActivity extends AppCompatActivity {
         postApiService.createPost(request).enqueue(new Callback<PostResponseDTO>() {
             @Override
             public void onResponse(Call<PostResponseDTO> call, Response<PostResponseDTO> response) {
-                progressDialog.dismiss();
+
                 ProgressBar uploadProgress = dialog.findViewById(R.id.upload_progress);
                 if (uploadProgress != null) {
                     uploadProgress.setVisibility(View.GONE);
@@ -1272,7 +1269,7 @@ public class NewsFeedActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<PostResponseDTO> call, Throwable t) {
-                progressDialog.dismiss();
+
                 ProgressBar uploadProgress = dialog.findViewById(R.id.upload_progress);
                 if (uploadProgress != null) {
                     uploadProgress.setVisibility(View.GONE);
@@ -1441,12 +1438,6 @@ public class NewsFeedActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        webSocketManager.disconnect();
-        if (createPostDialog != null && createPostDialog.isShowing()) {
-            createPostDialog.dismiss();
-        }
-        if (notificationDialog != null && notificationDialog.isShowing()) {
-            notificationDialog.dismiss();
-        }
+
     }
 }
