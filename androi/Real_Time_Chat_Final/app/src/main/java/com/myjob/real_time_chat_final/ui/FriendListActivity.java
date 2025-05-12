@@ -27,6 +27,12 @@ import com.myjob.real_time_chat_final.config.WebSocketManager;
 import com.myjob.real_time_chat_final.model.Friendship;
 import com.myjob.real_time_chat_final.model.User;
 
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 public class FriendListActivity extends AppCompatActivity implements FriendRequestListener {
 
     private WebSocketManager webSocketManager;
@@ -47,15 +53,10 @@ public class FriendListActivity extends AppCompatActivity implements FriendReque
         user.setId(userID);
 
         webSocketManager.subscribeToRequest(response -> runOnUiThread(() -> {
-            Log.d("FriendRequest", "Nhận phản hồi: " + response);
-
             Friendship newFriendRequest = new Gson().fromJson(response, Friendship.class);
 
             if (newFriendRequest.getSenderId() != null &&
                     newFriendRequest.getSenderId().getId() != userID) {
-
-                Toast.makeText(this, "Có yêu cầu kết bạn mới!", Toast.LENGTH_SHORT).show();
-
                 FriendRequestFragment fragment = (FriendRequestFragment) getSupportFragmentManager().findFragmentByTag("f1");
                 if (fragment != null) {
                     fragment.addFriendRequest(newFriendRequest);
@@ -239,11 +240,24 @@ public class FriendListActivity extends AppCompatActivity implements FriendReque
     }
 
     private void sendFriendRequest(String friendName) {
-        Friendship friendship = new Friendship(user, friendName, "Pending");
+        Timestamp timestamp = convertToTimestamp(getCurrentTime());
+        Friendship friendship = new Friendship(user, friendName, "Pending",convertToTimestamp(getCurrentTime()));
         webSocketManager.sendRequest(new Gson().toJson(friendship), "/app/sendFriendRequest");
         Toast.makeText(this, "Đã gửi yêu cầu kết bạn cho " + friendName, Toast.LENGTH_SHORT).show();
     }
-
+    private String getCurrentTime() {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+    }
+    private Timestamp convertToTimestamp(String timeString) {
+        try {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+            Date parsedDate = dateFormat.parse(timeString);
+            return new Timestamp(parsedDate.getTime());
+        } catch (ParseException e) {
+            Log.e("ChattingActivity", "Lỗi parse timestamp: " + e.getMessage());
+            return null;
+        }
+    }
     @Override
     public void onFriendRequestAccepted(int userId) {
         // Tìm FriendListFragment và gọi loadFriendList

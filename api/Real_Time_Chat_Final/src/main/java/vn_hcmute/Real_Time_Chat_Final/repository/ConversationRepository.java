@@ -24,19 +24,23 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
     @Query("SELECT c.id FROM Conversation c WHERE c.id = :conversationId")
     Optional<Long> getChatRoomId(@Param("conversationId") Long conversationId);
 
-    @Query("SELECT cm FROM ConversationMember cm " +
+    @Query("SELECT DISTINCT cm FROM ConversationMember cm " +
             "JOIN cm.conversation c " +
             "JOIN cm.user u " +
             "WHERE cm.conversation.id IN (" +
             "   SELECT cm2.conversation.id FROM ConversationMember cm2 WHERE cm2.user.id = :userId" +
-            ") AND (c.group = true OR cm.user.id <> :userId)")
+            ") AND cm.user.id <> :userId")
     List<ConversationMember> findListChat(@Param("userId") int userId);
+
     @Query("SELECT c FROM Conversation c " +
             "WHERE c.group = false " +
             "AND EXISTS (SELECT m1 FROM ConversationMember m1 WHERE m1.conversation = c AND m1.user.id = :userId) " +
             "AND EXISTS (SELECT m2 FROM ConversationMember m2 WHERE m2.conversation = c AND m2.user.id = :friendId)")
     List<Conversation> findIndividualConversationBetweenUsers(long userId, long friendId);
-
+    @Query("SELECT c FROM Conversation c " +
+            "JOIN c.members cm " +
+            "WHERE cm.user.id = :userId")
+    List<Conversation> findConversationsByUserId(@Param("userId") int userId);
 
 
 

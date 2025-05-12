@@ -15,7 +15,7 @@
         android:layout_height="0dp"
         android:contentDescription="Background"
         android:scaleType="centerCrop"
-        android:src="@drawable/background_login"
+        android:src="@drawable/background"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

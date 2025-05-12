@@ -22,6 +22,7 @@ import com.myjob.real_time_chat_final.config.WebSocketManager;
 import com.myjob.real_time_chat_final.model.Friendship;
 import com.myjob.real_time_chat_final.retrofit.RetrofitClient;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -146,6 +147,7 @@ public class FriendRequestFragment extends Fragment {
     }
 
     private void handleFriendRequestAction(Friendship friendship, boolean isAccepted) {
+        friendship.setCreatedAt(null);
         friendship.setStatus(isAccepted ? "Accepted" : "Rejected");
         sendFriendRequestResponse(friendship, isAccepted);
 
@@ -171,4 +173,5 @@ public class FriendRequestFragment extends Fragment {
         String endpoint = isAccepted ? "/app/acceptFriendRequest" : "/app/rejectFriendRequest";
         webSocketManager.sendRequest(new Gson().toJson(friendship), endpoint);
     }
+
 }

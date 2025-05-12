@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn_hcmute.Real_Time_Chat_Final.entity.Conversation;
 import vn_hcmute.Real_Time_Chat_Final.entity.ConversationMember;
+import vn_hcmute.Real_Time_Chat_Final.model.ContactDTO;
 import vn_hcmute.Real_Time_Chat_Final.service.IConversationService;
 import vn_hcmute.Real_Time_Chat_Final.service.impl.ConversationService;
 
@@ -13,10 +14,9 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/conversations")
 public class ConversationController {
-    private final IConversationService conversationService;
     private final ConversationService conversationRepoService;
-
-    public ConversationController(IConversationService conversationService, ConversationService conversationRepoService) {
+    private final ConversationService conversationService;
+    public ConversationController(ConversationService conversationService, ConversationService conversationRepoService) {
         this.conversationService = conversationService;
         this.conversationRepoService = conversationRepoService;
     }
@@ -121,5 +121,10 @@ public class ConversationController {
             System.err.println("Lỗi lấy danh sách cuộc trò chuyện: " + e.getMessage());
             return ResponseEntity.status(500).build();
         }
+    }
+    @GetMapping("/contacts")
+    public ResponseEntity<List<ContactDTO>> getContacts(@RequestParam int user_id) {
+        List<ContactDTO> contacts = conversationService.getContacts(user_id);
+        return ResponseEntity.ok(contacts);
     }
 }

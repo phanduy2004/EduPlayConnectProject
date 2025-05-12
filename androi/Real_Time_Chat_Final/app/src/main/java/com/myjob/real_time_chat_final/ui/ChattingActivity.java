@@ -28,6 +28,7 @@ import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -122,7 +123,14 @@ public class ChattingActivity extends AppCompatActivity {
         setupSendMessageListener();
         setupAdditionalButtons();
         setupScrollListener();
-        loadMessages(currentPage);
+        layoutManager = new LinearLayoutManager(this);
+        layoutManager.setStackFromEnd(true);      // ✅ Cuộn đến tin nhắn mới nhất khi mở
+        layoutManager.setReverseLayout(false);    // ✅ Thứ tự: cũ → mới
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.setAdapter(adapter);
+
+        setupScrollListener();   // Gắn listener
+        loadMessages(0);
     }
 
     private void setupTaskbarName(String userName) {
@@ -204,15 +212,13 @@ public class ChattingActivity extends AppCompatActivity {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
-                if (layoutManager == null) {
-                    Log.e("ChattingActivity", "layoutManager is null in onScrolled");
-                    return;
-                }
+                if (layoutManager == null) return;
+
                 int firstVisibleItem = layoutManager.findFirstVisibleItemPosition();
-                Log.d("ChattingActivity", "onScrolled: firstVisibleItem=" + firstVisibleItem + ", isLoading=" + isLoading + ", isLastPage=" + isLastPage);
+                Log.d("ChattingActivity", "firstVisibleItem=" + firstVisibleItem + ", isLoading=" + isLoading + ", isLastPage=" + isLastPage);
+
                 if (firstVisibleItem <= 2 && !isLoading && !isLastPage) {
-                    Log.d("ChattingActivity", "Kích hoạt tải trang: " + (currentPage + 1));
-                    loadMessages(currentPage + 1);
+                    loadMessages(currentPage + 1);  // ✅ Tải thêm trang cũ
                 }
             }
         });
@@ -222,7 +228,6 @@ public class ChattingActivity extends AppCompatActivity {
         if (isLoading) return;
         isLoading = true;
 
-        Log.d("ChattingActivity", "Đang tải trang: " + page);
         messageService.getMessagesByConversationId(conversation.getId(), page, PAGE_SIZE)
                 .enqueue(new Callback<PageResponse<Message>>() {
                     @Override
@@ -232,25 +237,30 @@ public class ChattingActivity extends AppCompatActivity {
                             PageResponse<Message> pageResponse = response.body();
                             List<Message> newMessages = pageResponse.getContent();
                             isLastPage = pageResponse.isLast();
-                            Log.d("ChattingActivity", "Phản hồi API: trang=" + page + ", số tin nhắn=" + newMessages.size() + ", isLastPage=" + isLastPage);
 
                             if (page == 0) {
+                                // ✅ Tin nhắn mới nhất nằm ở cuối danh sách
                                 messageList.clear();
                                 messageList.addAll(newMessages);
                                 adapter.notifyDataSetChanged();
                                 recyclerView.scrollToPosition(messageList.size() - 1);
                             } else {
-                                int startPosition = 0;
+                                // ✅ Thêm các tin nhắn cũ vào đầu danh sách
+                                int prevPosition = layoutManager.findFirstVisibleItemPosition();
+                                View firstView = layoutManager.findViewByPosition(prevPosition);
+                                int offset = (firstView == null) ? 0 : firstView.getTop();
+
                                 messageList.addAll(0, newMessages);
                                 adapter.notifyItemRangeInserted(0, newMessages.size());
-                                recyclerView.scrollToPosition(newMessages.size());
+
+                                // ✅ Giữ nguyên vị trí cuộn sau khi thêm dữ liệu
+                                layoutManager.scrollToPositionWithOffset(prevPosition + newMessages.size(), offset);
                             }
 
                             if (!newMessages.isEmpty()) {
                                 currentPage = page;
                             }
                         } else {
-                            Log.e("ChattingActivity", "Phản hồi không thành công: mã lỗi=" + response.code());
                             Toast.makeText(ChattingActivity.this, "Lỗi tải tin nhắn", Toast.LENGTH_SHORT).show();
                         }
                     }
@@ -258,11 +268,11 @@ public class ChattingActivity extends AppCompatActivity {
                     @Override
                     public void onFailure(Call<PageResponse<Message>> call, Throwable t) {
                         isLoading = false;
-                        Log.e("ChattingActivity", "Lỗi tải tin nhắn: " + t.getMessage());
-                        Toast.makeText(ChattingActivity.this, "Lỗi tải tin nhắn", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(ChattingActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
+
 
     private String getCurrentTime() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());

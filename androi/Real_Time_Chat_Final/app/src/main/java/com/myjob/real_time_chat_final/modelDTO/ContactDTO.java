@@ -1,8 +1,8 @@
-package com.myjob.real_time_chat_final.model;
+package com.myjob.real_time_chat_final.modelDTO;
 
 import java.sql.Timestamp;
 
-public class ListChat {
+public class ContactDTO {
     private int id;
     private String username;
     private String email;
@@ -13,6 +13,17 @@ public class ListChat {
     private String avatarUrl;
     private String lastMessage;
     private Timestamp lastMessageTime;
+    private String lastMessageSenderName;
+
+    public Long getLastMessageSenderId() {
+        return lastMessageSenderId;
+    }
+
+    public void setLastMessageSenderId(Long lastMessageSenderId) {
+        this.lastMessageSenderId = lastMessageSenderId;
+    }
+
+    private Long lastMessageSenderId;
 
     public int getId() {
         return id;
@@ -92,5 +103,13 @@ public class ListChat {
 
     public void setLastMessageTime(Timestamp lastMessageTime) {
         this.lastMessageTime = lastMessageTime;
+    }
+
+    public String getLastMessageSenderName() {
+        return lastMessageSenderName;
+    }
+
+    public void setLastMessageSenderName(String lastMessageSenderName) {
+        this.lastMessageSenderName = lastMessageSenderName;
     }
 }

@@ -5,7 +5,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn_hcmute.Real_Time_Chat_Final.entity.Conversation;
 import vn_hcmute.Real_Time_Chat_Final.entity.ConversationMember;
+import vn_hcmute.Real_Time_Chat_Final.entity.Message;
 import vn_hcmute.Real_Time_Chat_Final.entity.User;
+import vn_hcmute.Real_Time_Chat_Final.model.ContactDTO;
+import vn_hcmute.Real_Time_Chat_Final.repository.ChatMessageRepository;
+import vn_hcmute.Real_Time_Chat_Final.repository.ConversationMemberRepository;
 import vn_hcmute.Real_Time_Chat_Final.repository.ConversationRepository;
 import vn_hcmute.Real_Time_Chat_Final.service.IConversationService;
 
@@ -13,17 +17,20 @@ import java.sql.Timestamp;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ConversationService implements IConversationService {
 
     private final ConversationRepository conversationRepository;
     private final UserServiceImpl userServiceImpl;
+    private final ChatMessageRepository chatMessageRepository;
 
     @Autowired
-    public ConversationService(ConversationRepository conversationRepository, UserServiceImpl userServiceImpl) {
+    public ConversationService(ConversationRepository conversationRepository, UserServiceImpl userServiceImpl,ChatMessageRepository chatMessageRepository) {
         this.conversationRepository = conversationRepository;
         this.userServiceImpl = userServiceImpl;
+        this.chatMessageRepository = chatMessageRepository;
     }
 
     @Transactional
@@ -159,9 +166,57 @@ public class ConversationService implements IConversationService {
 
         return Optional.empty();
     }
-
     @Override
     public List<ConversationMember> findListChat(int userId) {
         return conversationRepository.findListChat(userId);
     }
+    public List<ContactDTO> getContacts(int userId) {
+        List<Conversation> conversations = conversationRepository.findAll();
+
+        return conversations.stream()
+                .filter(convo -> convo.getMembers().stream().anyMatch(cm -> cm.getUser().getId() == userId))
+                .map(conversation -> {
+                    Optional<Message> lastMessageOpt = chatMessageRepository.findLastMessageByConversationId(conversation.getId());
+                    String lastMessage = lastMessageOpt.map(Message::getMessage).orElse("Chưa có tin nhắn");
+                    Timestamp lastMessageTime = lastMessageOpt.map(Message::getTimestamp).orElse(null);
+                    String lastMessageSenderName = lastMessageOpt.map(m -> m.getSender().getUsername()).orElse(null);
+                    Long lastMessageSenderId = lastMessageOpt.map(m -> m.getSender().getId()).orElse(null);
+                    User displayUser = null;
+                    String displayName;
+
+                    if (conversation.isGroup()) {
+                        displayName = conversation.getName(); // ✅ lấy tên nhóm
+                        // bạn có thể chọn một thành viên làm đại diện avatar nếu muốn
+                        Optional<ConversationMember> anyMember = conversation.getMembers().stream().findFirst();
+                        displayUser = anyMember.map(ConversationMember::getUser).orElse(null);
+                    } else {
+                        // ✅ lấy người còn lại (khác với userId)
+                        Optional<ConversationMember> otherMemberOpt = conversation.getMembers()
+                                .stream()
+                                .filter(cm -> cm.getUser().getId() != userId)
+                                .findFirst();
+                        displayUser = otherMemberOpt.map(ConversationMember::getUser).orElse(null);
+                        displayName = displayUser != null ? displayUser.getUsername() : "Không xác định";
+                    }
+
+                    return new ContactDTO(
+                            displayUser != null ? (int) displayUser.getId() : 0,
+                            displayName,
+                            displayUser != null ? displayUser.getEmail() : "",
+                            displayUser != null && displayUser.isActive(),
+                            displayUser != null && displayUser.getCreatedAt() != null ? displayUser.getCreatedAt().toString() : "",
+                            displayUser != null && displayUser.isStatus(),
+                            (int) conversation.getId(),
+                            displayUser != null ? displayUser.getAvatarUrl() : null,
+                            lastMessage,
+                            lastMessageTime,
+                            lastMessageSenderName,
+                            lastMessageSenderId
+
+                    );
+                }).collect(Collectors.toList());
+    }
+
+
+
 }

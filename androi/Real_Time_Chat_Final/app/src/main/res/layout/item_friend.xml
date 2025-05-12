@@ -7,17 +7,29 @@
     android:layout_marginBottom="8dp"
     android:padding="12dp">
 
+    <ImageView
+        android:id="@+id/avatar"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:src="@drawable/ic_user"
+        android:scaleType="centerCrop"
+        android:clipToOutline="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
     <TextView
         android:id="@+id/friend_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Tên bạn bè"
-        android:textSize="16sp"
-        android:textStyle="bold"
+        android:textSize="17sp"
+        android:fontFamily="sans-serif-medium"
         android:textColor="@android:color/black"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginStart="12dp"
+        app:layout_constraintStart_toEndOf="@id/avatar"
         app:layout_constraintEnd_toStartOf="@id/btn_message"
+        app:layout_constraintTop_toTopOf="@id/avatar"
         app:layout_constraintHorizontal_weight="1" />
 
     <TextView
@@ -25,8 +37,8 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Đang hoạt động"
-        android:textSize="12sp"
-        android:textColor="#757575"
+        android:textSize="13sp"
+        android:textColor="#8E8E93"
         android:layout_marginTop="4dp"
         app:layout_constraintStart_toStartOf="@id/friend_name"
         app:layout_constraintTop_toBottomOf="@id/friend_name"

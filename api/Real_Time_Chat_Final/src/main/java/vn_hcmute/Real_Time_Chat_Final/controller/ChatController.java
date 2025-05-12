@@ -100,7 +100,7 @@ public class ChatController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             int convId = Integer.parseInt(conversationId.trim());
-            Pageable pageable = PageRequest.of(page, size, Sort.by("timestamp").descending());
+            Pageable pageable = PageRequest.of(page, size, Sort.by("timestamp").ascending());
             Page<Message> messages = chatMessageService.findChatMessagesByConversationId(convId, pageable);
             return ResponseEntity.ok(messages);
         } catch (NumberFormatException e) {

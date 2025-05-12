@@ -49,6 +49,9 @@ public class User implements Serializable {
 
     }
 
+    public User(long id, String name, String s, boolean b, Object o, boolean b1, Object o1) {
+    }
+
     @Override
     public String toString() {
         return "User{" +

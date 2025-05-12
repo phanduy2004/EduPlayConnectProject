@@ -5,7 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F7F7F7"
+    android:background="#F5F5F5"
     android:fitsSystemWindows="true"
     tools:context=".ui.HomeActivity">
 
@@ -18,7 +18,7 @@
         android:fontFamily="sans-serif-medium"
         android:gravity="center"
         android:text="What is your choice?"
-        android:textColor="#000000"
+        android:textColor="#1877F2"
         android:textSize="30sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
@@ -84,7 +84,7 @@
                     android:layout_marginTop="8dp"
                     android:fontFamily="sans-serif-medium"
                     android:text="@string/alphabet"
-                    android:textColor="#333333"
+                    android:textColor="#1877F2"
                     android:textSize="16sp" />
             </LinearLayout>
 
@@ -115,7 +115,7 @@
                     android:layout_marginTop="8dp"
                     android:fontFamily="sans-serif-medium"
                     android:text="@string/math"
-                    android:textColor="#333333"
+                    android:textColor="#1877F2"
                     android:textSize="16sp" />
             </LinearLayout>
 
@@ -146,7 +146,7 @@
                     android:layout_marginTop="8dp"
                     android:fontFamily="sans-serif-medium"
                     android:text="@string/quiz"
-                    android:textColor="#333333"
+                    android:textColor="#1877F2"
                     android:textSize="16sp" />
             </LinearLayout>
 
@@ -177,7 +177,7 @@
                     android:layout_marginTop="8dp"
                     android:fontFamily="sans-serif-medium"
                     android:text="@string/dictionary"
-                    android:textColor="#333333"
+                    android:textColor="#1877F2"
                     android:textSize="16sp" />
             </LinearLayout>
 
@@ -208,7 +208,7 @@
                     android:layout_marginTop="8dp"
                     android:fontFamily="sans-serif-medium"
                     android:text="@string/topic_study"
-                    android:textColor="#333333"
+                    android:textColor="#1877F2"
                     android:textSize="16sp" />
             </LinearLayout>
         </GridLayout>

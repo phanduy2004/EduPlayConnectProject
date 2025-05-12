@@ -7,9 +7,11 @@ import com.myjob.real_time_chat_final.api.DictionaryApi;
 import com.myjob.real_time_chat_final.api.FriendshipService;
 import com.myjob.real_time_chat_final.api.GameRoomService;
 import com.myjob.real_time_chat_final.api.MessageService;
+import com.myjob.real_time_chat_final.api.ScoreService;
 import com.myjob.real_time_chat_final.api.TopicService;
 import com.myjob.real_time_chat_final.api.PostService;
 import com.myjob.real_time_chat_final.api.UserService;
+import com.myjob.real_time_chat_final.modelDTO.ScoreDTO;
 
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -65,5 +67,8 @@ public class RetrofitClient {
     }
     public static CommentService getApiCommentService() {
         return getInstance().create(CommentService.class);
+    }
+    public static ScoreService getApiScoreService() {
+        return getInstance().create(ScoreService.class);
     }
 }

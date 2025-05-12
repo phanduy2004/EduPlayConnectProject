@@ -8,6 +8,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.material.imageview.ShapeableImageView;
 import com.myjob.real_time_chat_final.R;
 import com.myjob.real_time_chat_final.api.UserService;
@@ -29,12 +30,9 @@ public class UserActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user);
 
-        // Lấy userId từ SharedPreferences
-
         // Kiểm tra userId
         if (currentUserId == -1) {
             Toast.makeText(this, "Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập lại.", Toast.LENGTH_SHORT).show();
-            // Chuyển về màn hình đăng nhập
             Intent loginIntent = new Intent(UserActivity.this, LoginActivity.class);
             startActivity(loginIntent);
             finish();
@@ -59,10 +57,10 @@ public class UserActivity extends AppCompatActivity {
             Log.d("UserActivity", "Nhấn vào 'Chỉnh sửa thông tin', userId: " + currentUserId);
             Intent intent = new Intent(UserActivity.this, EditProfileActivity.class);
             intent.putExtra("USER_ID", currentUserId);
-            startActivityForResult(intent, 1); // Sử dụng startActivityForResult để nhận kết quả từ EditProfileActivity
+            startActivityForResult(intent, 1); // Sử dụng startActivityForResult
         });
 
-        findViewById(R.id.change_password).setOnClickListener(v ->{
+        findViewById(R.id.change_password).setOnClickListener(v -> {
             Intent intent = new Intent(UserActivity.this, ChangePasswordActivity.class);
             startActivity(intent);
             Toast.makeText(this, "Thay đổi mật khẩu", Toast.LENGTH_SHORT).show();
@@ -90,21 +88,19 @@ public class UserActivity extends AppCompatActivity {
             public void onResponse(Call<User> call, Response<User> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     User user = response.body();
-                    // Hiển thị username lên tvName
                     tvName.setText(user.getUsername());
-                    // Tải ảnh đại diện từ avatarUrl bằng Glide
                     if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
-                        // Thêm base URL vào avatarUrl
-                        String baseUrl =RetrofitClient.getBaseUrl(); // Hoặc lấy từ RetrofitClient
+                        String baseUrl = RetrofitClient.getBaseUrl();
                         String fullAvatarUrl = baseUrl + user.getAvatarUrl();
-                        Log.d("EditProfile", "Loading avatar URL: " + fullAvatarUrl);
+                        Log.d("UserActivity", "Loading avatar URL: " + fullAvatarUrl);
                         Glide.with(UserActivity.this)
                                 .load(fullAvatarUrl)
                                 .circleCrop()
-                                .error(R.drawable.ic_user) // Hình ảnh mặc định nếu tải thất bại
+                                .diskCacheStrategy(DiskCacheStrategy.NONE) // Bỏ cache
+                                .skipMemoryCache(true) // Bỏ cache bộ nhớ
+                                .error(R.drawable.ic_user)
                                 .into(avatar);
                     } else {
-                        // Hiển thị ảnh mặc định nếu không có avatarUrl
                         Glide.with(UserActivity.this)
                                 .load(R.drawable.ic_user)
                                 .circleCrop()
@@ -125,8 +121,8 @@ public class UserActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 1 && resultCode == RESULT_OK && data != null) {
-            // Sau khi cập nhật thông tin từ EditProfileActivity, tải lại thông tin user
+        if (requestCode == 1 && resultCode == RESULT_OK) {
+            // Tải lại dữ liệu khi quay lại từ EditProfileActivity
             loadUserData();
         }
     }

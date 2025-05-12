@@ -1,10 +1,22 @@
 package com.myjob.real_time_chat_final.model;
 
+import java.sql.Timestamp;
+
 public class Friendship {
     private int id;  // ID của quan hệ bạn bè
     private User senderId;  // Người dùng 1
     private String receiverName;  // Người dùng 2
     private String status;  // Trạng thái kết bạn ("Pending", "Accepted", "Rejected")
+
+    public Timestamp getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Timestamp createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    private Timestamp createdAt;
 
     public int getId() {
         return id;
@@ -38,9 +50,10 @@ public class Friendship {
         this.status = status;
     }
 
-    public Friendship(User senderId, String receiverName, String status) {
+    public Friendship(User senderId, String receiverName, String status,Timestamp timestamp) {
         this.senderId = senderId;
         this.receiverName = receiverName;
         this.status = status;
+        this.createdAt = timestamp;
     }
 }

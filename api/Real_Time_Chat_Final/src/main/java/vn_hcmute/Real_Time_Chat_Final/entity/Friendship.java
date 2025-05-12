@@ -1,9 +1,12 @@
 package vn_hcmute.Real_Time_Chat_Final.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.sql.Timestamp;
 
 @Getter
 @Setter
@@ -27,6 +30,7 @@ public class Friendship {
     @Column(name = "status")
     private String status;  // Trạng thái kết bạn ("Pending", "Accepted", "Rejected")
 
+    @Column(name = "created_at", updatable = false)
+    private Timestamp createdAt;
     // Default constructor
-
 }

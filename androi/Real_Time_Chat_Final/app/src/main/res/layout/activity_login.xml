@@ -6,7 +6,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/background_login"
+    android:background="@drawable/background"
     tools:context=".ui.LoginActivity">
 
     <!-- Background Rectangle for App Name -->
@@ -56,7 +56,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Welcome Back"
-        android:textColor="#000000"
+        android:textColor="#1877F2"
         android:textSize="26sp"
         android:fontFamily="sans-serif"
         android:textStyle="bold"

@@ -114,11 +114,12 @@ public class UserController {
     /**
      * ✅ API: Lấy thông tin danh sách các user mà người dùng nhắn tin
      */
-    @GetMapping("/contacts")
+/*    @GetMapping("/contacts")
     public ResponseEntity<List<ConversationMember>> getContacts(@RequestParam int user_id) {
         List<ConversationMember> contacts = conversationService.findListChat(user_id); // Lấy danh sách user
         return ResponseEntity.ok(contacts); // Trả về mảng JSON []
-    }
+    }*/
+
     @MessageMapping("/user.addUser")
     @SendTo("/user/topic")
     public User addUser(@Payload User user) {

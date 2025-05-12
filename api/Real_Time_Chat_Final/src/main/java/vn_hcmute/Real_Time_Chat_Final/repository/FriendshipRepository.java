@@ -1,6 +1,7 @@
 package vn_hcmute.Real_Time_Chat_Final.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 import vn_hcmute.Real_Time_Chat_Final.entity.Friendship;
@@ -19,5 +20,6 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
     boolean existsBySenderIdIdAndReceiverIdIdAndStatus(int senderId_id, int receiverId_id, String status);
 
     void deleteBySenderIdIdAndReceiverIdIdAndStatus(int senderId_id, int receiverId_id, String status);
-
+    @Query("SELECT f FROM Friendship f WHERE f.senderId.id = :senderId AND f.receiverId.id = :receiverId")
+    Optional<Friendship> findBySenderIdAndReceiverId(Long senderId, Long receiverId);
 }

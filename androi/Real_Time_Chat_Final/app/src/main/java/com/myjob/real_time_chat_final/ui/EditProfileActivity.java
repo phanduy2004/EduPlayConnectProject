@@ -167,17 +167,15 @@ public class EditProfileActivity extends AppCompatActivity {
                     etUsername.setText(currentUser.getUsername());
                     etEmail.setText(currentUser.getEmail());
                     if (currentUser.getAvatarUrl() != null && !currentUser.getAvatarUrl().isEmpty()) {
-                        // Thêm base URL vào avatarUrl
-                        String baseUrl =RetrofitClient.getBaseUrl(); // Hoặc lấy từ RetrofitClient
+                        String baseUrl = RetrofitClient.getBaseUrl(); // Hoặc lấy từ RetrofitClient
                         String fullAvatarUrl = baseUrl + currentUser.getAvatarUrl();
                         Log.d("EditProfile", "Loading avatar URL: " + fullAvatarUrl);
                         Glide.with(EditProfileActivity.this)
                                 .load(fullAvatarUrl)
                                 .circleCrop()
-                                .error(R.drawable.ic_user) // Hình ảnh mặc định nếu tải thất bại
+                                .error(R.drawable.ic_user)
                                 .into(avatar);
                     } else {
-                        // Hiển thị ảnh mặc định nếu không có avatarUrl
                         Glide.with(EditProfileActivity.this)
                                 .load(R.drawable.ic_user)
                                 .circleCrop()
@@ -249,10 +247,9 @@ public class EditProfileActivity extends AppCompatActivity {
                 @Override
                 public void onResponse(Call<User> call, Response<User> response) {
                     if (response.isSuccessful() && response.body() != null) {
-                        currentUser.setAvatarUrl(response.body().getAvatarUrl());
+                        currentUser.setAvatarUrl(response.body().getAvatarUrl()); // Cập nhật avatarUrl mới
                         Toast.makeText(EditProfileActivity.this, "Tải ảnh đại diện thành công", Toast.LENGTH_SHORT).show();
-                        // Tải lại ảnh đại diện ngay sau khi upload
-                        String baseUrl ="http://10.0.2.2:8686";
+                        String baseUrl = RetrofitClient.getBaseUrl();
                         String fullAvatarUrl = baseUrl + response.body().getAvatarUrl();
                         Glide.with(EditProfileActivity.this)
                                 .load(fullAvatarUrl)
@@ -260,13 +257,11 @@ public class EditProfileActivity extends AppCompatActivity {
                                 .error(R.drawable.ic_user)
                                 .into(avatar);
                         onSuccess.run();
+                        setResult(RESULT_OK); // Gửi tín hiệu về UserActivity
                     } else {
                         String errorMessage = "Tải ảnh thất bại";
-                        if (response.code() == 400) {
-                            errorMessage = "Dữ liệu không hợp lệ";
-                        } else if (response.code() == 404) {
-                            errorMessage = "Không tìm thấy user";
-                        }
+                        if (response.code() == 400) errorMessage = "Dữ liệu không hợp lệ";
+                        else if (response.code() == 404) errorMessage = "Không tìm thấy user";
                         Toast.makeText(EditProfileActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                     }
                 }
@@ -293,15 +288,14 @@ public class EditProfileActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<User> call, Response<User> response) {
                 if (response.isSuccessful() && response.body() != null) {
+                    currentUser = response.body(); // Cập nhật currentUser với dữ liệu mới từ server
                     Toast.makeText(EditProfileActivity.this, "Cập nhật thông tin thành công", Toast.LENGTH_SHORT).show();
+                    setResult(RESULT_OK); // Gửi tín hiệu về UserActivity
                     finish();
                 } else {
                     String errorMessage = "Cập nhật thất bại";
-                    if (response.code() == 400) {
-                        errorMessage = response.message();
-                    } else if (response.code() == 404) {
-                        errorMessage = "Không tìm thấy user";
-                    }
+                    if (response.code() == 400) errorMessage = response.message();
+                    else if (response.code() == 404) errorMessage = "Không tìm thấy user";
                     Toast.makeText(EditProfileActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                 }
             }
@@ -316,9 +310,7 @@ public class EditProfileActivity extends AppCompatActivity {
 
     private byte[] getBytesFromUri(Uri uri) {
         try (InputStream inputStream = getContentResolver().openInputStream(uri)) {
-            if (inputStream == null) {
-                return null;
-            }
+            if (inputStream == null) return null;
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             byte[] buffer = new byte[1024];
             int bytesRead;

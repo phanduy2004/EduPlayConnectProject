@@ -1,5 +1,6 @@
 package vn_hcmute.Real_Time_Chat_Final.service.impl;
 
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,15 +21,22 @@ public class FriendshipService {
         friendshipRepository.save(friendship);
     }
 
+    @Transactional(readOnly = true)
     public Optional<Friendship> findById(Long id) {
-        return friendshipRepository.findById(id);
+        return friendshipRepository.findById(id)
+                .map(friendship -> {
+                    // Tải trước senderId và receiverId để tránh LazyInitializationException
+                    Hibernate.initialize(friendship.getSenderId());
+                    Hibernate.initialize(friendship.getReceiverId());
+                    return friendship;
+                });
     }
 
     @Transactional
-    public boolean deleteFriend(int userId, int friendId) {
+    public boolean deleteFriend(long userId, long friendId) {
         System.out.println("Kiểm tra quan hệ: userId=" + userId + ", friendId=" + friendId);
-        boolean existsForward = friendshipRepository.existsBySenderIdIdAndReceiverIdIdAndStatus(userId, friendId, "Accepted");
-        boolean existsBackward = friendshipRepository.existsBySenderIdIdAndReceiverIdIdAndStatus(friendId, userId, "Accepted");
+        boolean existsForward = friendshipRepository.existsBySenderIdIdAndReceiverIdIdAndStatus((int) userId, (int) friendId, "Accepted");
+        boolean existsBackward = friendshipRepository.existsBySenderIdIdAndReceiverIdIdAndStatus((int) friendId, (int) userId, "Accepted");
         System.out.println("Forward exists: " + existsForward + ", Backward exists: " + existsBackward);
 
         if (!existsForward && !existsBackward) {
@@ -36,38 +44,35 @@ public class FriendshipService {
         }
 
         if (existsForward) {
-            friendshipRepository.deleteBySenderIdIdAndReceiverIdIdAndStatus(userId, friendId, "Accepted");
+            friendshipRepository.deleteBySenderIdIdAndReceiverIdIdAndStatus((int) userId, (int) friendId, "Accepted");
             System.out.println("Xóa forward: userId=" + userId + ", friendId=" + friendId);
         }
         if (existsBackward) {
-            friendshipRepository.deleteBySenderIdIdAndReceiverIdIdAndStatus(friendId, userId, "Accepted");
+            friendshipRepository.deleteBySenderIdIdAndReceiverIdIdAndStatus((int) friendId, (int) userId, "Accepted");
             System.out.println("Xóa backward: userId=" + friendId + ", friendId=" + userId);
         }
         return true;
     }
+
     public Friendship updateFriendship(Friendship friendship) {
         return friendshipRepository.save(friendship);
     }
 
-    public List<User> getFriendList(int userId) {
-        // Tìm tất cả các mối quan hệ mà người dùng là người gửi yêu cầu và được chấp nhận
-        List<Friendship> sentFriendships = friendshipRepository.findBySenderIdIdAndStatus(userId, "Accepted");
-
-        // Tìm tất cả các mối quan hệ mà người dùng là người nhận yêu cầu và đã chấp nhận
-        List<Friendship> receivedFriendships = friendshipRepository.findByReceiverIdIdAndStatus(userId, "Accepted");
-
+    @Transactional(readOnly = true)
+    public List<User> getFriendList(long userId) {
+        List<Friendship> sentFriendships = friendshipRepository.findBySenderIdIdAndStatus((int) userId, "Accepted");
+        List<Friendship> receivedFriendships = friendshipRepository.findByReceiverIdIdAndStatus((int) userId, "Accepted");
         List<User> friends = new ArrayList<>();
 
-        // Thêm người nhận từ danh sách yêu cầu đã gửi (và được chấp nhận)
         for (Friendship friendship : sentFriendships) {
+            Hibernate.initialize(friendship.getReceiverId());
             friends.add(friendship.getReceiverId());
         }
-
-        // Thêm người gửi từ danh sách yêu cầu đã nhận (và đã chấp nhận)
         for (Friendship friendship : receivedFriendships) {
+            Hibernate.initialize(friendship.getSenderId());
             friends.add(friendship.getSenderId());
         }
-
         return friends;
     }
+
 }
