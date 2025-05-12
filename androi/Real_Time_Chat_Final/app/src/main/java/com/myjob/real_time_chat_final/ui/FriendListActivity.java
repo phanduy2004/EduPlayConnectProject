@@ -81,7 +81,7 @@ public class FriendListActivity extends AppCompatActivity implements FriendReque
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("Bạn bè");
+            getSupportActionBar().setTitle("friends");
             getSupportActionBar().setDisplayShowTitleEnabled(true);
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
@@ -162,10 +162,10 @@ public class FriendListActivity extends AppCompatActivity implements FriendReque
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             switch (position) {
                 case 0:
-                    tab.setText("Bạn bè");
+                    tab.setText("Friends List");
                     break;
                 case 1:
-                    tab.setText("Yêu cầu kết bạn");
+                    tab.setText("Friend Request List");
                     break;
             }
         }).attach();

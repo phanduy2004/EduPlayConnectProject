@@ -65,7 +65,7 @@ public class MessageListActivity extends AppCompatActivity {
         Toolbar toolbar = binding.toolbar;
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("Tin nhắn");
+            getSupportActionBar().setTitle("messenger");
             getSupportActionBar().setDisplayShowTitleEnabled(true);
             getSupportActionBar().setDisplayHomeAsUpEnabled(true); // Hiển thị nút "Quay lại"
         }

@@ -13,6 +13,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.myjob.real_time_chat_final.R;
 import com.myjob.real_time_chat_final.modelDTO.NotificationDTO;
+import com.myjob.real_time_chat_final.retrofit.RetrofitClient;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -75,7 +77,7 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
         }
 
         // Hiển thị avatar người dùng
-        String avatarUrl = notification.getUserAvatarUrl();
+        String avatarUrl = RetrofitClient.getBaseUrl() + notification.getUserAvatarUrl();
         if (avatarUrl != null && !avatarUrl.isEmpty()) {
             Glide.with(context)
                     .load(avatarUrl)

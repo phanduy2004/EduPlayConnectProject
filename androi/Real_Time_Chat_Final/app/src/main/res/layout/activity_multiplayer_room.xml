@@ -1,8 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
     tools:context=".ui.MultiplayerRoomActivity">
 
     <!-- Room Info TextView -->
@@ -10,25 +12,41 @@
         android:id="@+id/tvRoomInfo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Room Code: "
+        android:layout_marginTop="32dp"
+        android:text="@string/room_info"
         android:textSize="18sp"
         android:textStyle="bold"
+        android:textColor="?attr/colorOnSurface"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Room Code TextView -->
+    <TextView
+        android:id="@+id/tvRoomCode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/room_code"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorOnSurface"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tvRoomInfo" />
 
     <!-- Player Count TextView -->
     <TextView
         android:id="@+id/tvPlayerCount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Players: 1/4"
+        android:layout_marginTop="12dp"
+        android:text="@string/player_count"
         android:textSize="16sp"
+        android:textColor="?attr/colorOnSurface"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tvRoomInfo" />
+        app:layout_constraintTop_toBottomOf="@+id/tvRoomCode" />
 
     <!-- RecyclerView for Players -->
     <androidx.recyclerview.widget.RecyclerView
@@ -37,69 +55,88 @@
         android:layout_height="0dp"
         android:layout_marginTop="16dp"
         android:layout_marginBottom="16dp"
+        android:overScrollMode="never"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintBottom_toTopOf="@+id/btnToggleReady"
-        app:layout_constraintTop_toBottomOf="@+id/tvPlayerCount" />
-
-    <!-- Ready Button -->
+        app:layout_constraintBottom_toTopOf="@+id/btnStartGame"
+        app:layout_constraintTop_toBottomOf="@+id/tvPlayerCount"
+        tools:listitem="@layout/item_player" />
 
     <!-- Start Game Button -->
-
-    <!-- Leave Room Button -->
-    <Button
-        android:id="@+id/btnToggleReady"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="60dp"
-        android:text="Sẵn sàng"
-        app:layout_constraintBottom_toTopOf="@+id/btnStartGame"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.49"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnStartGame"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="60dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="16dp"
         android:enabled="false"
-        android:text="Bắt đầu"
+        android:text="@string/start_game"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp"
+        style="@style/Widget.Material3.Button.ElevatedButton"
+        app:cornerRadius="8dp"
+        app:backgroundTint="#0A84FF"
+        android:textColor="?attr/colorOnPrimary"
+        app:layout_constraintBottom_toTopOf="@+id/btnLeaveRoom"
+        app:layout_constraintEnd_toStartOf="@+id/btnToggleReady"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintWidth_percent="0.34" />
+
+    <!-- Ready Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnToggleReady"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="16dp"
+        android:text="@string/ready"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp"
+        style="@style/Widget.Material3.Button.TextButton"
+        app:cornerRadius="8dp"
+        android:textColor="?attr/colorPrimary"
+        app:layout_constraintBottom_toTopOf="@+id/btnLeaveRoom"
+        app:layout_constraintEnd_toStartOf="@+id/btnShareRoom"
+        app:layout_constraintStart_toEndOf="@+id/btnStartGame"
+        app:layout_constraintWidth_percent="0.33" />
+
+    <!-- Share Room Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnShareRoom"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:text="@string/share_room"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp"
+        style="@style/Widget.Material3.Button.TextButton"
+        app:cornerRadius="8dp"
+        android:textColor="?attr/colorPrimary"
         app:layout_constraintBottom_toTopOf="@+id/btnLeaveRoom"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.479"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toEndOf="@+id/btnToggleReady"
+        app:layout_constraintWidth_percent="0.3" />
 
-    <Button
+    <!-- Leave Room Button -->
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnLeaveRoom"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
-        android:text="Rời phòng"
+        android:text="@string/leave_room"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        app:cornerRadius="8dp"
+        app:strokeColor="?attr/colorError"
+        android:textColor="?attr/colorError"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- Share Room Button (New) -->
-    <Button
-        android:id="@+id/btnShareRoom"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Chia sẻ mã phòng"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/btnLeaveRoom"
-        android:visibility="gone" /> <!-- Initially hidden -->
-
-    <!-- Room Code TextView (New) -->
-    <TextView
-        android:id="@+id/tvRoomCode"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Room Code: "
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/btnShareRoom"
-        android:visibility="gone" /> <!-- Initially hidden -->
 </androidx.constraintlayout.widget.ConstraintLayout>
