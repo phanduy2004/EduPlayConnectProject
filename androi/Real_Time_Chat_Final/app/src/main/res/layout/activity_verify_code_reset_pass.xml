@@ -6,6 +6,7 @@
     android:layout_height="match_parent"
     android:layout_marginTop="30dp"
     android:descendantFocusability="beforeDescendants"
+    android:background="@drawable/background"
     android:orientation="vertical"
     >
 
@@ -25,6 +26,7 @@
         android:layout_gravity="center"
         android:layout_marginTop="8dp"
         android:text="Xác Nhận Mã OTP"
+        android:textColor="#F5F5F5"
         android:textStyle="bold"
         android:textSize="25sp"
         android:gravity="center"
@@ -38,7 +40,7 @@
         android:includeFontPadding="false"
         android:text="Mã otp đã dược gửi tới:"
         android:textAlignment="center"
-        android:textColor="@color/black"
+        android:textColor="@color/white"
         android:textSize="16sp" />
     <com.chaos.view.PinView
         android:id="@+id/password_otpCode"
@@ -48,7 +50,8 @@
         android:layout_marginTop="10dp"
         android:cursorVisible="true"
         android:inputType="number"
-        app:cursorColor="@color/black"
+        app:cursorColor="@color/white"
+        android:textColor="@color/white"
         app:hideLineWhenFilled="false"
         app:itemCount="6"
         app:itemHeight="50dp"

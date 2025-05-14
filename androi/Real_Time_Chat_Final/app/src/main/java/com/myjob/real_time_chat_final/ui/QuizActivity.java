@@ -50,11 +50,13 @@ public class QuizActivity extends AppCompatActivity implements QuizWebSocketServ
     private QuizWebSocketService webSocketService;
     private CountDownTimer countDownTimer;
     private boolean isAnswerSubmitted = false;
-    private static final long QUESTION_TIME_MS = 5000;
+    private static final long QUESTION_TIME_MS = 10000;
     private List<GameRoomPlayer> finalRankings = new ArrayList<>();
     private boolean isGameEnded = false;
     private int localScore = 0;
     private boolean isBackPressed = false;
+
+    private boolean isRankingDialogShown = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -137,6 +139,7 @@ public class QuizActivity extends AppCompatActivity implements QuizWebSocketServ
             Toast.makeText(this, "Đang thoát trò chơi...", Toast.LENGTH_SHORT).show();
             showRankingDialog();
         });
+
     }
 
     private void navigateToRoomActivity() {
@@ -205,7 +208,7 @@ public class QuizActivity extends AppCompatActivity implements QuizWebSocketServ
             countDownTimer.cancel();
         }
 
-        countDownTimer = new CountDownTimer(QUESTION_TIME_MS, 1000) {
+            countDownTimer = new CountDownTimer(QUESTION_TIME_MS, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 if (!isFinishing()) {
@@ -314,6 +317,7 @@ public class QuizActivity extends AppCompatActivity implements QuizWebSocketServ
             }
             return;
         }
+        isRankingDialogShown = true;
         Log.d(TAG, "showRankingDialog gọi, isFinishing: " + isFinishing() + ", isBackPressed: " + isBackPressed);
         Toast.makeText(this, "Trò chơi kết thúc!", Toast.LENGTH_SHORT).show();
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -407,16 +411,8 @@ public class QuizActivity extends AppCompatActivity implements QuizWebSocketServ
     public void onGameEnd(String roomId) {
         runOnUiThread(() -> {
             Log.d(TAG, "Nhận tín hiệu kết thúc cho phòng: " + roomId + ", isFinishing: " + isFinishing());
-            if (isFinishing() || isDestroyed()) {
-                Log.d(TAG, "Bỏ qua onGameEnd vì Activity đã kết thúc");
-                if (!isBackPressed) {
-                    navigateToRoomActivity();
-                    finish();
-                }
-                return;
-            }
-            if (isBackPressed) {
-                Log.d(TAG, "Bỏ qua onGameEnd vì đã nhấn back");
+            if (isFinishing() || isDestroyed() || isGameEnded) {
+                Log.d(TAG, "Bỏ qua onGameEnd vì activity kết thúc hoặc trò chơi đã kết thúc");
                 return;
             }
             isGameEnded = true;

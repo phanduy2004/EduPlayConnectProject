@@ -49,7 +49,10 @@ public class QuizListActivity extends AppCompatActivity implements GameWebSocket
 
         // Xử lý nút back
         ImageButton backButton = findViewById(R.id.backButton);
-        backButton.setOnClickListener(v -> finish());
+        backButton.setOnClickListener(v ->{
+            Intent intent = new Intent(QuizListActivity.this , HomeActivity.class);
+            startActivity(intent);
+        });
 
         // Khởi tạo WebSocket service
         gameWebSocketService = GameWebSocketService.getInstance();

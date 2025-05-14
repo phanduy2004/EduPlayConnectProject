@@ -52,7 +52,6 @@ public class PostService {
                 .privacy(Post.Privacy.valueOf(String.valueOf(request.getPrivacy())))
                 .postMediaList(new ArrayList<>())
                 .build();
-
         if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
             for (int i = 0; i < request.getImageUrls().size(); i++) {
                 String imageUrl = request.getImageUrls().get(i);

@@ -12,6 +12,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.material.imageview.ShapeableImageView;
 import com.myjob.real_time_chat_final.R;
 import com.myjob.real_time_chat_final.api.UserService;
+import com.myjob.real_time_chat_final.config.WebSocketManager;
 import com.myjob.real_time_chat_final.model.User;
 import com.myjob.real_time_chat_final.retrofit.RetrofitClient;
 import retrofit2.Call;
@@ -57,7 +58,7 @@ public class UserActivity extends AppCompatActivity {
             Log.d("UserActivity", "Nhấn vào 'Chỉnh sửa thông tin', userId: " + currentUserId);
             Intent intent = new Intent(UserActivity.this, EditProfileActivity.class);
             intent.putExtra("USER_ID", currentUserId);
-            startActivityForResult(intent, 1); // Sử dụng startActivityForResult
+            startActivityForResult(intent, 1);
         });
 
         findViewById(R.id.change_password).setOnClickListener(v -> {
@@ -78,8 +79,8 @@ public class UserActivity extends AppCompatActivity {
         findViewById(R.id.privacy_policy).setOnClickListener(v ->
                 Toast.makeText(this, "Chính sách bảo mật", Toast.LENGTH_SHORT).show());
 
-        findViewById(R.id.btnLogout).setOnClickListener(v ->
-                Toast.makeText(this, "Đăng xuất", Toast.LENGTH_SHORT).show());
+        // Sự kiện đăng xuất
+        findViewById(R.id.btnLogout).setOnClickListener(v -> logout());
     }
 
     private void loadUserData() {
@@ -96,8 +97,8 @@ public class UserActivity extends AppCompatActivity {
                         Glide.with(UserActivity.this)
                                 .load(fullAvatarUrl)
                                 .circleCrop()
-                                .diskCacheStrategy(DiskCacheStrategy.NONE) // Bỏ cache
-                                .skipMemoryCache(true) // Bỏ cache bộ nhớ
+                                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                .skipMemoryCache(true)
                                 .error(R.drawable.ic_user)
                                 .into(avatar);
                     } else {
@@ -118,11 +119,36 @@ public class UserActivity extends AppCompatActivity {
         });
     }
 
+    private void logout() {
+        WebSocketManager.getInstance().disconnect();
+
+        // Xóa SharedPreferences
+        SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.clear();
+        editor.apply();
+
+        // Đặt lại LoginActivity.userid
+        LoginActivity.userid = -1;
+
+        // Gửi broadcast để thông báo đăng xuất (cho ChatActivity nếu cần)
+        Intent broadcastIntent = new Intent("com.myjob.real_time_chat_final.ACTION_LOGOUT");
+        sendBroadcast(broadcastIntent);
+
+        // Chuyển hướng về LoginActivity
+        Intent intent = new Intent(UserActivity.this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+
+        // Hiển thị thông báo
+        Toast.makeText(this, "Đã đăng xuất", Toast.LENGTH_SHORT).show();
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 1 && resultCode == RESULT_OK) {
-            // Tải lại dữ liệu khi quay lại từ EditProfileActivity
             loadUserData();
         }
     }

@@ -16,6 +16,7 @@
         android:contentDescription="Background"
         android:scaleType="centerCrop"
         android:src="@drawable/background"
+
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -28,7 +29,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="64dp"
         android:text="Enter Verification Code"
-        android:textColor="#3d33a8"
+        android:textColor="#F5F5F5"
         android:textSize="24sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
@@ -57,6 +58,8 @@
         android:layout_marginTop="24dp"
         android:gravity="center"
         android:hint="Enter OTP"
+        android:textColorHint="@android:color/darker_gray"
+
         android:inputType="number"
         android:maxLength="6"
         android:padding="12dp"

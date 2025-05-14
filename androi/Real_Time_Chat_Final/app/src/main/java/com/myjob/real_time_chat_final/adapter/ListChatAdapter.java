@@ -59,7 +59,8 @@ public class ListChatAdapter extends RecyclerView.Adapter<ListChatAdapter.UserVi
 
         // Hiển thị trạng thái online/offline
         holder.userStatus.setVisibility(conversations.isStatus() ? View.VISIBLE : View.GONE);
-        if (conversations.getLastMessageSenderId() != LoginActivity.userid) {
+        Long lastMessageSenderId = conversations.getLastMessageSenderId();
+        if (lastMessageSenderId != null && lastMessageSenderId != LoginActivity.userid) {
             String senderName = conversations.getLastMessageSenderName() != null ? conversations.getLastMessageSenderName() + ": " : "";
             holder.lastMessageSender.setText(senderName);
         } else {
@@ -67,16 +68,17 @@ public class ListChatAdapter extends RecyclerView.Adapter<ListChatAdapter.UserVi
         }
         // Hiển thị tin nhắn cuối cùng
         holder.lastMessage.setText(conversations.getLastMessage() != null ? conversations.getLastMessage() : "Chưa có tin nhắn");
-        Log.d("LastMessageTime", "Time got from backend: " + conversations.getLastMessageTime()); // Kiểm tra giá trị thô
+        Log.d("LastMessageTime", "Time got from backend: " + conversations.getLastMessageTime().toString()); // Kiểm tra giá trị thô
         // Hiển thị thời gian tin nhắn cuối cùng
         Timestamp lastMessageTime = conversations.getLastMessageTime();
-        if (lastMessageTime != null) {
+        if (lastMessageTime != null && lastMessageTime.getTime() != 0) {
             long timeMillis = lastMessageTime.getTime() - 7*60*60*1000;
-            Log.d("LastMessageTime", "Time: " + timeMillis); // Kiểm tra giá trị thô
+            Log.d("LastMessageTime", "Time: " + timeMillis);
             holder.lastMessageTime.setText(getRelativeTime(timeMillis));
         } else {
             holder.lastMessageTime.setText("Chưa có tin nhắn");
         }
+
 
         // Tải ảnh đại diện bằng Glide
         String baseUrl = RetrofitClient.getBaseUrl(); // Ví dụ: http://10.0.2.2:8686/

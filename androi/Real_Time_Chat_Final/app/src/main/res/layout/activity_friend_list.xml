@@ -73,6 +73,7 @@
         app:layout_constraintTop_toBottomOf="@id/tabLayout"
         app:layout_constraintVertical_bias="0.0" />
 
+    <!-- Bottom Navigation -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/navBar"
         android:layout_width="0dp"
@@ -81,12 +82,13 @@
         android:layout_marginBottom="20dp"
         android:background="@drawable/bg_bottom_nav"
         android:elevation="10dp"
+        app:itemHorizontalTranslationEnabled="false"
         app:itemIconTint="@color/bottom_nav_item_tint"
         app:itemTextColor="@color/bottom_nav_item_tint"
         app:labelVisibilityMode="labeled"
-        app:itemIconSize="28dp"
-        app:itemPaddingTop="10dp"
-        app:itemPaddingBottom="10dp"
+        app:itemIconSize="24dp"
+        app:itemPaddingTop="12dp"
+        app:itemPaddingBottom="12dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

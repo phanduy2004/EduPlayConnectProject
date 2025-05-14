@@ -1,8 +1,11 @@
 package com.myjob.real_time_chat_final.adapter;
 
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
@@ -37,6 +40,12 @@ public class AlphabetAdapter extends RecyclerView.Adapter<AlphabetAdapter.ViewHo
         String letter = alphabetList.get(position);
         holder.textView.setText(letter);
 
+        // Áp dụng hiệu ứng động khi mục xuất hiện
+        Context context = holder.itemView.getContext();
+        Animation animation = AnimationUtils.loadAnimation(context, R.anim.item_animation);
+        holder.itemView.startAnimation(animation);
+
+        // Hiệu ứng nhấn
         holder.itemView.setOnClickListener(v -> {
             holder.textView.animate().scaleX(1.2f).scaleY(1.2f).setDuration(200).withEndAction(() ->
                     holder.textView.animate().scaleX(1f).scaleY(1f).setDuration(200)

@@ -1,6 +1,10 @@
 package com.myjob.real_time_chat_final.modelDTO;
 
+import android.util.Log;
+
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
 
 public class ContactDTO {
     private int id;
@@ -101,8 +105,18 @@ public class ContactDTO {
         return lastMessageTime;
     }
 
-    public void setLastMessageTime(Timestamp lastMessageTime) {
-        this.lastMessageTime = lastMessageTime;
+    public void setLastMessageTime(String timeStr) {
+        if (timeStr != null && !timeStr.isEmpty()) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX", Locale.US);
+                this.lastMessageTime = new Timestamp(sdf.parse(timeStr).getTime());
+            } catch (Exception e) {
+                this.lastMessageTime = null;
+                Log.e("ContactDTO", "Lỗi phân tích lastMessageTime: " + timeStr, e);
+            }
+        } else {
+            this.lastMessageTime = null; // Hoặc new Timestamp(0) nếu muốn giá trị mặc định
+        }
     }
 
     public String getLastMessageSenderName() {

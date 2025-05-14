@@ -15,7 +15,7 @@
         android:layout_height="wrap_content"
         android:fontFamily="sans-serif-medium"
         android:text="Notifications"
-        android:textColor="#1F2937"
+        android:textColor="#1877F2"
         android:textSize="18sp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
@@ -57,7 +57,7 @@
         android:paddingHorizontal="24dp"
         android:paddingVertical="8dp"
         android:text="Close"
-        android:textColor="@color/black"
+        android:textColor="@color/white"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/notifications_recycler_view" />
 

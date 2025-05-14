@@ -1,38 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    app:cardCornerRadius="8dp"
-    android:layout_marginTop="10dp"
-    android:background="@color/white"
-    app:cardElevation="4dp">
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginVertical="8dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="6dp"
+    app:cardBackgroundColor="@color/white"
+    app:rippleColor="#801877F2">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:background="@color/white"
-        android:padding="8dp">
+        android:padding="16dp">
 
+        <!-- Video Thumbnail -->
         <ImageView
             android:id="@+id/imageMovie"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:layout_width="120dp"
+            android:layout_height="80dp"
             android:scaleType="centerCrop"
-            android:background="@color/black" />
+            android:background="@drawable/rounded_background"
+            android:clipToOutline="true"
+            android:contentDescription="Video Thumbnail"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
+        <!-- Video Title -->
         <TextView
             android:id="@+id/textTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textColor="@color/black"
-            android:maxLines="1"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:text="Video Title"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:gravity="center_vertical"
-            android:paddingStart="12dp"
-            android:paddingEnd="8dp"/>
-    </LinearLayout>
-</androidx.cardview.widget.CardView>
+            android:textColor="#333333"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="2"
+            android:ellipsize="end"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toEndOf="@id/imageMovie"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Video Duration or Description -->
+        <TextView
+            android:id="@+id/textDescription"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="8dp"
+            android:text="Duration: 5:00"
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:fontFamily="sans-serif"
+            android:maxLines="1"
+            android:ellipsize="end"
+            app:layout_constraintTop_toBottomOf="@id/textTitle"
+            app:layout_constraintStart_toEndOf="@id/imageMovie"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>
