@@ -39,4 +39,7 @@ public class Conversation implements Serializable {
     @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private Set<Message> messages = new HashSet<>();
+
+    @Column
+    private String avatarUrl;
 }

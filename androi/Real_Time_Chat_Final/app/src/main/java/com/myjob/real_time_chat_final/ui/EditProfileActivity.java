@@ -109,30 +109,6 @@ public class EditProfileActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == STORAGE_PERMISSION_CODE && grantResults.length > 0) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.d("EditProfile", "Quyền được cấp, mở thư viện ảnh");
-                openGallery();
-            } else {
-                String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ?
-                        Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
-                if (!ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
-                    Log.d("EditProfile", "Quyền bị từ chối vĩnh viễn: " + permission);
-                    Toast.makeText(this, "Quyền truy cập thư viện bị từ chối. Vui lòng cấp quyền trong cài đặt.", Toast.LENGTH_LONG).show();
-                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                    intent.setData(Uri.parse("package:" + getPackageName()));
-                    startActivity(intent);
-                } else {
-                    Log.d("EditProfile", "Quyền bị từ chối: " + permission);
-                    Toast.makeText(this, "Cần quyền truy cập thư viện để chọn ảnh", Toast.LENGTH_LONG).show();
-                }
-            }
-        }
-    }
-
     private void openGallery() {
         Intent intent;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

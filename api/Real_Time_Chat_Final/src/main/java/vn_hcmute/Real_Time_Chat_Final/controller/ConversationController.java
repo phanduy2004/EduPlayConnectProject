@@ -2,6 +2,7 @@ package vn_hcmute.Real_Time_Chat_Final.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import vn_hcmute.Real_Time_Chat_Final.entity.Conversation;
 import vn_hcmute.Real_Time_Chat_Final.entity.ConversationMember;
 import vn_hcmute.Real_Time_Chat_Final.model.ContactDTO;
@@ -14,11 +15,20 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/conversations")
 public class ConversationController {
-    private final ConversationService conversationRepoService;
+
     private final ConversationService conversationService;
-    public ConversationController(ConversationService conversationService, ConversationService conversationRepoService) {
+    public ConversationController(ConversationService conversationService) {
         this.conversationService = conversationService;
-        this.conversationRepoService = conversationRepoService;
+
+    }
+    @PostMapping("/uploadGroupAvatar")
+    public ResponseEntity<String> uploadGroupAvatar(@RequestParam("avatar") MultipartFile file) {
+        try {
+            String uploadAvatarGroup = conversationService.uploadAvatarGroup(file);
+            return ResponseEntity.ok(uploadAvatarGroup);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
+        }
     }
 
     /**
@@ -31,7 +41,7 @@ public class ConversationController {
             @PathVariable("friendId") int friendId) {
         System.out.println("Tạo cuộc trò chuyện: userId=" + userId + ", friendId=" + friendId);
         try {
-            Conversation conversation = conversationRepoService.createOrGetConversation(userId, friendId);
+            Conversation conversation = conversationService.createOrGetConversation(userId, friendId);
             System.out.println("Conversation response: id=" + conversation.getId());
             return ResponseEntity.ok(conversation);
         } catch (IllegalArgumentException e) {
@@ -46,19 +56,17 @@ public class ConversationController {
      */
     @PostMapping
     public ResponseEntity<Conversation> createGroupConversation(@RequestBody Conversation conversation) {
-        if (conversation == null || conversation.getName() == null || conversation.getName().isEmpty()) {
-            System.err.println("Lỗi tạo nhóm: Dữ liệu không hợp lệ");
-            return ResponseEntity.badRequest().body(null);
-        }
         try {
-            // Đảm bảo is_group = true
-            conversation.setGroup(true);
-            Conversation createdConversation = conversationService.createConversation(conversation.isGroup(), conversation.getName());
-            System.out.println("Tạo nhóm thành công: " + createdConversation.getId() + ", is_group: " + createdConversation.isGroup());
+            System.out.println("Tạo cuộc trò chuyện: userId=" +  conversation.isGroup());
+
+            Conversation createdConversation = conversationService.createConversation(
+                    conversation.isGroup(),
+                    conversation.getName(),
+                    conversation.getAvatarUrl() // Truyền avatarUrl từ request
+            );
             return ResponseEntity.ok(createdConversation);
         } catch (Exception e) {
-            System.err.println("Lỗi tạo nhóm: " + e.getMessage());
-            return ResponseEntity.status(500).body(null);
+            return ResponseEntity.badRequest().body(null);
         }
     }
 
@@ -75,7 +83,7 @@ public class ConversationController {
             return ResponseEntity.badRequest().build();
         }
         try {
-            conversationRepoService.addMembersToConversation(conversationId, members);
+            conversationService.addMembersToConversation(conversationId, members);
             System.out.println("Thêm thành viên thành công: conversationId=" + conversationId);
             return ResponseEntity.ok().build();
         } catch (Exception e) {

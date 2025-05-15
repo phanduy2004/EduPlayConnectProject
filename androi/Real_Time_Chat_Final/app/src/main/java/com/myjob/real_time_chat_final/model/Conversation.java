@@ -10,20 +10,30 @@ public class Conversation {
     private boolean group;
     private String name;
     private String createdAt;
+    private String avatarUrl;
     private List<ConversationMember> members;
     private List<Message> messages;
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
+    }
 
     // Constructors
     public Conversation() {}
 
     public Conversation(long id, boolean isGroup, String name, String createdAt,
-                        List<ConversationMember> members, List<Message> messages) {
+                        List<ConversationMember> members, List<Message> messages,String avatarUrl) {
         this.id = id;
         this.group = isGroup;
         this.name = name;
         this.createdAt = createdAt;
         this.members = members;
         this.messages = messages;
+        this.avatarUrl = avatarUrl;
     }
 
     // Getters & Setters

@@ -1,10 +1,18 @@
 package com.myjob.real_time_chat_final.ui;
 
+import android.Manifest;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
@@ -15,13 +23,19 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.imageview.ShapeableImageView;
 import com.google.gson.Gson;
 import com.myjob.real_time_chat_final.R;
 import com.myjob.real_time_chat_final.adapter.ListChatAdapter;
@@ -33,14 +47,18 @@ import com.myjob.real_time_chat_final.api.UserService;
 import com.myjob.real_time_chat_final.databinding.ActivityMessageListBinding;
 import com.myjob.real_time_chat_final.model.Conversation;
 import com.myjob.real_time_chat_final.model.ConversationMember;
-import com.myjob.real_time_chat_final.model.ListChat;
 import com.myjob.real_time_chat_final.model.User;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -49,48 +67,56 @@ public class MessageListActivity extends AppCompatActivity {
     private ActivityMessageListBinding binding;
     private ListChatAdapter userAdapter;
     private final int userID = LoginActivity.userid;
-    private List<User> allUsers; // Danh sách tất cả người dùng
-    private List<User> selectedUsers; // Danh sách người dùng được chọn
+    private List<User> allUsers;
+    private List<User> selectedUsers;
+    private static final int STORAGE_PERMISSION_CODE = 100;
+    private ShapeableImageView avatar;
+    private Uri selectedImageUri;
+    private ActivityResultLauncher<Intent> imagePickerLauncher;
+    private Toast currentToast; // Quản lý Toast để tránh hiển thị quá nhiều
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
 
-        // Khởi tạo binding
         binding = ActivityMessageListBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Thiết lập Toolbar
+        imagePickerLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                selectedImageUri = result.getData().getData();
+                Log.d("MessageList", "Selected image URI: " + selectedImageUri);
+                if (avatar != null) {
+                    Glide.with(this).load(selectedImageUri).circleCrop().into(avatar);
+                }
+            }
+        });
+
         Toolbar toolbar = binding.toolbar;
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("messenger");
             getSupportActionBar().setDisplayShowTitleEnabled(true);
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true); // Hiển thị nút "Quay lại"
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
-        // Đổi màu icon "Quay lại"
         toolbar.setNavigationIcon(R.drawable.ic_back_ios);
-        // Xử lý sự kiện nhấn nút "Quay lại"
         toolbar.setNavigationOnClickListener(v -> onBackPressed());
 
-        // Nhận userID từ Intent
         if (userID == -1) {
-            Toast.makeText(this, "Lỗi: Không tìm thấy userID", Toast.LENGTH_SHORT).show();
+            showToast("Lỗi: Không tìm thấy userID");
             finish();
             return;
         }
         Log.e("USER_ID", "User ID: " + userID);
 
-        // Khởi tạo RecyclerView
         RecyclerView recyclerView = binding.recyclerView;
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        // Khởi tạo adapter và xử lý sự kiện click
         userAdapter = new ListChatAdapter(new ArrayList<>(), user -> {
-            if (user.getConversationId() == 0) {  // Kiểm tra ID hợp lệ
-                Toast.makeText(MessageListActivity.this, "Lỗi: Cuộc trò chuyện không hợp lệ", Toast.LENGTH_SHORT).show();
+            if (user.getConversationId() == 0) {
+                showToast("Lỗi: Cuộc trò chuyện không hợp lệ");
                 return;
             }
 
@@ -103,13 +129,10 @@ public class MessageListActivity extends AppCompatActivity {
 
         recyclerView.setAdapter(userAdapter);
 
-        // Thiết lập BottomNavigationView
         BottomNavigationView navBar = binding.navBar;
         navBar.setOnNavigationItemSelectedListener(item -> {
-            // Xử lý các mục trong bottom navigation
             int itemId = item.getItemId();
             if (itemId == R.id.nav_chatmessage) {
-                // Đã ở MessageListActivity, không làm gì
                 return true;
             } else if (itemId == R.id.nav_home) {
                 Intent intent = new Intent(MessageListActivity.this, HomeActivity.class);
@@ -131,10 +154,8 @@ public class MessageListActivity extends AppCompatActivity {
             return false;
         });
 
-        // Đặt mục "Tin nhắn" được chọn mặc định
         navBar.setSelectedItemId(R.id.nav_chatmessage);
 
-        // Gọi API để lấy danh sách bạn chat và tất cả người dùng
         getChatUsers(userID);
         loadAllUsers();
     }
@@ -149,7 +170,7 @@ public class MessageListActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(android.view.MenuItem item) {
         if (item.getItemId() == R.id.action_create_group) {
             if (allUsers == null || allUsers.isEmpty()) {
-                Toast.makeText(this, "Không thể tải danh sách người dùng", Toast.LENGTH_SHORT).show();
+                showToast("Không thể tải danh sách người dùng");
                 return true;
             }
             showCreateGroupDialog();
@@ -167,22 +188,19 @@ public class MessageListActivity extends AppCompatActivity {
             public void onResponse(Call<List<ContactDTO>> call, Response<List<ContactDTO>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     List<ContactDTO> conversationMembers = response.body();
-
-                    // Kiểm tra dữ liệu trả về từ API
                     Log.d("API_RESPONSE", "Data: " + new Gson().toJson(conversationMembers));
-                    // Danh sách hội thoại
                     userAdapter.updateData(conversationMembers);
                     Log.d("FINAL_CHAT_LIST", "Danh sách hội thoại sau khi lọc: " + new Gson().toJson(conversationMembers));
                 } else {
                     Log.e("API_ERROR", "Error code: " + response.code() + ", message: " + response.message());
-                    Toast.makeText(MessageListActivity.this, "Không thể tải danh sách cuộc trò chuyện: " + response.message(), Toast.LENGTH_SHORT).show();
+                    showToast("Không thể tải danh sách cuộc trò chuyện: " + response.message());
                 }
             }
 
             @Override
             public void onFailure(Call<List<ContactDTO>> call, Throwable t) {
                 Log.e("API_ERROR", "Request failed: " + t.getMessage());
-                Toast.makeText(MessageListActivity.this, "Lỗi tải danh sách cuộc trò chuyện: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                showToast("Lỗi tải danh sách cuộc trò chuyện: " + t.getMessage());
             }
         });
     }
@@ -195,19 +213,18 @@ public class MessageListActivity extends AppCompatActivity {
             public void onResponse(Call<List<User>> call, Response<List<User>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     allUsers = response.body();
-                    // Loại bỏ người dùng hiện tại khỏi danh sách
                     allUsers.removeIf(user -> user.getId() == userID);
                     Log.d("ALL_USERS", "Danh sách người dùng (sau khi lọc): " + new Gson().toJson(allUsers));
                 } else {
                     Log.e("API_ERROR", "Error code: " + response.code() + ", message: " + response.message());
-                    Toast.makeText(MessageListActivity.this, "Không thể tải danh sách người dùng: " + response.message(), Toast.LENGTH_SHORT).show();
+                    showToast("Không thể tải danh sách người dùng: " + response.message());
                 }
             }
 
             @Override
             public void onFailure(Call<List<User>> call, Throwable t) {
                 Log.e("API_ERROR", "Request failed: " + t.getMessage());
-                Toast.makeText(MessageListActivity.this, "Lỗi tải danh sách người dùng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                showToast("Lỗi tải danh sách người dùng: " + t.getMessage());
             }
         });
     }
@@ -217,7 +234,6 @@ public class MessageListActivity extends AppCompatActivity {
         dialog.setContentView(R.layout.dialog_create_group);
         dialog.setCancelable(true);
 
-        // Tùy chỉnh dialog để có phong cách iPhone
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -228,14 +244,21 @@ public class MessageListActivity extends AppCompatActivity {
         RecyclerView membersRecyclerView = dialog.findViewById(R.id.members_recycler_view);
         Button createGroupButton = dialog.findViewById(R.id.create_group_button);
         SearchView searchView = dialog.findViewById(R.id.search_view);
+        Button selectPhoto = dialog.findViewById(R.id.select_avatar_button);
+        avatar = dialog.findViewById(R.id.group_avatar_image);
 
-        // Tùy chỉnh SearchView
-        searchView.setIconifiedByDefault(false); // Luôn hiển thị thanh tìm kiếm
+        if (selectedImageUri != null) {
+            Glide.with(this).load(selectedImageUri).circleCrop().into(avatar);
+        }
+
+        selectPhoto.setOnClickListener(v -> requestStoragePermission());
+
+        searchView.setIconifiedByDefault(false);
         searchView.setMaxWidth(Integer.MAX_VALUE);
         int searchPlateId = searchView.getContext().getResources().getIdentifier("android:id/search_plate", null, null);
         View searchPlate = searchView.findViewById(searchPlateId);
         if (searchPlate != null) {
-            searchPlate.setBackgroundResource(android.R.color.transparent); // Xóa nền mặc định của SearchView
+            searchPlate.setBackgroundResource(android.R.color.transparent);
         }
         int searchTextId = searchView.getContext().getResources().getIdentifier("android:id/search_src_text", null, null);
         TextView searchText = searchView.findViewById(searchTextId);
@@ -256,7 +279,6 @@ public class MessageListActivity extends AppCompatActivity {
         });
         membersRecyclerView.setAdapter(membersAdapter);
 
-        // Xử lý tìm kiếm
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
@@ -273,11 +295,11 @@ public class MessageListActivity extends AppCompatActivity {
         createGroupButton.setOnClickListener(v -> {
             String groupName = groupNameEditText.getText().toString().trim();
             if (groupName.isEmpty()) {
-                Toast.makeText(this, "Vui lòng nhập tên nhóm", Toast.LENGTH_SHORT).show();
+                showToast("Vui lòng nhập tên nhóm");
                 return;
             }
             if (selectedUsers.isEmpty()) {
-                Toast.makeText(this, "Vui lòng chọn ít nhất một thành viên", Toast.LENGTH_SHORT).show();
+                showToast("Vui lòng chọn ít nhất một thành viên");
                 return;
             }
             createGroup(groupName, selectedUsers);
@@ -287,41 +309,176 @@ public class MessageListActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    private void requestStoragePermission() {
+        String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ?
+                Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
+
+        if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
+            Log.d("MessageList", "Quyền đã được cấp: " + permission);
+            openGallery();
+        } else if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
+            showToast("Cần quyền truy cập thư viện để chọn ảnh đại diện");
+            ActivityCompat.requestPermissions(this, new String[]{permission}, STORAGE_PERMISSION_CODE);
+        } else {
+            Log.d("MessageList", "Yêu cầu quyền: " + permission);
+            ActivityCompat.requestPermissions(this, new String[]{permission}, STORAGE_PERMISSION_CODE);
+        }
+    }
+
+    private void openGallery() {
+        Intent intent = new Intent();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.setAction(MediaStore.ACTION_PICK_IMAGES);
+            intent.setType("image/*");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            Log.d("MessageList", "Trying ACTION_PICK_IMAGES");
+        } else {
+            intent.setAction(Intent.ACTION_PICK);
+            intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            Log.d("MessageList", "Trying ACTION_PICK");
+        }
+
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            try {
+                imagePickerLauncher.launch(intent);
+                Log.d("MessageList", "Launching intent: " + intent.getAction());
+            } catch (Exception e) {
+                Log.e("MessageList", "Lỗi mở thư viện: " + e.getMessage(), e);
+                showToast("Không thể mở thư viện ảnh");
+            }
+        } else {
+            intent.setAction(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            Log.d("MessageList", "Trying ACTION_GET_CONTENT as fallback");
+            if (intent.resolveActivity(getPackageManager()) != null) {
+                try {
+                    imagePickerLauncher.launch(Intent.createChooser(intent, "Chọn ứng dụng để chọn ảnh"));
+                    Log.d("MessageList", "Launching fallback intent with chooser");
+                } catch (Exception e) {
+                    Log.e("MessageList", "Lỗi mở thư viện (fallback): " + e.getMessage(), e);
+                    showToast("Không tìm thấy ứng dụng để chọn ảnh");
+                }
+            } else {
+                Log.e("MessageList", "Không có ứng dụng nào hỗ trợ chọn ảnh");
+                showToast("Không có ứng dụng nào hỗ trợ chọn ảnh. Vui lòng cài đặt Google Photos hoặc ứng dụng thư viện ảnh từ Play Store.");
+            }
+        }
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
+
+    private byte[] getBytesFromUri(Uri uri) {
+        try (InputStream inputStream = getContentResolver().openInputStream(uri)) {
+            if (inputStream == null) return null;
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                byteArrayOutputStream.write(buffer, 0, bytesRead);
+            }
+            return byteArrayOutputStream.toByteArray();
+        } catch (IOException e) {
+            Log.e("MessageList", "Lỗi đọc dữ liệu ảnh: " + e.getMessage(), e);
+            return null;
+        }
+    }
+
     private void createGroup(String groupName, List<User> members) {
+        StringBuilder errorMessage = new StringBuilder();
+        if (!isNetworkAvailable()) {
+            errorMessage.append("Không có kết nối mạng\n");
+        }
+        if (selectedImageUri == null) {
+            errorMessage.append("Vui lòng chọn ảnh đại diện cho nhóm\n");
+        }
+
+        if (errorMessage.length() > 0) {
+            showToast(errorMessage.toString().trim());
+            return;
+        }
+
         ConversationService conversationService = RetrofitClient.getApiConversationService();
 
-        // Tạo Conversation với is_group = true
-        Conversation conversation = new Conversation();
-        conversation.setGroup(true);
-        conversation.setName(groupName);
+        byte[] imageBytes = getBytesFromUri(selectedImageUri);
+        if (imageBytes == null) {
+            showToast("Không thể đọc ảnh");
+            return;
+        }
 
-        // Log dữ liệu gửi lên để kiểm tra
-        Log.d("CREATE_GROUP_REQUEST", "Sending Conversation: " + new Gson().toJson(conversation));
+        String fileName = "group_avatar_" + System.currentTimeMillis() + ".jpg";
+        RequestBody requestBody = RequestBody.create(MediaType.parse("image/jpeg"), imageBytes);
+        MultipartBody.Part avatarPart = MultipartBody.Part.createFormData("avatar", fileName, requestBody);
 
-        // Gửi yêu cầu tạo nhóm
-        Call<Conversation> call = conversationService.createGroupConversation(conversation);
-        call.enqueue(new Callback<Conversation>() {
+        Call<ResponseBody> uploadCall = conversationService.uploadGroupAvatar(avatarPart);
+        uploadCall.enqueue(new Callback<ResponseBody>() {
             @Override
-            public void onResponse(Call<Conversation> call, Response<Conversation> response) {
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    Conversation createdConversation = response.body();
-                    Log.d("CREATE_GROUP_RESPONSE", "Received Conversation: " + new Gson().toJson(createdConversation));
-                    if (!createdConversation.isGroup()) {
-                        Log.e("CREATE_GROUP_ERROR", "Backend returned a non-group conversation!");
-                        Toast.makeText(MessageListActivity.this, "Lỗi: Cuộc trò chuyện không phải là nhóm", Toast.LENGTH_SHORT).show();
-                        return;
+                    try {
+                        String avatarUrl = response.body().string();
+                        Log.d("UPLOAD_AVATAR", "Avatar URL: " + avatarUrl);
+
+                        Conversation conversation = new Conversation();
+                        conversation.setGroup(true);
+                        conversation.setName(groupName);
+                        conversation.setAvatarUrl(avatarUrl);
+
+                        Log.d("CREATE_GROUP_REQUEST", "Sending Conversation: " + new Gson().toJson(conversation));
+
+                        Call<Conversation> createGroupCall = conversationService.createGroupConversation(conversation);
+                        createGroupCall.enqueue(new Callback<Conversation>() {
+                            @Override
+                            public void onResponse(Call<Conversation> call, Response<Conversation> response) {
+                                if (response.isSuccessful() && response.body() != null) {
+                                    Conversation createdConversation = response.body();
+                                    Log.d("CREATE_GROUP_RESPONSE", "Received Conversation: " + new Gson().toJson(createdConversation));
+                                    if (!createdConversation.isGroup()) {
+                                        Log.e("CREATE_GROUP_ERROR", "Backend returned a non-group conversation!");
+                                        showToast("Lỗi: Cuộc trò chuyện không phải là nhóm");
+                                        return;
+                                    }
+                                    addMembersToGroup(createdConversation.getId(), members);
+                                } else {
+                                    Log.e("CREATE_GROUP_ERROR", "Error code: " + response.code() + ", message: " + response.message());
+                                    showToast("Tạo nhóm thất bại: " + response.message());
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(Call<Conversation> call, Throwable t) {
+                                Log.e("CREATE_GROUP_ERROR", "Request failed: " + t.getMessage());
+                                showToast("Lỗi: " + t.getMessage());
+                            }
+                        });
+                    } catch (IOException e) {
+                        Log.e("UPLOAD_ERROR", "Error reading response: " + e.getMessage(), e);
+                        showToast("Lỗi đọc phản hồi từ server: " + e.getMessage());
                     }
-                    addMembersToGroup(createdConversation.getId(), members);
                 } else {
-                    Log.e("CREATE_GROUP_ERROR", "Error code: " + response.code() + ", message: " + response.message());
-                    Toast.makeText(MessageListActivity.this, "Tạo nhóm thất bại: " + response.message(), Toast.LENGTH_SHORT).show();
+                    String errorBody = "Unknown error";
+                    try {
+                        if (response.errorBody() != null) {
+                            errorBody = response.errorBody().string();
+                        }
+                        Log.e("UPLOAD_ERROR", "Error code: " + response.code() + ", error body: " + errorBody);
+                        showToast("Upload ảnh thất bại, mã lỗi: " + response.code() + ", chi tiết: " + errorBody);
+                    } catch (IOException e) {
+                        Log.e("UPLOAD_ERROR", "Error reading error body: " + e.getMessage(), e);
+                        showToast("Upload ảnh thất bại, mã lỗi: " + response.code());
+                    }
                 }
             }
 
             @Override
-            public void onFailure(Call<Conversation> call, Throwable t) {
-                Log.e("CREATE_GROUP_ERROR", "Request failed: " + t.getMessage());
-                Toast.makeText(MessageListActivity.this, "Lỗi: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Log.e("UPLOAD_ERROR", "Request failed: " + t.getMessage(), t);
+                showToast("Upload ảnh thất bại: " + t.getMessage());
             }
         });
     }
@@ -330,47 +487,54 @@ public class MessageListActivity extends AppCompatActivity {
         ConversationService conversationService = RetrofitClient.getApiConversationService();
         List<ConversationMember> conversationMembers = new ArrayList<>();
 
-        // Thêm chính người dùng hiện tại (userID) vào nhóm (mặc định)
         User currentUser = new User();
         currentUser.setId(userID);
         ConversationMember currentUserMember = new ConversationMember();
-        currentUserMember.setConversation(new Conversation(conversationId, true, null, null, null, null));
+        currentUserMember.setConversation(new Conversation(conversationId, true, null, null, null, null, null));
         currentUserMember.setUser(currentUser);
         conversationMembers.add(currentUserMember);
 
-        // Thêm các thành viên được chọn
         for (User user : members) {
-            // Đảm bảo không thêm lại người dùng hiện tại nếu họ đã được chọn
             if (user.getId() != userID) {
                 ConversationMember member = new ConversationMember();
-                member.setConversation(new Conversation(conversationId, true, null, null, null, null));
+                member.setConversation(new Conversation(conversationId, true, null, null, null, null, null));
                 member.setUser(user);
                 conversationMembers.add(member);
             }
         }
 
-        // Log dữ liệu gửi lên để kiểm tra
         Log.d("ADD_MEMBERS_REQUEST", "Sending Members: " + new Gson().toJson(conversationMembers));
 
-        // Gửi yêu cầu thêm thành viên
         Call<Void> call = conversationService.addMembersToConversation(conversationId, conversationMembers);
         call.enqueue(new Callback<Void>() {
             @Override
             public void onResponse(Call<Void> call, Response<Void> response) {
                 if (response.isSuccessful()) {
-                    Toast.makeText(MessageListActivity.this, "Tạo nhóm thành công", Toast.LENGTH_SHORT).show();
-                    getChatUsers(userID); // Cập nhật danh sách cuộc trò chuyện
+                    showToast("Tạo nhóm thành công");
+                    getChatUsers(userID);
+                    selectedImageUri = null;
+                    if (avatar != null) {
+                        Glide.with(MessageListActivity.this).load(R.drawable.ic_user).circleCrop().into(avatar);
+                    }
                 } else {
                     Log.e("ADD_MEMBERS_ERROR", "Error code: " + response.code() + ", message: " + response.message());
-                    Toast.makeText(MessageListActivity.this, "Thêm thành viên thất bại: " + response.message(), Toast.LENGTH_SHORT).show();
+                    showToast("Thêm thành viên thất bại: " + response.message());
                 }
             }
 
             @Override
             public void onFailure(Call<Void> call, Throwable t) {
                 Log.e("ADD_MEMBERS_ERROR", "Request failed: " + t.getMessage());
-                Toast.makeText(MessageListActivity.this, "Lỗi: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                showToast("Lỗi: " + t.getMessage());
             }
         });
+    }
+
+    private void showToast(String message) {
+        if (currentToast != null) {
+            currentToast.cancel();
+        }
+        currentToast = Toast.makeText(this, message, Toast.LENGTH_LONG);
+        currentToast.show();
     }
 }

@@ -1,8 +1,10 @@
 package vn_hcmute.Real_Time_Chat_Final.service.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import vn_hcmute.Real_Time_Chat_Final.entity.Conversation;
 import vn_hcmute.Real_Time_Chat_Final.entity.ConversationMember;
 import vn_hcmute.Real_Time_Chat_Final.entity.Message;
@@ -13,10 +15,14 @@ import vn_hcmute.Real_Time_Chat_Final.repository.ConversationMemberRepository;
 import vn_hcmute.Real_Time_Chat_Final.repository.ConversationRepository;
 import vn_hcmute.Real_Time_Chat_Final.service.IConversationService;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,7 +31,8 @@ public class ConversationService implements IConversationService {
     private final ConversationRepository conversationRepository;
     private final UserServiceImpl userServiceImpl;
     private final ChatMessageRepository chatMessageRepository;
-
+    @Value("${file.upload-dir}")
+    private String uploadDir;
     @Autowired
     public ConversationService(ConversationRepository conversationRepository, UserServiceImpl userServiceImpl,ChatMessageRepository chatMessageRepository) {
         this.conversationRepository = conversationRepository;
@@ -110,10 +117,11 @@ public class ConversationService implements IConversationService {
 
     @Transactional
     @Override
-    public Conversation createConversation(boolean isGroup, String name) {
+    public Conversation createConversation(boolean isGroup, String name, String avatarUrl) {
         Conversation conversation = new Conversation();
-        conversation.setGroup(isGroup);
+        conversation.setGroup(true);
         conversation.setName(name);
+        conversation.setAvatarUrl(avatarUrl); // Gán avatarUrl
         conversation.setCreatedAt(new Timestamp(System.currentTimeMillis()));
         return conversationRepository.save(conversation);
     }
@@ -160,7 +168,7 @@ public class ConversationService implements IConversationService {
         if (existingChatRoomId.isPresent()) {
             return existingChatRoomId;
         } else if (createNewRoomIfNotExists) {
-            Conversation newConversation = createConversation(false, "New Chat");
+            Conversation newConversation = createConversation(false, "New Chat",null);
             return Optional.of(newConversation.getId());
         }
 
@@ -182,13 +190,13 @@ public class ConversationService implements IConversationService {
                     String lastMessageSenderName = lastMessageOpt.map(m -> m.getSender().getUsername()).orElse(null);
                     Long lastMessageSenderId = lastMessageOpt.map(m -> m.getSender().getId()).orElse(null);
                     User displayUser = null;
+                    String displayAvatarUrl = null;
                     String displayName;
 
                     if (conversation.isGroup()) {
                         displayName = conversation.getName(); // ✅ lấy tên nhóm
                         // bạn có thể chọn một thành viên làm đại diện avatar nếu muốn
-                        Optional<ConversationMember> anyMember = conversation.getMembers().stream().findFirst();
-                        displayUser = anyMember.map(ConversationMember::getUser).orElse(null);
+                        displayAvatarUrl = conversation.getAvatarUrl();
                     } else {
                         // ✅ lấy người còn lại (khác với userId)
                         Optional<ConversationMember> otherMemberOpt = conversation.getMembers()
@@ -196,6 +204,7 @@ public class ConversationService implements IConversationService {
                                 .filter(cm -> cm.getUser().getId() != userId)
                                 .findFirst();
                         displayUser = otherMemberOpt.map(ConversationMember::getUser).orElse(null);
+                        displayAvatarUrl = displayUser.getAvatarUrl();
                         displayName = displayUser != null ? displayUser.getUsername() : "Không xác định";
                     }
 
@@ -207,7 +216,7 @@ public class ConversationService implements IConversationService {
                             displayUser != null && displayUser.getCreatedAt() != null ? displayUser.getCreatedAt().toString() : "",
                             displayUser != null && displayUser.isStatus(),
                             (int) conversation.getId(),
-                            displayUser != null ? displayUser.getAvatarUrl() : null,
+                            displayAvatarUrl,
                             lastMessage,
                             lastMessageTime,
                             lastMessageSenderName,
@@ -216,7 +225,25 @@ public class ConversationService implements IConversationService {
                     );
                 }).collect(Collectors.toList());
     }
+    @Transactional
+    public String uploadAvatarGroup( MultipartFile file) throws Exception {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File ảnh không được để trống");
+        }
 
+        // Kiểm tra loại tệp
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("Chỉ được upload tệp ảnh (jpg, png, v.v.)");
+        }
+
+        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+        Path filePath = Paths.get(uploadDir, fileName);
+        Files.createDirectories(filePath.getParent());
+        Files.write(filePath, file.getBytes());
+        String avatarUrl = "/uploads/" + fileName;
+        return avatarUrl;
+    }
 
 
 }

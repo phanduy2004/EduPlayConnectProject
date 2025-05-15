@@ -1,14 +1,21 @@
 package com.myjob.real_time_chat_final.adapter;
 
+import static androidx.constraintlayout.helper.widget.MotionEffect.TAG;
+
+import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.google.android.material.imageview.ShapeableImageView;
 import com.myjob.real_time_chat_final.R;
 import com.myjob.real_time_chat_final.model.ListChat;
@@ -68,7 +75,6 @@ public class ListChatAdapter extends RecyclerView.Adapter<ListChatAdapter.UserVi
         }
         // Hiển thị tin nhắn cuối cùng
         holder.lastMessage.setText(conversations.getLastMessage() != null ? conversations.getLastMessage() : "Chưa có tin nhắn");
-        Log.d("LastMessageTime", "Time got from backend: " + conversations.getLastMessageTime().toString()); // Kiểm tra giá trị thô
         // Hiển thị thời gian tin nhắn cuối cùng
         Timestamp lastMessageTime = conversations.getLastMessageTime();
         if (lastMessageTime != null && lastMessageTime.getTime() != 0) {
@@ -82,20 +88,37 @@ public class ListChatAdapter extends RecyclerView.Adapter<ListChatAdapter.UserVi
 
         // Tải ảnh đại diện bằng Glide
         String baseUrl = RetrofitClient.getBaseUrl(); // Ví dụ: http://10.0.2.2:8686/
-        String avatarUrl = conversations.getAvatarUrl();
-        if (avatarUrl != null && !avatarUrl.isEmpty()) {
-            String fullAvatarUrl = baseUrl + avatarUrl;
+        String avatarUrl = baseUrl + conversations.getAvatarUrl();
+
+        Log.d(TAG, "Tải URL avatar: " + avatarUrl);
+        if (avatarUrl != null && avatarUrl.contains("/uploads/")) {
             Glide.with(holder.itemView.getContext())
-                    .load(fullAvatarUrl)
-                    .circleCrop()
+                    .load(avatarUrl)
+                    .thumbnail(0.25f)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .placeholder(R.drawable.ic_user)
+                    .circleCrop()
+                    .override(100, 100)
                     .error(R.drawable.ic_user)
+                    .listener(new RequestListener<Drawable>() {
+                        @Override
+                        public boolean onLoadFailed(@Nullable com.bumptech.glide.load.engine.GlideException e,
+                                                    Object model, Target<Drawable> target, boolean isFirstResource) {
+                            Log.e(TAG, "Tải avatar thất bại: " + avatarUrl, e);
+                            return false;
+                        }
+
+                        @Override
+                        public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target,
+                                                       com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
+                            Log.d(TAG, "Tải avatar thành công: " + avatarUrl);
+                            return false;
+                        }
+                    })
                     .into(holder.avatar);
         } else {
-            Glide.with(holder.itemView.getContext())
-                    .load(R.drawable.ic_user)
-                    .circleCrop()
-                    .into(holder.avatar);
+            Log.w(TAG, "URL avatar không hợp lệ: " + avatarUrl);
+            holder.avatar.setImageResource(R.drawable.ic_user);
         }
 
         // Xử lý click vào item

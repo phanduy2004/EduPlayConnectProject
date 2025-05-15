@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public interface IConversationService {
-    Conversation createConversation(boolean isGroup, String name);
+    Conversation createConversation(boolean isGroup, String name, String avatarUrl);
 
     Optional<Conversation> getConversationById(Long conversationId);
 
